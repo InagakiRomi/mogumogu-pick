@@ -1,0 +1,40 @@
+package com.romi.mogumogu.entity.restaurant;
+
+import org.hibernate.annotations.Comment;
+
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
+@Entity
+@Getter
+@Setter
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
+@Comment("餐廳分類表")
+public class RestaurantCategory {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Comment("分類 ID")
+    private Integer categoryId;
+
+    @Comment("所屬群組 ID")
+    @Column(nullable = false)
+    private Integer groupId;
+
+    @Comment("群組內排序 ID")
+    @Column(nullable = false)
+    private Integer displayOrder;
+
+    @Comment("分類名稱")
+    @Column(length = 32, nullable = false)
+    private String categoryName;
+}
