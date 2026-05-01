@@ -1,4 +1,4 @@
-# reset-db.ts
+# ResetDb.java
 
 快速重置資料庫並啟動對應 profile 的 Spring Boot。
 
@@ -7,7 +7,7 @@
 在 `backend` 根目錄執行（同一指令，由環境變數決定 MySQL 或 H2）：
 
 ```powershell
-npx tsx scripts/reset-db.ts
+java src/main/java/com/romi/mogumogu/scripts/ResetDb.java
 ```
 
 ## 會用到的環境變數
@@ -22,4 +22,5 @@ npx tsx scripts/reset-db.ts
 
 - 使用 MySQL 時需安裝並可執行 `mysql` 指令。
 - 若重置 H2 失敗，先停止正在跑的後端程式再重試。
+- 程式碼位置：`src/main/java/com/romi/mogumogu/scripts/ResetDb.java`。
 
