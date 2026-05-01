@@ -5,6 +5,9 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.Table;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -22,7 +25,9 @@ import org.hibernate.annotations.Comment;
 @NoArgsConstructor
 @AllArgsConstructor
 @Comment("餐廳表")
+@Table(name = "restaurant")
 public class Restaurant {
+
     @Comment("餐廳 ID")
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -33,7 +38,8 @@ public class Restaurant {
     private Integer groupId;
 
     @Comment("餐廳分類")
-    @Column(length = 32, nullable = false)
+    @ManyToOne(optional = false)
+    @JoinColumn(name = "category_id", nullable = false)
     private RestaurantCategory categoryId;
 
     @Comment("群組內排序 ID")
