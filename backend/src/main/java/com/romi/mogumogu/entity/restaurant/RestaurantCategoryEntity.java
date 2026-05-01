@@ -1,5 +1,7 @@
 package com.romi.mogumogu.entity.restaurant;
 
+import java.util.Date;
+
 import org.hibernate.annotations.Comment;
 
 import jakarta.persistence.Column;
@@ -21,8 +23,8 @@ import lombok.Setter;
 @NoArgsConstructor
 @AllArgsConstructor
 @Comment("餐廳分類表")
-@Table(name = "restaurant_categories")
-public class RestaurantCategory {
+@Table(name = "restaurant_category")
+public class RestaurantCategoryEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -40,4 +42,7 @@ public class RestaurantCategory {
     @Comment("分類名稱")
     @Column(length = 32, nullable = false)
     private String categoryName;
+
+    @Comment("資料建立時間")
+    private Date createdAt;
 }

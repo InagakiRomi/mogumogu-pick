@@ -26,7 +26,7 @@ import org.hibernate.annotations.Comment;
 @AllArgsConstructor
 @Comment("餐廳表")
 @Table(name = "restaurant")
-public class Restaurant {
+public class RestaurantEntity {
 
     @Comment("餐廳 ID")
     @Id
@@ -37,10 +37,10 @@ public class Restaurant {
     @Column(nullable = false)
     private Integer groupId;
 
-    @Comment("餐廳分類")
+    @Comment("餐廳分類 ID")
     @ManyToOne(optional = false)
     @JoinColumn(name = "category_id", nullable = false)
-    private RestaurantCategory categoryId;
+    private RestaurantCategoryEntity categoryId;
 
     @Comment("群組內排序 ID")
     @Column(nullable = false)
@@ -49,6 +49,10 @@ public class Restaurant {
     @Comment("餐廳名稱")
     @Column(length = 64, nullable = false)
     private String restaurantName;
+    
+    @Comment("補充說明或備註")
+    @Column(length = 512)
+    private String note;
 
     @Comment("餐廳圖片URL")
     @Column(length = 512)
@@ -66,8 +70,4 @@ public class Restaurant {
 
     @Comment("資料最後更新時間")
     private Date updatedAt;
-
-    @Comment("補充說明或備註")
-    @Column(length = 512)
-    private String note;
 }
