@@ -42,14 +42,14 @@ public class RestaurantEntity {
     @JoinColumn(name = "category_id", nullable = false)
     private RestaurantCategoryEntity categoryId;
 
-    @Comment("群組內排序 ID")
+    @Comment("群組內排序")
     @Column(nullable = false)
     private Integer displayOrder;
 
     @Comment("餐廳名稱")
     @Column(length = 64, nullable = false)
     private String restaurantName;
-    
+
     @Comment("補充說明或備註")
     @Column(length = 512)
     private String note;
