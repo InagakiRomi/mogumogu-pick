@@ -26,8 +26,12 @@ import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.ss.usermodel.Workbook;
 import org.apache.poi.ss.usermodel.WorkbookFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class ExcelToSql {
+
+    private static final Logger log = LoggerFactory.getLogger(ExcelToSql.class);
 
     /** Excel 來源目錄名稱 */
     private static final String EXCEL_DATA_DIR = "excel-data";
@@ -85,11 +89,10 @@ public class ExcelToSql {
             List<String> h2Statements = orderSqlStatements(h2TableSql);
             Path mysqlOutputPath = writeSqlFile(mysqlStatements, outputDir, MYSQL_OUTPUT_FILE);
             Path h2OutputPath = writeSqlFile(h2Statements, outputDir, H2_OUTPUT_FILE);
-            System.out.println("已寫入 MySQL SQL： " + mysqlOutputPath.toAbsolutePath());
-            System.out.println("已寫入 H2 SQL： " + h2OutputPath.toAbsolutePath());
+            log.info("已寫入 MySQL SQL： {}", mysqlOutputPath.toAbsolutePath());
+            log.info("已寫入 H2 SQL： {}", h2OutputPath.toAbsolutePath());
         } catch (Exception ex) {
-            System.err.println("失敗：" + ex.getMessage());
-            ex.printStackTrace(System.err);
+            log.error("失敗：{}", ex.getMessage(), ex);
         }
     }
 

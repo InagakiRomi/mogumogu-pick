@@ -17,7 +17,12 @@ import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 public class ImportGeneratedSql {
+
+    private static final Logger log = LoggerFactory.getLogger(ImportGeneratedSql.class);
     /** ExcelToSql 輸出的 SQL 目錄；MySQL/H2 都從這裡讀取 */
     private static final String GENERATED_SQL_DIR = "sql/generated";
     /** MySQL 匯入來源檔名 */
@@ -65,7 +70,7 @@ public class ImportGeneratedSql {
             );
         }
 
-        System.out.println("MySQL、H2 匯入皆成功。");
+        log.info("MySQL、H2 匯入皆成功。");
     }
 
     /** 匯入 MySQL：驗證 generated SQL、清空目標表，再重新寫入資料 */
@@ -89,18 +94,18 @@ public class ImportGeneratedSql {
             clearMysqlTables(connection);
             executeSqlFile(connection, mysqlSqlPath);
             connection.commit();
-            System.out.println("[MySQL] 清空並匯入完成：" + mysqlSqlPath.toAbsolutePath());
+            log.info("[MySQL] 清空並匯入完成：{}", mysqlSqlPath.toAbsolutePath());
         } catch (SQLException ex) {
             String message = ex.getMessage() == null ? "" : ex.getMessage();
             // 連線層級問題視為可略過，讓 H2 匯入仍可往下執行
             if (isConnectivityError(ex)) {
-                System.err.println("[警告] MySQL 連線失敗，已略過 MySQL 匯入，改繼續執行 H2。原因：" + message);
+                log.warn("[警告] MySQL 連線失敗，已略過 MySQL 匯入，改繼續執行 H2。原因：{}", message);
             } else {
-                System.err.println("[MySQL] 匯入失敗：" + message);
+                log.error("[MySQL] 匯入失敗：{}", message);
             }
             failures.add("MySQL 失敗：" + message);
         } catch (Exception ex) {
-            System.err.println("[MySQL] 匯入失敗：" + ex.getMessage());
+            log.error("[MySQL] 匯入失敗：{}", ex.getMessage(), ex);
             failures.add("MySQL 失敗：" + ex.getMessage());
         }
     }
@@ -121,9 +126,9 @@ public class ImportGeneratedSql {
             clearH2Tables(connection);
             executeSqlFile(connection, h2SqlPath);
             connection.commit();
-            System.out.println("[H2] 清空並匯入完成：" + h2SqlPath.toAbsolutePath());
+            log.info("[H2] 清空並匯入完成：{}", h2SqlPath.toAbsolutePath());
         } catch (Exception ex) {
-            System.err.println("[H2] 匯入失敗：" + ex.getMessage());
+            log.error("[H2] 匯入失敗：{}", ex.getMessage(), ex);
             failures.add("H2 失敗：" + ex.getMessage());
         }
     }
