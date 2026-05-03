@@ -1,55 +1,48 @@
 package com.romi.mogumogu.config;
 
-import java.sql.Connection;
-import java.sql.SQLException;
 import java.util.Locale;
+import java.util.logging.Logger;
 
-import javax.sql.DataSource;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import com.romi.mogumogu.logging.JulLoggerFactory;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.core.env.Environment;
 import org.springframework.stereotype.Component;
 
-/** 啟動後把資料庫種類、JDBC URL、active profiles 打到 log */
+/** 啟動後將資料庫種類寫入 log */
 @Component
 public class DatabaseStartupLogger implements ApplicationRunner {
 
-	private static final Logger log = LoggerFactory.getLogger(DatabaseStartupLogger.class);
+	private static final Logger log = new JulLoggerFactory().printMainLog();
 
-	private final DataSource dataSource;
 	private final Environment environment;
 
-	/** Spring 注入 DataSource 與 Environment */
-	public DatabaseStartupLogger(DataSource dataSource, Environment environment) {
-		this.dataSource = dataSource;
+	/** 注入 Environment 以讀取 spring.datasource 相關設定 */
+	public DatabaseStartupLogger(Environment environment) {
 		this.environment = environment;
 	}
 
-	/** 讀 JDBC URL、判斷種類並寫 log */
+	/** 啟動完成時輸出目前連線種類 */
 	@Override
 	public void run(ApplicationArguments args) {
-		String profiles = String.join(", ", environment.getActiveProfiles());
-		if (profiles.isEmpty()) {
-			profiles = "(default)";
-		}
-		String jdbcUrl;
-		try (Connection connection = dataSource.getConnection()) {
-			jdbcUrl = connection.getMetaData().getURL();
-		} catch (SQLException ex) {
-			jdbcUrl = "（無法取得：" + ex.getMessage() + "）";
-			log.warn("[資料來源] 讀取 JDBC URL 失敗", ex);
-		}
+		String jdbcUrl = resolveJdbcUrlFromEnvironment();
 		String kind = resolveDatabaseKind(jdbcUrl);
-		log.info("[資料來源] 目前連線：{}｜作用中 profiles：{}", kind, profiles);
-		log.info("[資料來源] JDBC URL：{}", jdbcUrl);
+		log.info(String.format("目前連線：%s", kind));
 	}
 
-	/** 從 JDBC URL 辨識 MySQL 或 H2 */
+	/** 讀取 spring.datasource.url 或 spring.datasource.jdbc-url */
+	private String resolveJdbcUrlFromEnvironment() {
+		String url = environment.getProperty("spring.datasource.url");
+		if (url != null && !url.isBlank()) {
+			return url;
+		}
+		String jdbcUrl = environment.getProperty("spring.datasource.jdbc-url");
+		return jdbcUrl != null && !jdbcUrl.isBlank() ? jdbcUrl : "";
+	}
+
+	/** 依 JDBC URL 回傳 MySQL、H2 或未知 */
 	private static String resolveDatabaseKind(String jdbcUrl) {
-		if (jdbcUrl == null || jdbcUrl.startsWith("（")) {
+		if (jdbcUrl == null || jdbcUrl.isBlank()) {
 			return "未知";
 		}
 		String lower = jdbcUrl.toLowerCase(Locale.ROOT);
