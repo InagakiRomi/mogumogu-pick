@@ -14,15 +14,16 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Set;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import com.romi.mogumogu.logging.JulLoggerFactory;
 
 public class ImportGeneratedSql {
 
-    private static final Logger log = LoggerFactory.getLogger(ImportGeneratedSql.class);
+    private static final Logger log = new JulLoggerFactory().printToolLog();
     /** ExcelToSql 輸出的 SQL 目錄；MySQL/H2 都從這裡讀取 */
     private static final String GENERATED_SQL_DIR = "sql/generated";
     /** MySQL 匯入來源檔名 */
@@ -94,18 +95,19 @@ public class ImportGeneratedSql {
             clearMysqlTables(connection);
             executeSqlFile(connection, mysqlSqlPath);
             connection.commit();
-            log.info("[MySQL] 清空並匯入完成：{}", mysqlSqlPath.toAbsolutePath());
+            log.info("[MySQL] 清空並匯入完成：" + mysqlSqlPath.toAbsolutePath());
         } catch (SQLException ex) {
             String message = ex.getMessage() == null ? "" : ex.getMessage();
             // 連線層級問題視為可略過，讓 H2 匯入仍可往下執行
             if (isConnectivityError(ex)) {
-                log.warn("[警告] MySQL 連線失敗，已略過 MySQL 匯入，改繼續執行 H2。原因：{}", message);
+                log.warning(
+                        "[警告] MySQL 連線失敗，已略過 MySQL 匯入，改繼續執行 H2。原因：" + message);
             } else {
-                log.error("[MySQL] 匯入失敗：{}", message);
+                log.severe("[MySQL] 匯入失敗：" + message);
             }
             failures.add("MySQL 失敗：" + message);
         } catch (Exception ex) {
-            log.error("[MySQL] 匯入失敗：{}", ex.getMessage(), ex);
+            log.log(Level.SEVERE, "[MySQL] 匯入失敗：" + ex.getMessage(), ex);
             failures.add("MySQL 失敗：" + ex.getMessage());
         }
     }
@@ -126,9 +128,9 @@ public class ImportGeneratedSql {
             clearH2Tables(connection);
             executeSqlFile(connection, h2SqlPath);
             connection.commit();
-            log.info("[H2] 清空並匯入完成：{}", h2SqlPath.toAbsolutePath());
+            log.info("[H2] 清空並匯入完成：" + h2SqlPath.toAbsolutePath());
         } catch (Exception ex) {
-            log.error("[H2] 匯入失敗：{}", ex.getMessage(), ex);
+            log.log(Level.SEVERE, "[H2] 匯入失敗：" + ex.getMessage(), ex);
             failures.add("H2 失敗：" + ex.getMessage());
         }
     }
@@ -266,7 +268,7 @@ public class ImportGeneratedSql {
             errors.add(
                 "第 "
                     + statementIndex
-                    + " 條：資料表「"
+                    + " 條（資料表「"
                     + table
                     + "」在目前資料庫中不存在。"
             );

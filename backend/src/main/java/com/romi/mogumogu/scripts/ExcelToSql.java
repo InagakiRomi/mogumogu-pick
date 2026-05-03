@@ -15,8 +15,11 @@ import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+
 import org.apache.poi.ss.usermodel.Cell;
 import org.apache.poi.ss.usermodel.CellType;
 import org.apache.poi.ss.usermodel.CellValue;
@@ -26,12 +29,12 @@ import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.ss.usermodel.Workbook;
 import org.apache.poi.ss.usermodel.WorkbookFactory;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+
+import com.romi.mogumogu.logging.JulLoggerFactory;
 
 public class ExcelToSql {
 
-    private static final Logger log = LoggerFactory.getLogger(ExcelToSql.class);
+    private static final Logger log = new JulLoggerFactory().printToolLog();
 
     /** Excel 來源目錄名稱 */
     private static final String EXCEL_DATA_DIR = "excel-data";
@@ -48,17 +51,15 @@ public class ExcelToSql {
     private static final int FIRST_DATA_ROW_INDEX = 2;
 
     /** 日期時間格式化 */
-    private static final DateTimeFormatter DATE_TIME_FORMATTER =
-        DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+    private static final DateTimeFormatter DATE_TIME_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 
     /** 多表 INSERT 輸出順序 */
     private static final List<String> TABLE_ORDER = List.of(
-        "user_groups",
-        "restaurants",
-        "restaurant_history",
-        "dishes",
-        "users"
-    );
+            "user_groups",
+            "restaurants",
+            "restaurant_history",
+            "dishes",
+            "users");
 
     /** SQL 方言 */
     private enum SqlDialect {
@@ -67,7 +68,8 @@ public class ExcelToSql {
     }
 
     /** 標題列：欄索引與欄名 */
-    private record ColumnLayout(List<Integer> columnIndexes, List<String> columnNames) {}
+    private record ColumnLayout(List<Integer> columnIndexes, List<String> columnNames) {
+    }
 
     public static void main(String[] args) {
         try {
@@ -81,18 +83,17 @@ public class ExcelToSql {
             Map<String, String> h2TableSql = loadTableSqlFromExcels(excelDataDir, SqlDialect.H2);
             if (mysqlTableSql.isEmpty() || h2TableSql.isEmpty()) {
                 throw new IllegalStateException(
-                    "未產生任何 INSERT：請確認 .xlsx 第 2 列為欄名、第 3 列起有資料"
-                );
+                        "未產生任何 INSERT：請確認 .xlsx 第 2 列為欄名、第 3 列起有資料");
             }
             // 排序後寫入檔案
             List<String> mysqlStatements = orderSqlStatements(mysqlTableSql);
             List<String> h2Statements = orderSqlStatements(h2TableSql);
             Path mysqlOutputPath = writeSqlFile(mysqlStatements, outputDir, MYSQL_OUTPUT_FILE);
             Path h2OutputPath = writeSqlFile(h2Statements, outputDir, H2_OUTPUT_FILE);
-            log.info("已寫入 MySQL SQL： {}", mysqlOutputPath.toAbsolutePath());
-            log.info("已寫入 H2 SQL： {}", h2OutputPath.toAbsolutePath());
+            log.info("已寫入 MySQL SQL： " + mysqlOutputPath.toAbsolutePath());
+            log.info("已寫入 H2 SQL： " + h2OutputPath.toAbsolutePath());
         } catch (Exception ex) {
-            log.error("失敗：{}", ex.getMessage(), ex);
+            log.log(Level.SEVERE, "失敗：" + ex.getMessage(), ex);
         }
     }
 
@@ -123,7 +124,7 @@ public class ExcelToSql {
     /** 是否為模組根 */
     private static boolean hasModuleLayout(Path dir) {
         return Files.isRegularFile(dir.resolve("pom.xml"))
-            && Files.isDirectory(dir.resolve("src/main/resources"));
+                && Files.isDirectory(dir.resolve("src/main/resources"));
     }
 
     /** 解析 excel-data 目錄 */
@@ -154,14 +155,14 @@ public class ExcelToSql {
             throw new IllegalStateException("資料夾內沒有任何 .xlsx：" + existingButEmpty.toAbsolutePath());
         }
         throw new IllegalStateException(
-            "找不到含 .xlsx 的 excel-data。已嘗試："
-                + candidates.stream().map(path -> path.toAbsolutePath().toString()).collect(Collectors.joining(", "))
-        );
+                "找不到含 .xlsx 的 excel-data。已嘗試："
+                        + candidates.stream().map(path -> path.toAbsolutePath().toString())
+                                .collect(Collectors.joining(", ")));
     }
 
     /** 掃描 xlsx，產生各表 INSERT */
     private static Map<String, String> loadTableSqlFromExcels(Path excelDataDir, SqlDialect dialect)
-        throws IOException {
+            throws IOException {
         // 目錄與 xlsx 列表
         if (!Files.isDirectory(excelDataDir)) {
             throw new IllegalStateException("找不到資料夾：" + excelDataDir.toAbsolutePath());
@@ -190,12 +191,12 @@ public class ExcelToSql {
         try (Stream<Path> stream = Files.list(directory)) {
             // .xlsx、排除 ~$，檔名排序
             return stream
-                .filter(path -> {
-                    String n = path.getFileName().toString();
-                    return n.toLowerCase().endsWith(".xlsx") && !n.startsWith("~$");
-                })
-                .sorted(Comparator.comparing(path -> path.getFileName().toString().toLowerCase()))
-                .collect(Collectors.toList());
+                    .filter(path -> {
+                        String n = path.getFileName().toString();
+                        return n.toLowerCase().endsWith(".xlsx") && !n.startsWith("~$");
+                    })
+                    .sorted(Comparator.comparing(path -> path.getFileName().toString().toLowerCase()))
+                    .collect(Collectors.toList());
         }
     }
 
@@ -216,19 +217,18 @@ public class ExcelToSql {
         // 列出疑似未關閉的檔名
         String detail = openLike.stream().map(n -> "  - " + n).collect(Collectors.joining("\n"));
         throw new IllegalStateException(
-            "下列 .xlsx 可能仍於 Excel 中開啟（同資料夾存在對應的 ~$ 鎖定檔），已中止產生 SQL。"
-                + "請先儲存並完全關閉活頁簿；若已關閉，請刪除「"
-                + excelDataDir.toAbsolutePath()
-                + "」內以 ~$ 開頭的暫存檔後再執行。\n"
-                + detail
-        );
+                "下列 .xlsx 可能仍於 Excel 中開啟（同資料夾存在對應的 ~$ 鎖定檔），已中止產生 SQL。"
+                        + "請先儲存並完全關閉活頁簿；若已關閉，請刪除「"
+                        + excelDataDir.toAbsolutePath()
+                        + "」內以 ~$ 開頭的暫存檔後再執行。\n"
+                        + detail);
     }
 
     /** 單一 xlsx → INSERT（第一張工作表） */
     private static String excelToInsertSql(Path excelPath, String tableName, SqlDialect dialect)
-        throws IOException {
+            throws IOException {
         try (InputStream inputStream = Files.newInputStream(excelPath);
-             Workbook workbook = WorkbookFactory.create(inputStream)) {
+                Workbook workbook = WorkbookFactory.create(inputStream)) {
             if (workbook.getNumberOfSheets() == 0) {
                 return "";
             }
@@ -241,11 +241,10 @@ public class ExcelToSql {
 
     /** 工作表 → 單條 INSERT */
     private static String sheetToInsertSql(
-        Sheet sheet,
-        String tableName,
-        FormulaEvaluator formulaEvaluator,
-        SqlDialect dialect
-    ) {
+            Sheet sheet,
+            String tableName,
+            FormulaEvaluator formulaEvaluator,
+            SqlDialect dialect) {
         Row headerRow = sheet.getRow(HEADER_ROW_INDEX);
         if (headerRow == null) {
             throw new IllegalStateException("第 2 列不存在（表：" + tableName + "）");
@@ -254,11 +253,10 @@ public class ExcelToSql {
         // 欄名與資料列
         ColumnLayout layout = parseColumnLayout(headerRow, tableName);
         List<String> valueTuples = collectValueTuples(
-            sheet,
-            layout,
-            formulaEvaluator,
-            dialect
-        );
+                sheet,
+                layout,
+                formulaEvaluator,
+                dialect);
 
         if (valueTuples.isEmpty()) {
             return "";
@@ -266,8 +264,8 @@ public class ExcelToSql {
 
         // 單條 INSERT
         return "INSERT INTO " + tableName + "\n(" + String.join(", ", layout.columnNames()) + ") VALUES\n"
-            + String.join(",\n", valueTuples)
-            + ";";
+                + String.join(",\n", valueTuples)
+                + ";";
     }
 
     /** 解析欄名列 */
@@ -296,11 +294,10 @@ public class ExcelToSql {
 
     /** 組出 VALUES 括號字串（略過空白列） */
     private static List<String> collectValueTuples(
-        Sheet sheet,
-        ColumnLayout layout,
-        FormulaEvaluator formulaEvaluator,
-        SqlDialect dialect
-    ) {
+            Sheet sheet,
+            ColumnLayout layout,
+            FormulaEvaluator formulaEvaluator,
+            SqlDialect dialect) {
         List<Integer> columnIndexes = layout.columnIndexes();
         List<String> valuesList = new ArrayList<>();
         int lastRowNum = sheet.getLastRowNum();
@@ -364,18 +361,16 @@ public class ExcelToSql {
 
     /** CellValue → SQL 片段 */
     private static String escapeEvaluatedCell(
-        Cell originalCell,
-        CellValue evaluated,
-        SqlDialect dialect
-    ) {
+            Cell originalCell,
+            CellValue evaluated,
+            SqlDialect dialect) {
         // 求值後型別對應 SQL
         return switch (evaluated.getCellType()) {
             case STRING -> quoteString(evaluated.getStringValue());
             case BOOLEAN -> formatBoolean(evaluated.getBooleanValue(), dialect);
             case NUMERIC -> formatNumericOrDate(
-                evaluated.getNumberValue(),
-                DateUtil.isCellDateFormatted(originalCell)
-            );
+                    evaluated.getNumberValue(),
+                    DateUtil.isCellDateFormatted(originalCell));
             case BLANK, ERROR, _NONE -> "NULL";
             default -> quoteString(evaluated.formatAsString());
         };
@@ -386,9 +381,8 @@ public class ExcelToSql {
         // 日期儲存格→字串；否則數字字面
         if (isDateCell) {
             LocalDateTime localDateTime = LocalDateTime.ofInstant(
-                DateUtil.getJavaDate(numericValue).toInstant(),
-                ZoneId.systemDefault()
-            );
+                    DateUtil.getJavaDate(numericValue).toInstant(),
+                    ZoneId.systemDefault());
             return quoteString(localDateTime.format(DATE_TIME_FORMATTER));
         }
 
@@ -418,9 +412,9 @@ public class ExcelToSql {
 
         // 其餘依表名排序
         remaining.entrySet().stream()
-            .sorted(Map.Entry.comparingByKey())
-            .map(Map.Entry::getValue)
-            .forEach(orderedStatements::add);
+                .sorted(Map.Entry.comparingByKey())
+                .map(Map.Entry::getValue)
+                .forEach(orderedStatements::add);
 
         return orderedStatements;
     }

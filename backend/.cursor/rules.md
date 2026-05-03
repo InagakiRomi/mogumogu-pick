@@ -1,4 +1,4 @@
-# 註解風格（對齊 `logging/formatter/MyCustomFormatter`）
+# 註解風格（對齊 `logging/formatter/AnsiColoredJulFormatter`）
 
 撰寫註解時比照該檔：繁體中文、簡短、說用途或區塊在做什麼即可。
 

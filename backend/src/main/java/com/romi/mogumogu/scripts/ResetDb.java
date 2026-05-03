@@ -8,8 +8,13 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.logging.Logger;
+
+import com.romi.mogumogu.logging.JulLoggerFactory;
 
 public class ResetDb {
+
+    private static final Logger log = new JulLoggerFactory().printToolLog();
     /** 本腳本支援在未設定環境變數時，仍可用本機預設值快速重建資料庫 */
     private static final String DEFAULT_DB_NAME = "mogumogu";
     /** 預設 MySQL 主機位置 */
@@ -19,10 +24,10 @@ public class ResetDb {
     /** 預設 MySQL 使用者 */
     private static final String DEFAULT_MYSQL_USER = "root";
     /** 固定使用檔案型 H2，重建後資料會落在 ./data 下，方便本機開發檢查 */
-    private static final String H2_URL =
-        "jdbc:h2:file:./data/mogumogu;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE;TRACE_LEVEL_FILE=0";
+    private static final String H2_URL = "jdbc:h2:file:./data/mogumogu;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE;TRACE_LEVEL_FILE=0";
 
     public static void main(String[] args) throws Exception {
+        log.info("ResetDb 開始");
         Map<String, String> env = loadRuntimeEnv();
         String activeProfiles = env.getOrDefault("SPRING_PROFILES_ACTIVE", "");
 
@@ -55,7 +60,7 @@ public class ResetDb {
         String mysqlPassword = env.getOrDefault("DB_PASSWORD", "");
         // 先刪後建，確保 schema 能完全重置為乾淨狀態
         String sql = "DROP DATABASE IF EXISTS " + dbName + "; CREATE DATABASE " + dbName
-            + " CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;";
+                + " CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;";
 
         List<String> mysqlCommand = new ArrayList<>();
         mysqlCommand.add("mysql");
@@ -79,43 +84,38 @@ public class ResetDb {
         runOrThrow(mysqlProcessBuilder, mysqlCommand);
 
         // 啟動 Spring Boot 觸發 migration/seed，讓新資料庫立即可用
-        ProcessBuilder springBootProcessBuilder =
-            new ProcessBuilder("mvnw.cmd", "spring-boot:run", "-Dspring-boot.run.profiles=mysql")
+        ProcessBuilder springBootProcessBuilder = new ProcessBuilder("mvnw.cmd", "spring-boot:run",
+                "-Dspring-boot.run.profiles=mysql")
                 .directory(new File("."))
                 .inheritIO();
         springBootProcessBuilder.environment().putAll(env);
         runOrThrow(
-            springBootProcessBuilder,
-            List.of("mvnw.cmd", "spring-boot:run", "-Dspring-boot.run.profiles=mysql")
-        );
+                springBootProcessBuilder,
+                List.of("mvnw.cmd", "spring-boot:run", "-Dspring-boot.run.profiles=mysql"));
     }
 
     /** 清除舊 H2 檔案後，以固定 URL 啟動 Spring Boot 重建資料 */
     private static void resetH2(Map<String, String> env) throws Exception {
         // 清除既有 H2 檔案；找不到檔案時不視為錯誤，讓腳本可重複執行
         runOrThrow(
-            new ProcessBuilder(
-                "powershell",
-                "-NoProfile",
-                "-Command",
-                "$ErrorActionPreference='SilentlyContinue'; Remove-Item -Path '.\\data\\mogumogu*' -Force; exit 0"
-            ).directory(new File(".")).inheritIO(),
-            List.of("powershell", "-NoProfile", "-Command", "Remove-Item .\\data\\mogumogu*")
-        );
+                new ProcessBuilder(
+                        "powershell",
+                        "-NoProfile",
+                        "-Command",
+                        "$ErrorActionPreference='SilentlyContinue'; Remove-Item -Path '.\\data\\mogumogu*' -Force; exit 0")
+                        .directory(new File(".")).inheritIO(),
+                List.of("powershell", "-NoProfile", "-Command", "Remove-Item .\\data\\mogumogu*"));
 
         // 以固定 URL 啟動，確保 H2 資料落在預期路徑而非暫存資料庫
-        ProcessBuilder springBootProcessBuilder =
-            new ProcessBuilder(
+        ProcessBuilder springBootProcessBuilder = new ProcessBuilder(
                 "mvnw.cmd",
                 "spring-boot:run",
                 "-Dspring-boot.run.profiles=h2",
-                "-Dspring-boot.run.arguments=--spring.datasource.url=" + H2_URL
-            ).directory(new File(".")).inheritIO();
+                "-Dspring-boot.run.arguments=--spring.datasource.url=" + H2_URL).directory(new File(".")).inheritIO();
         springBootProcessBuilder.environment().putAll(env);
         runOrThrow(
-            springBootProcessBuilder,
-            List.of("mvnw.cmd", "spring-boot:run", "-Dspring-boot.run.profiles=h2")
-        );
+                springBootProcessBuilder,
+                List.of("mvnw.cmd", "spring-boot:run", "-Dspring-boot.run.profiles=h2"));
     }
 
     /** 合併系統環境變數與 .env，讓直接執行 java 也能帶到專案設定 */
