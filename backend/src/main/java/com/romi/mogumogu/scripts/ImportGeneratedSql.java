@@ -24,47 +24,36 @@ import com.romi.mogumogu.logging.JulLoggerFactory;
 public class ImportGeneratedSql {
 
     private static final Logger log = new JulLoggerFactory().printToolLog();
-    /** ExcelToSql 輸出的 SQL 目錄；MySQL/H2 都從這裡讀取 */
+    /** 產生 SQL 的目錄 */
     private static final String GENERATED_SQL_DIR = "sql/generated";
-    /** MySQL 匯入來源檔名 */
+    /** MySQL 匯入來源檔 */
     private static final String MYSQL_SQL_FILE = "data-mysql.sql";
-    /** H2 匯入來源檔名 */
+    /** H2 匯入來源檔 */
     private static final String H2_SQL_FILE = "data-h2.sql";
 
-    /** 未設定 DB_HOST 時使用的 MySQL 主機 */
     private static final String DEFAULT_MYSQL_HOST = "localhost";
-    /** 未設定 DB_PORT 時使用的 MySQL 連線埠 */
     private static final String DEFAULT_MYSQL_PORT = "3306";
-    /** 未設定 DB_NAME 時使用的 MySQL 資料庫名稱 */
     private static final String DEFAULT_MYSQL_DB = "mogumogu";
-    /** 未設定 DB_USERNAME 時使用的 MySQL 帳號 */
     private static final String DEFAULT_MYSQL_USER = "root";
-    /** 未設定 DB_PASSWORD 時使用的 MySQL 密碼 */
     private static final String DEFAULT_MYSQL_PASSWORD = "";
 
-    /** 固定使用檔案型 H2，讓重建資料能保留在 ./data 供本機檢查 */
     private static final String DEFAULT_H2_URL =
         "jdbc:h2:file:./data/mogumogu;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE";
-    /** H2 預設帳號（未額外覆寫時沿用） */
     private static final String DEFAULT_H2_USER = "sa";
-    /** H2 預設密碼（本機開發通常為空） */
     private static final String DEFAULT_H2_PASSWORD = "";
 
-    /** 清空資料時需保留的系統表，避免破壞 migration 歷史 */
     private static final Set<String> EXCLUDED_TABLES = Set.of("flyway_schema_history");
-    /** 僅接受 generated SQL 會產生的 INSERT 樣式，避免誤判任意 SQL */
     private static final Pattern SIMPLE_INSERT_PATTERN = Pattern.compile(
         "(?is)^INSERT\\s+INTO\\s+([`\"]?[A-Za-z0-9_]+[`\"]?)\\s*\\(([^)]*)\\)\\s+VALUES\\b"
     );
 
+    /** 依序匯入 MySQL 與 H2，最後彙整失敗項目 */
     public static void main(String[] args) throws Exception {
         List<String> failures = new ArrayList<>();
 
-        // MySQL/H2 分開執行，單邊失敗時另一邊仍可完成
-        runMysqlImport(failures);
-        runH2Import(failures);
+        runImport(mysqlTarget(), failures);
+        runImport(h2Target(), failures);
 
-        // 全部流程跑完再彙總失敗，讓批次腳本可一次看完所有問題
         if (!failures.isEmpty()) {
             throw new IllegalStateException(
                 "匯入完成，但有失敗項目：\n - " + String.join("\n - ", failures)
@@ -74,117 +63,46 @@ public class ImportGeneratedSql {
         log.info("MySQL、H2 匯入皆成功。");
     }
 
-    /** 匯入 MySQL：驗證 generated SQL、清空目標表，再重新寫入資料 */
-    private static void runMysqlImport(List<String> failures) {
-        String dbHost = env("DB_HOST", DEFAULT_MYSQL_HOST);
-        String dbPort = env("DB_PORT", DEFAULT_MYSQL_PORT);
-        String dbName = env("DB_NAME", DEFAULT_MYSQL_DB);
-        String dbUser = env("DB_USERNAME", DEFAULT_MYSQL_USER);
-        String dbPassword = env("DB_PASSWORD", DEFAULT_MYSQL_PASSWORD);
-
-        String mysqlUrl = "jdbc:mysql://" + dbHost + ":" + dbPort + "/" + dbName
-            + "?serverTimezone=Asia/Taipei&characterEncoding=utf-8&allowMultiQueries=true";
-
-        Path mysqlSqlPath = Path.of(GENERATED_SQL_DIR, MYSQL_SQL_FILE);
-
-        try (Connection connection = DriverManager.getConnection(mysqlUrl, dbUser, dbPassword)) {
+    /** 單一資料庫匯入流程：驗證 SQL -> 清空表 -> 執行 SQL */
+    private static void runImport(ImportTarget target, List<String> failures) {
+        try (Connection connection = DriverManager.getConnection(target.url(), target.user(), target.password())) {
             connection.setAutoCommit(false);
-            // 先驗證 SQL 與當前資料庫 schema 相容，避免清空後才發現欄位不一致
-            validateGeneratedSqlAgainstConnection(connection, mysqlSqlPath, "MySQL", true);
-            // 先清空再匯入，確保資料庫內容完全由 generated SQL 決定
-            clearMysqlTables(connection);
-            executeSqlFile(connection, mysqlSqlPath);
+            validateGeneratedSqlAgainstConnection(connection, target.sqlPath(), target.label(), target.mysql());
+            clearTables(connection, target);
+            executeSqlFile(connection, target.sqlPath());
             connection.commit();
-            log.info("[MySQL] 清空並匯入完成：" + mysqlSqlPath.toAbsolutePath());
+            log.info("[" + target.label() + "] 清空並匯入完成：" + target.sqlPath().toAbsolutePath());
         } catch (SQLException ex) {
             String message = ex.getMessage() == null ? "" : ex.getMessage();
-            // 連線層級問題視為可略過，讓 H2 匯入仍可往下執行
-            if (isConnectivityError(ex)) {
-                log.warning(
-                        "[警告] MySQL 連線失敗，已略過 MySQL 匯入，改繼續執行 H2。原因：" + message);
+            if (target.mysql() && isConnectivityError(ex)) {
+                log.warning("[警告] MySQL 連線失敗，已略過 MySQL 匯入，改繼續執行 H2。原因：" + message);
             } else {
-                log.severe("[MySQL] 匯入失敗：" + message);
+                log.severe("[" + target.label() + "] 匯入失敗：" + message);
             }
-            failures.add("MySQL 失敗：" + message);
+            failures.add(target.label() + " 失敗：" + message);
         } catch (Exception ex) {
-            log.log(Level.SEVERE, "[MySQL] 匯入失敗：" + ex.getMessage(), ex);
-            failures.add("MySQL 失敗：" + ex.getMessage());
+            log.log(Level.SEVERE, "[" + target.label() + "] 匯入失敗：" + ex.getMessage(), ex);
+            failures.add(target.label() + " 失敗：" + ex.getMessage());
         }
     }
 
-    /** 匯入 H2：流程與 MySQL 對齊，確保兩種方言的資料一致性 */
-    private static void runH2Import(List<String> failures) {
-        String h2Url = DEFAULT_H2_URL;
-        String h2User = DEFAULT_H2_USER;
-        String h2Password = DEFAULT_H2_PASSWORD;
-
-        Path h2SqlPath = Path.of(GENERATED_SQL_DIR, H2_SQL_FILE);
-
-        try (Connection connection = DriverManager.getConnection(h2Url, h2User, h2Password)) {
-            connection.setAutoCommit(false);
-            // 先確認 SQL 能對應目前 schema，再做清空與匯入
-            validateGeneratedSqlAgainstConnection(connection, h2SqlPath, "H2", false);
-            // 與 MySQL 採相同策略：清空後重匯，避免殘留舊資料
-            clearH2Tables(connection);
-            executeSqlFile(connection, h2SqlPath);
-            connection.commit();
-            log.info("[H2] 清空並匯入完成：" + h2SqlPath.toAbsolutePath());
-        } catch (Exception ex) {
-            log.log(Level.SEVERE, "[H2] 匯入失敗：" + ex.getMessage(), ex);
-            failures.add("H2 失敗：" + ex.getMessage());
-        }
-    }
-
-    /** 清空 MySQL 實體表；暫停 FK 檢查以避免 TRUNCATE 受相依順序影響 */
-    private static void clearMysqlTables(Connection connection) throws SQLException {
-        // 讀出目前 schema 的 BASE TABLE，避免動到 view/system object
-        List<String> tableNames = loadTableNames(
-            connection,
-            "SELECT table_name FROM information_schema.tables "
-                + "WHERE table_schema = DATABASE() AND table_type = 'BASE TABLE'"
-        );
-
+    /** 清空目標資料庫實體表，保留排除名單 */
+    private static void clearTables(Connection connection, ImportTarget target) throws SQLException {
+        List<String> tableNames = loadTableNames(connection, target.tableQuerySql());
         try (Statement statement = connection.createStatement()) {
-            // 關閉 FK 檢查，讓 TRUNCATE 不受外鍵相依順序限制
-            statement.execute("SET FOREIGN_KEY_CHECKS = 0");
+            statement.execute(target.disableConstraintsSql());
             for (String tableName : tableNames) {
-                if (isExcludedTable(tableName)) {
-                    continue;
+                if (!isExcludedTable(tableName)) {
+                    statement.execute("TRUNCATE TABLE " + target.quoteIdentifier(tableName));
                 }
-                statement.execute("TRUNCATE TABLE " + quoteMysqlIdentifier(tableName));
             }
-            // 還原 FK 檢查，避免後續連線狀態異常
-            statement.execute("SET FOREIGN_KEY_CHECKS = 1");
+            statement.execute(target.enableConstraintsSql());
         }
     }
 
-    /** 清空 H2 PUBLIC schema 下的實體表，保留 migration 系統表 */
-    private static void clearH2Tables(Connection connection) throws SQLException {
-        // 僅處理 PUBLIC schema 的 BASE TABLE，避免誤清其他物件
-        List<String> tableNames = loadTableNames(
-            connection,
-            "SELECT table_name FROM information_schema.tables "
-                + "WHERE table_schema = 'PUBLIC' AND table_type = 'BASE TABLE'"
-        );
-
-        try (Statement statement = connection.createStatement()) {
-            // 暫停參照完整性，避免外鍵阻擋 TRUNCATE
-            statement.execute("SET REFERENTIAL_INTEGRITY FALSE");
-            for (String tableName : tableNames) {
-                if (isExcludedTable(tableName)) {
-                    continue;
-                }
-                statement.execute("TRUNCATE TABLE " + quoteH2Identifier(tableName));
-            }
-            // 還原參照完整性，維持資料庫正常約束行為
-            statement.execute("SET REFERENTIAL_INTEGRITY TRUE");
-        }
-    }
-
-    /** 依查詢語句載入表名，讓 MySQL/H2 的清空流程共用同一段邏輯 */
+    /** 依查詢結果載入表名清單 */
     private static List<String> loadTableNames(Connection connection, String sql) throws SQLException {
         List<String> tableNames = new ArrayList<>();
-        // 使用傳入 SQL 讀取第 1 欄表名
         try (Statement statement = connection.createStatement();
              var resultSet = statement.executeQuery(sql)) {
             while (resultSet.next()) {
@@ -194,14 +112,26 @@ public class ImportGeneratedSql {
         return tableNames;
     }
 
-    /** 單一 INSERT 語句解析結果（表名、欄位順序） */
+    /** INSERT 語句的最小結構資訊（表名與欄位） */
     private record InsertStatementSpec(String tableName, List<String> columnNames) {}
 
-    /**
-     * 在清空／執行前比對產生檔中的 INSERT 與目前連線的資料庫結構（表是否存在、欄位名是否都存在）。
-     *
-     * @throws IllegalStateException 有不符處時帶入繁中說明
-     */
+    /** 目標資料庫設定與差異化 SQL */
+    private record ImportTarget(
+            String label,
+            boolean mysql,
+            String url,
+            String user,
+            String password,
+            Path sqlPath,
+            String tableQuerySql,
+            String disableConstraintsSql,
+            String enableConstraintsSql) {
+        private String quoteIdentifier(String identifier) {
+            return mysql ? quoteMysqlIdentifier(identifier) : quoteH2Identifier(identifier);
+        }
+    }
+
+    /** 比對 SQL 檔內容與目前資料庫結構是否相容 */
     private static void validateGeneratedSqlAgainstConnection(
         Connection connection,
         Path sqlFilePath,
@@ -216,7 +146,6 @@ public class ImportGeneratedSql {
         List<String> statements = splitSqlStatements(rawSql);
         List<String> errors = new ArrayList<>();
 
-        // 逐條檢查 INSERT 格式、表名、欄位是否可在目標資料庫找到
         for (int i = 0; i < statements.size(); i++) {
             String stmt = statements.get(i).trim();
             if (stmt.isEmpty()) {
@@ -238,6 +167,7 @@ public class ImportGeneratedSql {
         }
     }
 
+    /** 檢查 INSERT 的表名與欄位是否存在於 DB */
     private static List<String> validateInsertSpecAgainstDb(
         Connection connection,
         InsertStatementSpec spec,
@@ -250,7 +180,6 @@ public class ImportGeneratedSql {
 
         List<String> dbColumns;
         try {
-            // 先讀出目標資料表欄位，後續用不分大小寫方式比對
             dbColumns = loadDbColumnNames(connection, table, mysql);
         } catch (SQLException ex) {
             errors.add(
@@ -275,7 +204,6 @@ public class ImportGeneratedSql {
             return errors;
         }
 
-        // 以 lower-case 集合處理不同資料庫大小寫規則差異
         Set<String> dbLower = new HashSet<>();
         for (String d : dbColumns) {
             dbLower.add(d.toLowerCase(Locale.ROOT));
@@ -297,7 +225,7 @@ public class ImportGeneratedSql {
         return errors;
     }
 
-    /** 查詢資料表欄位清單（依 ordinal_position），用於驗證 INSERT 欄位相容性 */
+    /** 讀取資料表欄位（依 ordinal_position） */
     private static List<String> loadDbColumnNames(Connection connection, String tableName, boolean mysql)
         throws SQLException {
         String schemaCondition =
@@ -318,7 +246,7 @@ public class ImportGeneratedSql {
         }
     }
 
-    /** 解析 INSERT INTO ... (col1, col2, ...) VALUES ...，僅取表名與欄位順序 */
+    /** 解析 INSERT INTO ... (cols) VALUES ... 的表名與欄位 */
     private static InsertStatementSpec parseInsertStatement(String statement) {
         Matcher matcher = SIMPLE_INSERT_PATTERN.matcher(statement.trim());
         if (!matcher.find()) {
@@ -339,7 +267,7 @@ public class ImportGeneratedSql {
         return new InsertStatementSpec(tableName, columns);
     }
 
-    /** 去除 SQL 識別字外層引號（`...` 或 "..."），保留實際名稱 */
+    /** 去除識別字外層 ` 或 " */
     private static String normalizeSqlIdentifier(String raw) {
         String t = raw.trim();
         if (t.length() >= 2 && t.charAt(0) == '`' && t.charAt(t.length() - 1) == '`') {
@@ -351,13 +279,12 @@ public class ImportGeneratedSql {
         return t;
     }
 
-    /** 讀取 SQL 檔後逐條執行；檔案不存在或無語句時直接拋錯 */
+    /** 讀取 SQL 檔並逐條執行 */
     private static void executeSqlFile(Connection connection, Path sqlFilePath) throws Exception {
         if (!Files.exists(sqlFilePath)) {
             throw new IllegalStateException("找不到 SQL 檔案：" + sqlFilePath.toAbsolutePath());
         }
 
-        // 讀檔後切成多條語句，逐條執行
         String rawSql = Files.readString(sqlFilePath, StandardCharsets.UTF_8);
         List<String> statements = splitSqlStatements(rawSql);
         if (statements.isEmpty()) {
@@ -371,10 +298,9 @@ public class ImportGeneratedSql {
         }
     }
 
-    /** 依 ';' 切分 generated SQL；目前檔案內容僅包含 INSERT 語句 */
+    /** 以分號切分 SQL 語句 */
     private static List<String> splitSqlStatements(String rawSql) {
         List<String> statements = new ArrayList<>();
-        // 目前 generated SQL 無程序語法或觸發器，分號切分已足夠
         for (String part : rawSql.split(";")) {
             String statement = part.trim();
             if (!statement.isBlank()) {
@@ -390,24 +316,60 @@ public class ImportGeneratedSql {
         return state != null && state.startsWith("08");
     }
 
-    /** 是否為需保留的系統表（大小寫不敏感） */
+    /** 是否為保留表（大小寫不敏感） */
     private static boolean isExcludedTable(String tableName) {
-        return EXCLUDED_TABLES.contains(tableName.toLowerCase());
+        return EXCLUDED_TABLES.contains(tableName.toLowerCase(Locale.ROOT));
     }
 
-    /** 以 MySQL 反引號包裹識別字，避免名稱含保留字或特殊字元 */
+    /** MySQL 識別字引用 */
     private static String quoteMysqlIdentifier(String identifier) {
         return "`" + identifier.replace("`", "``") + "`";
     }
 
-    /** 以 H2 雙引號包裹識別字，確保大小寫與特殊字元可正確處理 */
+    /** H2 識別字引用 */
     private static String quoteH2Identifier(String identifier) {
         return "\"" + identifier.replace("\"", "\"\"") + "\"";
     }
 
-    /** 讀取環境變數；空值視同未設定並回退到預設值 */
+    /** 讀系統環境變數或專案根 {@code .env}，空值回退預設 */
     private static String env(String key, String fallback) {
-        String value = System.getenv(key);
-        return value == null || value.isBlank() ? fallback : value;
+        return ScriptRuntimeEnv.lookup(key, fallback);
+    }
+
+    /** 建立 MySQL 匯入目標配置 */
+    private static ImportTarget mysqlTarget() {
+        String dbHost = env("DB_HOST", DEFAULT_MYSQL_HOST);
+        String dbPort = env("DB_PORT", DEFAULT_MYSQL_PORT);
+        String dbName = env("DB_NAME", DEFAULT_MYSQL_DB);
+        String dbUser = env("DB_USERNAME", DEFAULT_MYSQL_USER);
+        String dbPassword = env("DB_PASSWORD", DEFAULT_MYSQL_PASSWORD);
+        String mysqlUrl = "jdbc:mysql://" + dbHost + ":" + dbPort + "/" + dbName
+                + "?serverTimezone=Asia/Taipei&characterEncoding=utf-8&allowMultiQueries=true";
+        return new ImportTarget(
+                "MySQL",
+                true,
+                mysqlUrl,
+                dbUser,
+                dbPassword,
+                Path.of(GENERATED_SQL_DIR, MYSQL_SQL_FILE),
+                "SELECT table_name FROM information_schema.tables "
+                        + "WHERE table_schema = DATABASE() AND table_type = 'BASE TABLE'",
+                "SET FOREIGN_KEY_CHECKS = 0",
+                "SET FOREIGN_KEY_CHECKS = 1");
+    }
+
+    /** 建立 H2 匯入目標配置 */
+    private static ImportTarget h2Target() {
+        return new ImportTarget(
+                "H2",
+                false,
+                DEFAULT_H2_URL,
+                DEFAULT_H2_USER,
+                DEFAULT_H2_PASSWORD,
+                Path.of(GENERATED_SQL_DIR, H2_SQL_FILE),
+                "SELECT table_name FROM information_schema.tables "
+                        + "WHERE table_schema = 'PUBLIC' AND table_type = 'BASE TABLE'",
+                "SET REFERENTIAL_INTEGRITY FALSE",
+                "SET REFERENTIAL_INTEGRITY TRUE");
     }
 }

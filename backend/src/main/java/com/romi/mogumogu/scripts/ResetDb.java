@@ -1,48 +1,46 @@
 package com.romi.mogumogu.scripts;
 
 import java.io.File;
-import java.nio.charset.StandardCharsets;
+import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.logging.Logger;
+import java.util.Comparator;
+import java.util.stream.Stream;
 
 import com.romi.mogumogu.logging.JulLoggerFactory;
 
 public class ResetDb {
 
     private static final Logger log = new JulLoggerFactory().printToolLog();
-    /** 本腳本支援在未設定環境變數時，仍可用本機預設值快速重建資料庫 */
+
     private static final String DEFAULT_DB_NAME = "mogumogu";
-    /** 預設 MySQL 主機位置 */
     private static final String DEFAULT_MYSQL_HOST = "localhost";
-    /** 預設 MySQL 連線埠 */
     private static final String DEFAULT_MYSQL_PORT = "3306";
-    /** 預設 MySQL 使用者 */
     private static final String DEFAULT_MYSQL_USER = "root";
-    /** 固定使用檔案型 H2，重建後資料會落在 ./data 下，方便本機開發檢查 */
+
+    /** 固定使用檔案型 H2，方便本機檢查重建後資料 */
     private static final String H2_URL = "jdbc:h2:file:./data/mogumogu;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE;TRACE_LEVEL_FILE=0";
 
+    /** 依 profile 決定重建 MySQL 或 H2，最後啟動 Spring Boot */
     public static void main(String[] args) throws Exception {
         log.info("ResetDb 開始");
         Map<String, String> env = loadRuntimeEnv();
-        String activeProfiles = env.getOrDefault("SPRING_PROFILES_ACTIVE", "");
 
-        // 若啟用 mysql profile，優先走 MySQL 重建流程；否則預設走 H2
-        if (containsMysqlProfile(activeProfiles)) {
+        if (containsMysqlProfile(env.getOrDefault("SPRING_PROFILES_ACTIVE", ""))) {
             resetMysql(env);
             return;
         }
-
         resetH2(env);
     }
 
-    /** 支援逗號分隔 profile，判斷是否包含 mysql */
+    /** 支援逗號分隔 profile（例如 dev,mysql） */
     private static boolean containsMysqlProfile(String activeProfiles) {
-        // 支援 "dev,mysql" 這類逗號分隔 profile 寫法
         for (String profile : activeProfiles.split(",")) {
             if ("mysql".equalsIgnoreCase(profile.trim())) {
                 return true;
@@ -51,14 +49,14 @@ public class ResetDb {
         return false;
     }
 
-    /** 重建 MySQL 資料庫，並啟動 Spring Boot 進行 migration/seed */
+    /** 重建 MySQL 資料庫後，以 mysql profile 啟動應用程式 */
     private static void resetMysql(Map<String, String> env) throws Exception {
         String dbName = env.getOrDefault("DB_NAME", DEFAULT_DB_NAME);
-        String mysqlHost = env.getOrDefault("DB_HOST", DEFAULT_MYSQL_HOST);
-        String mysqlPort = env.getOrDefault("DB_PORT", DEFAULT_MYSQL_PORT);
-        String mysqlUser = env.getOrDefault("DB_USERNAME", DEFAULT_MYSQL_USER);
-        String mysqlPassword = env.getOrDefault("DB_PASSWORD", "");
-        // 先刪後建，確保 schema 能完全重置為乾淨狀態
+        String mysqlHost = env.getOrDefault("DB_HOST", DEFAULT_MYSQL_HOST).trim();
+        String mysqlPort = env.getOrDefault("DB_PORT", DEFAULT_MYSQL_PORT).trim();
+        String mysqlUser = env.getOrDefault("DB_USERNAME", DEFAULT_MYSQL_USER).trim();
+        String mysqlPassword = env.getOrDefault("DB_PASSWORD", "").trim();
+
         String sql = "DROP DATABASE IF EXISTS " + dbName + "; CREATE DATABASE " + dbName
                 + " CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;";
 
@@ -73,85 +71,89 @@ public class ResetDb {
         mysqlCommand.add("-e");
         mysqlCommand.add(sql);
 
-        ProcessBuilder mysqlProcessBuilder = new ProcessBuilder(mysqlCommand);
-        mysqlProcessBuilder.directory(new File("."));
-        mysqlProcessBuilder.inheritIO();
-        mysqlProcessBuilder.environment().putAll(env);
+        ProcessBuilder mysqlProcessBuilder = baseProcess(mysqlCommand, env);
         if (!mysqlPassword.isEmpty()) {
-            // 有密碼時透過環境變數傳遞，避免直接把密碼露在命令列參數中
             mysqlProcessBuilder.environment().put("MYSQL_PWD", mysqlPassword);
         }
         runOrThrow(mysqlProcessBuilder, mysqlCommand);
 
-        // 啟動 Spring Boot 觸發 migration/seed，讓新資料庫立即可用
-        ProcessBuilder springBootProcessBuilder = new ProcessBuilder("mvnw.cmd", "spring-boot:run",
-                "-Dspring-boot.run.profiles=mysql")
-                .directory(new File("."))
-                .inheritIO();
-        springBootProcessBuilder.environment().putAll(env);
-        runOrThrow(
-                springBootProcessBuilder,
-                List.of("mvnw.cmd", "spring-boot:run", "-Dspring-boot.run.profiles=mysql"));
+        runSpringBootWithProfile("mysql", null, env);
     }
 
-    /** 清除舊 H2 檔案後，以固定 URL 啟動 Spring Boot 重建資料 */
+    /** 清除 H2 檔案後，以 h2 profile 啟動應用程式 */
     private static void resetH2(Map<String, String> env) throws Exception {
-        // 清除既有 H2 檔案；找不到檔案時不視為錯誤，讓腳本可重複執行
-        runOrThrow(
-                new ProcessBuilder(
-                        "powershell",
-                        "-NoProfile",
-                        "-Command",
-                        "$ErrorActionPreference='SilentlyContinue'; Remove-Item -Path '.\\data\\mogumogu*' -Force; exit 0")
-                        .directory(new File(".")).inheritIO(),
-                List.of("powershell", "-NoProfile", "-Command", "Remove-Item .\\data\\mogumogu*"));
-
-        // 以固定 URL 啟動，確保 H2 資料落在預期路徑而非暫存資料庫
-        ProcessBuilder springBootProcessBuilder = new ProcessBuilder(
-                "mvnw.cmd",
-                "spring-boot:run",
-                "-Dspring-boot.run.profiles=h2",
-                "-Dspring-boot.run.arguments=--spring.datasource.url=" + H2_URL).directory(new File(".")).inheritIO();
-        springBootProcessBuilder.environment().putAll(env);
-        runOrThrow(
-                springBootProcessBuilder,
-                List.of("mvnw.cmd", "spring-boot:run", "-Dspring-boot.run.profiles=h2"));
+        deleteH2DataFiles();
+        runSpringBootWithProfile("h2", "--spring.datasource.url=" + H2_URL, env);
     }
 
-    /** 合併系統環境變數與 .env，讓直接執行 java 也能帶到專案設定 */
+    /** 合併系統環境變數與 .env，讓純 java 執行也能吃到專案設定 */
     private static Map<String, String> loadRuntimeEnv() throws Exception {
         Map<String, String> mergedEnv = new HashMap<>(System.getenv());
-        Path envFile = Path.of(".env");
-        if (!Files.exists(envFile)) {
-            return mergedEnv;
-        }
-
-        for (String rawLine : Files.readAllLines(envFile, StandardCharsets.UTF_8)) {
-            String line = rawLine.trim();
-            if (line.isEmpty() || line.startsWith("#")) {
-                continue;
-            }
-
-            int delimiterIndex = line.indexOf('=');
-            if (delimiterIndex <= 0) {
-                continue;
-            }
-
-            String key = line.substring(0, delimiterIndex).trim();
-            String value = line.substring(delimiterIndex + 1).trim();
-            if (!key.isEmpty()) {
-                mergedEnv.put(key, value);
-            }
-        }
+        ScriptRuntimeEnv.mergeDotEnvInto(mergedEnv);
         return mergedEnv;
     }
 
-    /** 執行外部命令，若失敗則拋出例外並附帶命令摘要 */
+    /** 建立可繼承 I/O 且帶環境變數的 ProcessBuilder */
+    private static ProcessBuilder baseProcess(List<String> command, Map<String, String> env) {
+        ProcessBuilder processBuilder = new ProcessBuilder(command).directory(new File(".")).inheritIO();
+        processBuilder.environment().putAll(env);
+        return processBuilder;
+    }
+
+    /** 使用可執行 jar 啟動 Spring Boot，避免依賴 mvnw.cmd */
+    private static void runSpringBootWithProfile(String profile, String additionalArgument, Map<String, String> env)
+            throws Exception {
+        Path jarPath = resolveSpringBootJar(Path.of("target"));
+        List<String> javaCommand = new ArrayList<>();
+        javaCommand.add("java");
+        javaCommand.add("-jar");
+        javaCommand.add(jarPath.toString());
+        javaCommand.add("--spring.profiles.active=" + profile);
+        if (additionalArgument != null && !additionalArgument.isBlank()) {
+            javaCommand.add(additionalArgument);
+        }
+        runOrThrow(baseProcess(javaCommand, env), javaCommand);
+    }
+
+    /** 從 target 找可執行 jar，優先使用最新修改時間 */
+    private static Path resolveSpringBootJar(Path targetDir) throws Exception {
+        if (!Files.isDirectory(targetDir)) {
+            throw new IllegalStateException("找不到 target 目錄，請先執行建置產生可執行 jar。");
+        }
+
+        try (Stream<Path> stream = Files.list(targetDir)) {
+            Optional<Path> jarPath = stream
+                    .filter(Files::isRegularFile)
+                    .filter(path -> path.getFileName().toString().endsWith(".jar"))
+                    .filter(path -> !path.getFileName().toString().endsWith("-plain.jar"))
+                    .filter(path -> !path.getFileName().toString().endsWith("-sources.jar"))
+                    .sorted(Comparator.comparingLong((Path jar) -> jar.toFile().lastModified()).reversed())
+                    .findFirst();
+            if (jarPath.isPresent()) {
+                return jarPath.get();
+            }
+        }
+        throw new IllegalStateException("找不到可執行 jar，請先建置專案。");
+    }
+
+    /** 刪除 H2 檔案型資料庫（mogumogu*） */
+    private static void deleteH2DataFiles() throws Exception {
+        Path dataDir = Path.of("data");
+        if (!Files.isDirectory(dataDir)) {
+            return;
+        }
+        try (DirectoryStream<Path> stream = Files.newDirectoryStream(dataDir, "mogumogu*")) {
+            for (Path path : stream) {
+                Files.deleteIfExists(path);
+            }
+        }
+    }
+
+    /** 執行外部命令，非 0 直接拋錯附帶命令摘要 */
     private static void runOrThrow(ProcessBuilder processBuilder, List<String> commandPreview) throws Exception {
         Process process = processBuilder.start();
         int exitCode = process.waitFor();
         if (exitCode != 0) {
-            // 保留可讀命令摘要，失敗時能快速定位是哪個步驟出錯
             throw new IllegalStateException("Command failed: " + String.join(" ", commandPreview));
         }
     }

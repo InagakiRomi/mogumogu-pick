@@ -108,15 +108,27 @@
 				<artifactId>exec-maven-plugin</artifactId>
 				<version>3.5.0</version>
 				<configuration>
-					<mainClass>com.romi.mogumogu.scripts.ExcelToSql</mainClass>
+					<mainClass>com.romi.mogumogu.scripts.ResetDb</mainClass>
 					<workingDirectory>${project.basedir}</workingDirectory>
 				</configuration>
 				<!-- 具名 execution：exec:java 的 pom 內 mainClass 無法可靠地用 -Dexec.mainClass 覆寫，改用 goal@id -->
 				<executions>
 					<execution>
+						<id>excel-to-sql</id>
+						<configuration>
+							<mainClass>com.romi.mogumogu.scripts.ExcelToSql</mainClass>
+						</configuration>
+					</execution>
+					<execution>
 						<id>import-generated-sql</id>
 						<configuration>
 							<mainClass>com.romi.mogumogu.scripts.ImportGeneratedSql</mainClass>
+						</configuration>
+					</execution>
+					<execution>
+						<id>reset-db</id>
+						<configuration>
+							<mainClass>com.romi.mogumogu.scripts.ResetDb</mainClass>
 						</configuration>
 					</execution>
 				</executions>

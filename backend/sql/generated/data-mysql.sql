@@ -1,3 +1,9 @@
+INSERT INTO restaurant_category
+(category_id, group_id, display_order, category_name, created_at) VALUES
+(1, 1, 1, '主食', '2026-05-02 16:32:14'),
+(2, 1, 2, '輕食', '2026-05-02 16:32:15'),
+(3, 1, 3, '飲料', '2026-05-02 16:32:16');
+
 INSERT INTO restaurant
 (restaurant_id, group_id, category_id, display_order, restaurant_name, note, image_url, selected_count, last_selected_at, created_at, updated_at) VALUES
 (1, 1, 1, 1, '一番湯屋', '這湯的香味可以拿去當香水賣', 'https://images.unsplash.com/photo-1614563637806-1d0e645e0940?q=80&w=1973&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D', 3, '2025-06-06 17:37:50', '2025-07-29 12:07:33', '2025-07-29 12:07:33'),
@@ -43,9 +49,3 @@ INSERT INTO restaurant
 (41, 1, 3, 41, '續杯會後悔', '跟照片長得不一樣', 'https://cdn.pixabay.com/photo/2018/03/13/11/39/fruit-3222313_640.jpg', 3, '2024-11-27 20:33:17', '2024-12-18 21:58:12', '2024-12-18 21:58:12'),
 (42, 1, 1, 42, '拌飯拌心情', '不錯吃，就是太貴', 'https://cdn.pixabay.com/photo/2015/04/10/00/41/food-715542_1280.jpg', 1, '2024-10-04 21:09:25', '2025-06-25 17:09:48', '2025-06-25 17:09:48'),
 (43, 1, 2, 43, '吃完不後悔', '打卡專用', 'https://cdn.pixabay.com/photo/2020/02/22/08/55/the-cake-4869920_1280.jpg', 4, '2025-05-20 16:45:33', '2025-05-20 16:45:33', '2025-05-20 16:45:33');
-
-INSERT INTO restaurant_category
-(category_id, group_id, display_order, category_name, created_at) VALUES
-(1, 1, 1, '主食', '2026-05-02 16:32:14'),
-(1, 1, 2, '輕食', '2026-05-02 16:32:15'),
-(1, 1, 3, '飲料', '2026-05-02 16:32:16');
