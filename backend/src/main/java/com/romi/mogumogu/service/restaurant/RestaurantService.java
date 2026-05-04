@@ -1,6 +1,6 @@
 package com.romi.mogumogu.service.restaurant;
 
-import com.romi.mogumogu.entity.restaurant.RestaurantEntity;
+import com.romi.mogumogu.dto.RestaurantDto;
 import com.romi.mogumogu.repository.restaurant.RestaurantRepository;
 
 import org.springframework.stereotype.Service;
@@ -17,10 +17,12 @@ public class RestaurantService {
 
     /**
      * 取得所有餐廳
-     * 
+     *
      * @return 餐廳列表
      */
-    public List<RestaurantEntity> getRestaurants() {
-        return restaurantRepository.findAll();
+    public List<RestaurantDto> getRestaurants() {
+        return restaurantRepository.findAll().stream()
+                .map(RestaurantDto::restaurantResponse)
+                .toList();
     }
 }

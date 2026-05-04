@@ -1,6 +1,6 @@
 package com.romi.mogumogu.controller.restaurant;
 
-import com.romi.mogumogu.entity.restaurant.RestaurantEntity;
+import com.romi.mogumogu.dto.RestaurantDto;
 import com.romi.mogumogu.service.restaurant.RestaurantService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -23,7 +23,7 @@ public class RestaurantController {
 
     @GetMapping("")
     @Operation(summary = "取得餐廳清單", description = "查詢餐廳列表")
-    public List<RestaurantEntity> getRestaurants() {
+    public List<RestaurantDto> getRestaurants() {
         return restaurantService.getRestaurants();
     }
 }
