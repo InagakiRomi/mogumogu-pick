@@ -1,4 +1,4 @@
-package com.romi.mogumogu.dto;
+package com.romi.mogumogu.Response;
 
 import com.romi.mogumogu.entity.restaurant.RestaurantEntity;
 
@@ -11,12 +11,12 @@ import lombok.Setter;
 
 import java.util.Date;
 
-@AllArgsConstructor
-@NoArgsConstructor
 @Getter
 @Setter
 @Builder
-public class RestaurantDto {
+@NoArgsConstructor
+@AllArgsConstructor
+public class RestaurantResponse {
         @Schema(description = "餐廳 ID", example = "1")
         private Integer restaurantId;
 
@@ -50,8 +50,8 @@ public class RestaurantDto {
         @Schema(description = "更新時間", pattern = "yyyy-MM-dd HH:mm:ss", example = "2026-05-03 14:58:57")
         private Date updatedAt;
 
-        public static RestaurantDto restaurantResponse(RestaurantEntity entity) {
-                return RestaurantDto.builder()
+        public static RestaurantResponse restaurantResponse(RestaurantEntity entity) {
+                return RestaurantResponse.builder()
                                 .restaurantId(entity.getRestaurantId())
                                 .groupId(entity.getGroupId())
                                 .categoryId(entity.getCategoryId().getCategoryId())
