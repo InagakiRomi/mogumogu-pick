@@ -30,6 +30,7 @@ import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.ss.usermodel.Workbook;
 import org.apache.poi.ss.usermodel.WorkbookFactory;
 
+import com.romi.mogumogu.constant.DateTimePatternConstants;
 import com.romi.mogumogu.logging.JulLoggerFactory;
 
 public class ExcelToSql {
@@ -48,8 +49,6 @@ public class ExcelToSql {
     private static final int HEADER_ROW_INDEX = 1;
     /** 資料起始列（POI index） */
     private static final int FIRST_DATA_ROW_INDEX = 2;
-
-    private static final DateTimeFormatter DATE_TIME_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 
     /** 與 Flyway 既有資料表一致；外鍵被參考者在前 */
     private static final List<String> TABLE_ORDER = List.of(
@@ -372,7 +371,7 @@ public class ExcelToSql {
             LocalDateTime localDateTime = LocalDateTime.ofInstant(
                     DateUtil.getJavaDate(numericValue).toInstant(),
                     ZoneId.systemDefault());
-            return quoteString(localDateTime.format(DATE_TIME_FORMATTER));
+            return quoteString(localDateTime.format(DateTimeFormatter.ofPattern(DateTimePatternConstants.STANDARD_DATE_TIME)));
         }
 
         BigDecimal decimal = BigDecimal.valueOf(numericValue).stripTrailingZeros();

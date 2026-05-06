@@ -4,12 +4,10 @@ import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.logging.*;
 
+import com.romi.mogumogu.constant.DateTimePatternConstants;
+
 /** 自訂 log 輸出格式（含 ANSI 顏色） */
 public class AnsiColoredJulFormatter extends Formatter {
-
-  // 時間格式設定
-  private static final String DATE_FORMAT = "yyyy-MM-dd HH:mm:ss";
-  private final SimpleDateFormat dateFormat = new SimpleDateFormat(DATE_FORMAT);
 
   // ANSI 顏色碼
   private static final String RESET = "\u001B[0m";
@@ -29,7 +27,8 @@ public class AnsiColoredJulFormatter extends Formatter {
 
     // 加上時間
     sb.append(WHITE)
-        .append(dateFormat.format(new Date(record.getMillis())))
+        .append(new SimpleDateFormat(DateTimePatternConstants.STANDARD_DATE_TIME)
+            .format(new Date(record.getMillis())))
         .append(RESET);
 
     // 加上 log 級別（INFO、WARN 等），並上色

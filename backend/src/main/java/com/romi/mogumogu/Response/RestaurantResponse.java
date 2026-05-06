@@ -1,6 +1,7 @@
 package com.romi.mogumogu.Response;
 
 import com.romi.mogumogu.entity.restaurant.RestaurantEntity;
+import com.romi.mogumogu.constant.DateTimePatternConstants;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.AllArgsConstructor;
@@ -41,13 +42,13 @@ public class RestaurantResponse {
         @Schema(description = "被選取次數", example = "10")
         private Integer selectedCount;
 
-        @Schema(description = "最後被選取時間", pattern = "yyyy-MM-dd HH:mm:ss", example = "2026-05-03 14:58:57")
+        @Schema(description = "最後被選取時間", pattern = DateTimePatternConstants.STANDARD_DATE_TIME, example = "2026-05-03 14:58:57")
         private Date lastSelectedAt;
 
-        @Schema(description = "建立時間", pattern = "yyyy-MM-dd HH:mm:ss", example = "2026-05-03 14:58:57")
+        @Schema(description = "建立時間", pattern = DateTimePatternConstants.STANDARD_DATE_TIME, example = "2026-05-03 14:58:57")
         private Date createdAt;
 
-        @Schema(description = "更新時間", pattern = "yyyy-MM-dd HH:mm:ss", example = "2026-05-03 14:58:57")
+        @Schema(description = "更新時間", pattern = DateTimePatternConstants.STANDARD_DATE_TIME, example = "2026-05-03 14:58:57")
         private Date updatedAt;
 
         public static RestaurantResponse restaurantResponse(RestaurantEntity entity) {
