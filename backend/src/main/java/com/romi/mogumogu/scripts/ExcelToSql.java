@@ -12,9 +12,11 @@ import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Predicate;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
@@ -70,20 +72,20 @@ public class ExcelToSql {
             Path moduleRoot = resolveModuleRoot();
             Path excelDataDir = resolveExcelDataDir(moduleRoot);
             Path outputDir = moduleRoot.resolve(OUTPUT_DIR);
-
-            Map<String, String> mysqlTableSql = loadTableSqlFromExcels(excelDataDir, SqlDialect.MYSQL);
-            Map<String, String> h2TableSql = loadTableSqlFromExcels(excelDataDir, SqlDialect.H2);
-            if (mysqlTableSql.isEmpty() || h2TableSql.isEmpty()) {
-                throw new IllegalStateException(
-                        "未產生任何 INSERT：請確認 .xlsx 第 2 列為欄名、第 3 列起有資料");
+            Map<SqlDialect, Path> generatedSqlPaths = new EnumMap<>(SqlDialect.class);
+            for (SqlDialect dialect : SqlDialect.values()) {
+                String dialectLabel = dialect == SqlDialect.MYSQL ? "MySQL" : "H2";
+                Map<String, String> tableSql = loadTableSqlFromExcels(excelDataDir, dialect);
+                if (tableSql.isEmpty()) {
+                    throw new IllegalStateException(
+                            dialectLabel + " 未產生任何 INSERT：請確認 .xlsx 第 2 列為欄名、第 3 列起有資料");
+                }
+                List<String> orderedStatements = orderSqlStatements(tableSql);
+                String outputFile = dialect == SqlDialect.MYSQL ? MYSQL_OUTPUT_FILE : H2_OUTPUT_FILE;
+                generatedSqlPaths.put(dialect, writeSqlFile(orderedStatements, outputDir, outputFile));
             }
-
-            List<String> mysqlStatements = orderSqlStatements(mysqlTableSql);
-            List<String> h2Statements = orderSqlStatements(h2TableSql);
-            Path mysqlOutputPath = writeSqlFile(mysqlStatements, outputDir, MYSQL_OUTPUT_FILE);
-            Path h2OutputPath = writeSqlFile(h2Statements, outputDir, H2_OUTPUT_FILE);
-            log.info("已寫入 MySQL SQL： " + mysqlOutputPath.toAbsolutePath());
-            log.info("已寫入 H2 SQL： " + h2OutputPath.toAbsolutePath());
+            log.info("已寫入 MySQL SQL： " + generatedSqlPaths.get(SqlDialect.MYSQL).toAbsolutePath());
+            log.info("已寫入 H2 SQL： " + generatedSqlPaths.get(SqlDialect.H2).toAbsolutePath());
         } catch (Exception ex) {
             log.log(Level.SEVERE, "失敗：" + ex.getMessage(), ex);
         }
@@ -92,27 +94,23 @@ public class ExcelToSql {
     /** 解析模組根目錄，支援從子目錄執行 */
     private static Path resolveModuleRoot() {
         Path start = Path.of("").toAbsolutePath().normalize();
-        if (hasModuleLayout(start)) {
+        Predicate<Path> hasModuleLayout = dir -> Files.isRegularFile(dir.resolve("pom.xml"))
+                && Files.isDirectory(dir.resolve("src/main/resources"));
+        if (hasModuleLayout.test(start)) {
             return start;
         }
         Path backend = start.resolve("backend");
-        if (hasModuleLayout(backend)) {
+        if (hasModuleLayout.test(backend)) {
             return backend.normalize();
         }
         Path dir = start;
         for (int i = 0; i < 6 && dir != null; i++) {
-            if (hasModuleLayout(dir)) {
+            if (hasModuleLayout.test(dir)) {
                 return dir;
             }
             dir = dir.getParent();
         }
         return start;
-    }
-
-    /** 檢查是否具備 Maven 模組必要結構 */
-    private static boolean hasModuleLayout(Path dir) {
-        return Files.isRegularFile(dir.resolve("pom.xml"))
-                && Files.isDirectory(dir.resolve("src/main/resources"));
     }
 
     /** 尋找內含 .xlsx 的來源目錄（模組內或上一層，目錄名見 {@link #EXCEL_DATA_DIR}） */
@@ -155,14 +153,40 @@ public class ExcelToSql {
         if (excelFiles.isEmpty()) {
             throw new IllegalStateException("沒有 .xlsx：" + excelDataDir.toAbsolutePath());
         }
-        requireExcelWorkbooksClosed(excelDataDir, excelFiles);
+        List<String> lockedWorkbookNames = new ArrayList<>();
+        for (Path excelPath : excelFiles) {
+            String fileName = excelPath.getFileName().toString();
+            Path lockSibling = excelDataDir.resolve("~$" + fileName);
+            if (Files.isRegularFile(lockSibling)) {
+                lockedWorkbookNames.add(fileName);
+            }
+        }
+        if (!lockedWorkbookNames.isEmpty()) {
+            String detail = lockedWorkbookNames.stream().map(n -> "  - " + n).collect(Collectors.joining("\n"));
+            throw new IllegalStateException(
+                    "下列 .xlsx 可能仍於 Excel 中開啟（同資料夾存在對應的 ~$ 鎖定檔），已中止產生 SQL。"
+                            + "請先儲存並完全關閉活頁簿；若已關閉，請刪除「"
+                            + excelDataDir.toAbsolutePath()
+                            + "」內以 ~$ 開頭的暫存檔後再執行。\n"
+                            + detail);
+        }
 
         Map<String, String> tableSql = new HashMap<>();
         for (Path excelPath : excelFiles) {
-            String tableName = stripExtension(excelPath.getFileName().toString());
-            String insertSql = excelToInsertSql(excelPath, tableName, dialect);
-            if (!insertSql.isBlank()) {
-                tableSql.put(tableName, insertSql);
+            String fileName = excelPath.getFileName().toString();
+            int dotIndex = fileName.lastIndexOf('.');
+            String tableName = dotIndex <= 0 ? fileName : fileName.substring(0, dotIndex);
+            try (InputStream inputStream = Files.newInputStream(excelPath);
+                    Workbook workbook = WorkbookFactory.create(inputStream)) {
+                if (workbook.getNumberOfSheets() == 0) {
+                    continue;
+                }
+                Sheet sheet = workbook.getSheetAt(0);
+                FormulaEvaluator formulaEvaluator = workbook.getCreationHelper().createFormulaEvaluator();
+                String insertSql = sheetToInsertSql(sheet, tableName, formulaEvaluator, dialect);
+                if (!insertSql.isBlank()) {
+                    tableSql.put(tableName, insertSql);
+                }
             }
         }
         return tableSql;
@@ -178,42 +202,6 @@ public class ExcelToSql {
                     })
                     .sorted(Comparator.comparing(path -> path.getFileName().toString().toLowerCase()))
                     .collect(Collectors.toList());
-        }
-    }
-
-    /** 若偵測到 ~$ 鎖定檔，提示先關閉 Excel */
-    private static void requireExcelWorkbooksClosed(Path excelDataDir, List<Path> excelFiles) {
-        List<String> openLike = new ArrayList<>();
-        for (Path excelPath : excelFiles) {
-            String fileName = excelPath.getFileName().toString();
-            Path lockSibling = excelDataDir.resolve("~$" + fileName);
-            if (Files.isRegularFile(lockSibling)) {
-                openLike.add(fileName);
-            }
-        }
-        if (openLike.isEmpty()) {
-            return;
-        }
-        String detail = openLike.stream().map(n -> "  - " + n).collect(Collectors.joining("\n"));
-        throw new IllegalStateException(
-                "下列 .xlsx 可能仍於 Excel 中開啟（同資料夾存在對應的 ~$ 鎖定檔），已中止產生 SQL。"
-                        + "請先儲存並完全關閉活頁簿；若已關閉，請刪除「"
-                        + excelDataDir.toAbsolutePath()
-                        + "」內以 ~$ 開頭的暫存檔後再執行。\n"
-                        + detail);
-    }
-
-    /** 單一 Excel 檔轉成單條 INSERT */
-    private static String excelToInsertSql(Path excelPath, String tableName, SqlDialect dialect)
-            throws IOException {
-        try (InputStream inputStream = Files.newInputStream(excelPath);
-                Workbook workbook = WorkbookFactory.create(inputStream)) {
-            if (workbook.getNumberOfSheets() == 0) {
-                return "";
-            }
-            Sheet sheet = workbook.getSheetAt(0);
-            FormulaEvaluator formulaEvaluator = workbook.getCreationHelper().createFormulaEvaluator();
-            return sheetToInsertSql(sheet, tableName, formulaEvaluator, dialect);
         }
     }
 
@@ -336,7 +324,15 @@ public class ExcelToSql {
             if (evaluated == null) {
                 return "NULL";
             }
-            return escapeEvaluatedCell(cell, evaluated, dialect);
+            return switch (evaluated.getCellType()) {
+                case STRING -> quoteString(evaluated.getStringValue());
+                case BOOLEAN -> formatBoolean(evaluated.getBooleanValue(), dialect);
+                case NUMERIC -> formatNumericOrDate(
+                        evaluated.getNumberValue(),
+                        DateUtil.isCellDateFormatted(cell));
+                case BLANK, ERROR, _NONE -> "NULL";
+                default -> quoteString(evaluated.formatAsString());
+            };
         }
 
         return switch (cellType) {
@@ -346,22 +342,6 @@ public class ExcelToSql {
             case NUMERIC -> formatNumericOrDate(cell.getNumericCellValue(), DateUtil.isCellDateFormatted(cell));
             case ERROR, _NONE -> "NULL";
             default -> quoteString(cell.toString());
-        };
-    }
-
-    /** 處理公式儲存格求值後的 SQL 格式 */
-    private static String escapeEvaluatedCell(
-            Cell originalCell,
-            CellValue evaluated,
-            SqlDialect dialect) {
-        return switch (evaluated.getCellType()) {
-            case STRING -> quoteString(evaluated.getStringValue());
-            case BOOLEAN -> formatBoolean(evaluated.getBooleanValue(), dialect);
-            case NUMERIC -> formatNumericOrDate(
-                    evaluated.getNumberValue(),
-                    DateUtil.isCellDateFormatted(originalCell));
-            case BLANK, ERROR, _NONE -> "NULL";
-            default -> quoteString(evaluated.formatAsString());
         };
     }
 
@@ -416,15 +396,6 @@ public class ExcelToSql {
         }
 
         return outputPath;
-    }
-
-    /** 去除檔名副檔名 */
-    private static String stripExtension(String fileName) {
-        int dotIndex = fileName.lastIndexOf('.');
-        if (dotIndex <= 0) {
-            return fileName;
-        }
-        return fileName.substring(0, dotIndex);
     }
 
     /** SQL 字串常值跳脫（單引號加倍） */

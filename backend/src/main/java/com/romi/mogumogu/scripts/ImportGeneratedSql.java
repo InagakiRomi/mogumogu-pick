@@ -37,52 +37,91 @@ public class ImportGeneratedSql {
     private static final String DEFAULT_MYSQL_USER = "root";
     private static final String DEFAULT_MYSQL_PASSWORD = "";
 
-    private static final String DEFAULT_H2_URL =
-        "jdbc:h2:file:./data/mogumogu;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE";
+    private static final String DEFAULT_H2_URL = "jdbc:h2:file:./data/mogumogu;DB_CLOSE_DELAY=0;DB_CLOSE_ON_EXIT=FALSE";
     private static final String DEFAULT_H2_USER = "sa";
     private static final String DEFAULT_H2_PASSWORD = "";
+    private static final String DEFAULT_ACTIVE_PROFILE = "h2";
 
     private static final Set<String> EXCLUDED_TABLES = Set.of("flyway_schema_history");
     private static final Pattern SIMPLE_INSERT_PATTERN = Pattern.compile(
-        "(?is)^INSERT\\s+INTO\\s+([`\"]?[A-Za-z0-9_]+[`\"]?)\\s*\\(([^)]*)\\)\\s+VALUES\\b"
-    );
+            "(?is)^INSERT\\s+INTO\\s+([`\"]?[A-Za-z0-9_]+[`\"]?)\\s*\\(([^)]*)\\)\\s+VALUES\\b");
 
-    /** 依序匯入 MySQL 與 H2，最後彙整失敗項目 */
+    /** 依 SPRING_PROFILES_ACTIVE 選擇 MySQL 或 H2 匯入 */
     public static void main(String[] args) throws Exception {
-        List<String> failures = new ArrayList<>();
-
-        runImport(mysqlTarget(), failures);
-        runImport(h2Target(), failures);
-
-        if (!failures.isEmpty()) {
-            throw new IllegalStateException(
-                "匯入完成，但有失敗項目：\n - " + String.join("\n - ", failures)
-            );
+        ImportTarget target = resolveTarget(env("SPRING_PROFILES_ACTIVE", DEFAULT_ACTIVE_PROFILE));
+        try {
+            runImport(target);
+        } finally {
+            shutdownMysqlCleanupThread();
         }
-
-        log.info("MySQL、H2 匯入皆成功。");
     }
 
     /** 單一資料庫匯入流程：驗證 SQL -> 清空表 -> 執行 SQL */
-    private static void runImport(ImportTarget target, List<String> failures) {
-        try (Connection connection = DriverManager.getConnection(target.url(), target.user(), target.password())) {
-            connection.setAutoCommit(false);
-            validateGeneratedSqlAgainstConnection(connection, target.sqlPath(), target.label(), target.mysql());
-            clearTables(connection, target);
-            executeSqlFile(connection, target.sqlPath());
-            connection.commit();
-            log.info("[" + target.label() + "] 清空並匯入完成：" + target.sqlPath().toAbsolutePath());
+    private static void runImport(ImportTarget target) {
+        try {
+            try (Connection connection = DriverManager.getConnection(target.url(), target.user(), target.password())) {
+                List<String> statements = loadSqlStatements(target.sqlPath());
+                connection.setAutoCommit(false);
+                try {
+                    validateGeneratedSqlAgainstConnection(connection, statements, target.label(), target.mysql());
+                    clearTables(connection, target);
+                    executeSqlStatements(connection, statements, target.sqlPath());
+                    connection.commit();
+                    log.info("[" + target.label() + "] 清空並匯入完成");
+                } catch (Exception ex) {
+                    rollbackQuietly(connection);
+                    throw ex;
+                }
+            }
         } catch (SQLException ex) {
             String message = ex.getMessage() == null ? "" : ex.getMessage();
             if (target.mysql() && isConnectivityError(ex)) {
-                log.warning("[警告] MySQL 連線失敗，已略過 MySQL 匯入，改繼續執行 H2。原因：" + message);
+                log.warning("[警告] MySQL 連線失敗。原因：" + message);
             } else {
                 log.severe("[" + target.label() + "] 匯入失敗：" + message);
             }
-            failures.add(target.label() + " 失敗：" + message);
+            throw new IllegalStateException(formatFailureMessage(target.label(), message), ex);
         } catch (Exception ex) {
+            if (ex instanceof IllegalStateException illegalStateException) {
+                throw illegalStateException;
+            }
             log.log(Level.SEVERE, "[" + target.label() + "] 匯入失敗：" + ex.getMessage(), ex);
-            failures.add(target.label() + " 失敗：" + ex.getMessage());
+            throw new IllegalStateException(formatFailureMessage(target.label(), ex.getMessage()), ex);
+        } finally {
+            if (!target.mysql()) {
+                shutdownH2Database(target);
+            }
+        }
+    }
+
+    /** 明確通知 H2 關閉資料庫，避免背景執行緒殘留 */
+    private static void shutdownH2Database(ImportTarget target) {
+        try (Connection connection = DriverManager.getConnection(target.url(), target.user(), target.password());
+                Statement statement = connection.createStatement()) {
+            statement.execute("SHUTDOWN");
+        } catch (SQLException ex) {
+            log.fine("H2 SHUTDOWN 指令略過：" + ex.getMessage());
+        }
+    }
+
+    /** 發生例外時盡力 rollback，避免部分資料殘留 */
+    private static void rollbackQuietly(Connection connection) {
+        try {
+            connection.rollback();
+        } catch (SQLException rollbackEx) {
+            log.fine("Rollback 略過：" + rollbackEx.getMessage());
+        }
+    }
+
+    /** Maven exec classloader 下，主動關閉 MySQL 清理執行緒 */
+    private static void shutdownMysqlCleanupThread() {
+        try {
+            Class<?> cleanupThread = Class.forName("com.mysql.cj.jdbc.AbandonedConnectionCleanupThread");
+            cleanupThread.getMethod("checkedShutdown").invoke(null);
+        } catch (ClassNotFoundException ignored) {
+            // 未使用 MySQL driver 時可忽略
+        } catch (Exception ex) {
+            log.fine("無法關閉 MySQL cleanup thread：" + ex.getMessage());
         }
     }
 
@@ -104,7 +143,7 @@ public class ImportGeneratedSql {
     private static List<String> loadTableNames(Connection connection, String sql) throws SQLException {
         List<String> tableNames = new ArrayList<>();
         try (Statement statement = connection.createStatement();
-             var resultSet = statement.executeQuery(sql)) {
+                var resultSet = statement.executeQuery(sql)) {
             while (resultSet.next()) {
                 tableNames.add(resultSet.getString(1));
             }
@@ -113,7 +152,8 @@ public class ImportGeneratedSql {
     }
 
     /** INSERT 語句的最小結構資訊（表名與欄位） */
-    private record InsertStatementSpec(String tableName, List<String> columnNames) {}
+    private record InsertStatementSpec(String tableName, List<String> columnNames) {
+    }
 
     /** 目標資料庫設定與差異化 SQL */
     private record ImportTarget(
@@ -133,17 +173,10 @@ public class ImportGeneratedSql {
 
     /** 比對 SQL 檔內容與目前資料庫結構是否相容 */
     private static void validateGeneratedSqlAgainstConnection(
-        Connection connection,
-        Path sqlFilePath,
-        String dialectLabel,
-        boolean mysql
-    ) throws Exception {
-        if (!Files.exists(sqlFilePath)) {
-            throw new IllegalStateException("找不到 SQL 檔案：" + sqlFilePath.toAbsolutePath());
-        }
-
-        String rawSql = Files.readString(sqlFilePath, StandardCharsets.UTF_8);
-        List<String> statements = splitSqlStatements(rawSql);
+            Connection connection,
+            List<String> statements,
+            String dialectLabel,
+            boolean mysql) throws Exception {
         List<String> errors = new ArrayList<>();
 
         for (int i = 0; i < statements.size(); i++) {
@@ -162,18 +195,16 @@ public class ImportGeneratedSql {
 
         if (!errors.isEmpty()) {
             throw new IllegalStateException(
-                dialectLabel + "：產生的 SQL 與目前資料庫結構不符：\n - " + String.join("\n - ", errors)
-            );
+                    dialectLabel + "：產生的 SQL 與目前資料庫結構不符：\n - " + String.join("\n - ", errors));
         }
     }
 
     /** 檢查 INSERT 的表名與欄位是否存在於 DB */
     private static List<String> validateInsertSpecAgainstDb(
-        Connection connection,
-        InsertStatementSpec spec,
-        boolean mysql,
-        int statementIndex
-    ) {
+            Connection connection,
+            InsertStatementSpec spec,
+            boolean mysql,
+            int statementIndex) {
         List<String> errors = new ArrayList<>();
         String table = spec.tableName();
         List<String> fileCols = spec.columnNames();
@@ -183,24 +214,22 @@ public class ImportGeneratedSql {
             dbColumns = loadDbColumnNames(connection, table, mysql);
         } catch (SQLException ex) {
             errors.add(
-                "第 "
-                    + statementIndex
-                    + " 條（表「"
-                    + table
-                    + "」）：查詢資料欄失敗："
-                    + (ex.getMessage() == null ? ex.getClass().getSimpleName() : ex.getMessage())
-            );
+                    "第 "
+                            + statementIndex
+                            + " 條（表「"
+                            + table
+                            + "」）：查詢資料欄失敗："
+                            + (ex.getMessage() == null ? ex.getClass().getSimpleName() : ex.getMessage()));
             return errors;
         }
 
         if (dbColumns.isEmpty()) {
             errors.add(
-                "第 "
-                    + statementIndex
-                    + " 條（資料表「"
-                    + table
-                    + "」在目前資料庫中不存在。"
-            );
+                    "第 "
+                            + statementIndex
+                            + " 條（資料表「"
+                            + table
+                            + "」在目前資料庫中不存在。");
             return errors;
         }
 
@@ -211,15 +240,14 @@ public class ImportGeneratedSql {
         for (String fc : fileCols) {
             if (!dbLower.contains(fc.toLowerCase(Locale.ROOT))) {
                 errors.add(
-                    "第 "
-                        + statementIndex
-                        + " 條（表「"
-                        + table
-                        + "」）：找不到欄位「"
-                        + fc
-                        + "」。此表欄位："
-                        + String.join(", ", dbColumns)
-                );
+                        "第 "
+                                + statementIndex
+                                + " 條（表「"
+                                + table
+                                + "」）：找不到欄位「"
+                                + fc
+                                + "」。此表欄位："
+                                + String.join(", ", dbColumns));
             }
         }
         return errors;
@@ -227,11 +255,9 @@ public class ImportGeneratedSql {
 
     /** 讀取資料表欄位（依 ordinal_position） */
     private static List<String> loadDbColumnNames(Connection connection, String tableName, boolean mysql)
-        throws SQLException {
-        String schemaCondition =
-            mysql ? "table_schema = DATABASE()" : "table_schema = 'PUBLIC'";
-        String sql =
-            "SELECT column_name FROM information_schema.columns WHERE "
+            throws SQLException {
+        String schemaCondition = mysql ? "table_schema = DATABASE()" : "table_schema = 'PUBLIC'";
+        String sql = "SELECT column_name FROM information_schema.columns WHERE "
                 + schemaCondition
                 + " AND LOWER(table_name) = LOWER(?) ORDER BY ordinal_position";
         try (PreparedStatement ps = connection.prepareStatement(sql)) {
@@ -279,14 +305,9 @@ public class ImportGeneratedSql {
         return t;
     }
 
-    /** 讀取 SQL 檔並逐條執行 */
-    private static void executeSqlFile(Connection connection, Path sqlFilePath) throws Exception {
-        if (!Files.exists(sqlFilePath)) {
-            throw new IllegalStateException("找不到 SQL 檔案：" + sqlFilePath.toAbsolutePath());
-        }
-
-        String rawSql = Files.readString(sqlFilePath, StandardCharsets.UTF_8);
-        List<String> statements = splitSqlStatements(rawSql);
+    /** 逐條執行 SQL 語句 */
+    private static void executeSqlStatements(Connection connection, List<String> statements, Path sqlFilePath)
+            throws Exception {
         if (statements.isEmpty()) {
             throw new IllegalStateException("SQL 檔案沒有可執行語句：" + sqlFilePath.toAbsolutePath());
         }
@@ -296,6 +317,14 @@ public class ImportGeneratedSql {
                 statement.execute(sql);
             }
         }
+    }
+
+    /** 讀取 SQL 檔並切分語句 */
+    private static List<String> loadSqlStatements(Path sqlFilePath) throws Exception {
+        if (!Files.exists(sqlFilePath)) {
+            throw new IllegalStateException("找不到 SQL 檔案：" + sqlFilePath.toAbsolutePath());
+        }
+        return splitSqlStatements(Files.readString(sqlFilePath, StandardCharsets.UTF_8));
     }
 
     /** 以分號切分 SQL 語句 */
@@ -316,6 +345,18 @@ public class ImportGeneratedSql {
         return state != null && state.startsWith("08");
     }
 
+    /** 由 active profiles 決定匯入目標資料庫 */
+    private static ImportTarget resolveTarget(String activeProfiles) {
+        if (ScriptProfileUtil.containsProfile(activeProfiles, "mysql")) {
+            return mysqlTarget();
+        }
+        if (ScriptProfileUtil.containsProfile(activeProfiles, "h2")) {
+            return h2Target();
+        }
+        throw new IllegalStateException(
+                "不支援的 SPRING_PROFILES_ACTIVE：" + activeProfiles + "（僅支援 mysql 或 h2）");
+    }
+
     /** 是否為保留表（大小寫不敏感） */
     private static boolean isExcludedTable(String tableName) {
         return EXCLUDED_TABLES.contains(tableName.toLowerCase(Locale.ROOT));
@@ -331,6 +372,11 @@ public class ImportGeneratedSql {
         return "\"" + identifier.replace("\"", "\"\"") + "\"";
     }
 
+    /** 統一組裝錯誤訊息 */
+    private static String formatFailureMessage(String targetLabel, String message) {
+        return targetLabel + " 失敗：" + message;
+    }
+
     /** 讀系統環境變數或專案根 {@code .env}，空值回退預設 */
     private static String env(String key, String fallback) {
         return ScriptRuntimeEnv.lookup(key, fallback);
@@ -339,7 +385,7 @@ public class ImportGeneratedSql {
     /** 建立 MySQL 匯入目標配置 */
     private static ImportTarget mysqlTarget() {
         String dbHost = env("DB_HOST", DEFAULT_MYSQL_HOST);
-        String dbPort = env("DB_PORT", DEFAULT_MYSQL_PORT);
+        String dbPort = env("PORT", DEFAULT_MYSQL_PORT);
         String dbName = env("DB_NAME", DEFAULT_MYSQL_DB);
         String dbUser = env("DB_USERNAME", DEFAULT_MYSQL_USER);
         String dbPassword = env("DB_PASSWORD", DEFAULT_MYSQL_PASSWORD);

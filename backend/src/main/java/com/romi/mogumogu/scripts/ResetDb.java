@@ -8,12 +8,10 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.logging.Logger;
-import java.util.Comparator;
-import java.util.stream.Stream;
 
 import com.romi.mogumogu.logging.JulLoggerFactory;
+import com.romi.mogumogu.MogumoguApplication;
 
 public class ResetDb {
 
@@ -30,30 +28,21 @@ public class ResetDb {
     /** 依 profile 決定重建 MySQL 或 H2，最後啟動 Spring Boot */
     public static void main(String[] args) throws Exception {
         log.info("ResetDb 開始");
-        Map<String, String> env = loadRuntimeEnv();
+        Map<String, String> env = new HashMap<>(System.getenv());
+        ScriptRuntimeEnv.mergeDotEnvInto(env);
 
-        if (containsMysqlProfile(env.getOrDefault("SPRING_PROFILES_ACTIVE", ""))) {
+        if (ScriptProfileUtil.containsProfile(env.getOrDefault("SPRING_PROFILES_ACTIVE", ""), "mysql")) {
             resetMysql(env);
             return;
         }
         resetH2(env);
     }
 
-    /** 支援逗號分隔 profile（例如 dev,mysql） */
-    private static boolean containsMysqlProfile(String activeProfiles) {
-        for (String profile : activeProfiles.split(",")) {
-            if ("mysql".equalsIgnoreCase(profile.trim())) {
-                return true;
-            }
-        }
-        return false;
-    }
-
     /** 重建 MySQL 資料庫後，以 mysql profile 啟動應用程式 */
     private static void resetMysql(Map<String, String> env) throws Exception {
         String dbName = env.getOrDefault("DB_NAME", DEFAULT_DB_NAME);
         String mysqlHost = env.getOrDefault("DB_HOST", DEFAULT_MYSQL_HOST).trim();
-        String mysqlPort = env.getOrDefault("DB_PORT", DEFAULT_MYSQL_PORT).trim();
+        String mysqlPort = env.getOrDefault("PORT", DEFAULT_MYSQL_PORT).trim();
         String mysqlUser = env.getOrDefault("DB_USERNAME", DEFAULT_MYSQL_USER).trim();
         String mysqlPassword = env.getOrDefault("DB_PASSWORD", "").trim();
 
@@ -71,69 +60,37 @@ public class ResetDb {
         mysqlCommand.add("-e");
         mysqlCommand.add(sql);
 
-        ProcessBuilder mysqlProcessBuilder = baseProcess(mysqlCommand, env);
+        ProcessBuilder mysqlProcessBuilder = new ProcessBuilder(mysqlCommand)
+                .directory(new File("."))
+                .inheritIO();
+        mysqlProcessBuilder.environment().putAll(env);
         if (!mysqlPassword.isEmpty()) {
             mysqlProcessBuilder.environment().put("MYSQL_PWD", mysqlPassword);
         }
-        runOrThrow(mysqlProcessBuilder, mysqlCommand);
+        Process process = mysqlProcessBuilder.start();
+        int exitCode = process.waitFor();
+        if (exitCode != 0) {
+            throw new IllegalStateException("Command failed: " + String.join(" ", mysqlCommand));
+        }
 
-        runSpringBootWithProfile("mysql", null, env);
+        runSpringBootWithProfile("mysql", null);
     }
 
     /** 清除 H2 檔案後，以 h2 profile 啟動應用程式 */
     private static void resetH2(Map<String, String> env) throws Exception {
         deleteH2DataFiles();
-        runSpringBootWithProfile("h2", "--spring.datasource.url=" + H2_URL, env);
+        runSpringBootWithProfile("h2", "--spring.datasource.url=" + H2_URL);
     }
 
-    /** 合併系統環境變數與 .env，讓純 java 執行也能吃到專案設定 */
-    private static Map<String, String> loadRuntimeEnv() throws Exception {
-        Map<String, String> mergedEnv = new HashMap<>(System.getenv());
-        ScriptRuntimeEnv.mergeDotEnvInto(mergedEnv);
-        return mergedEnv;
-    }
-
-    /** 建立可繼承 I/O 且帶環境變數的 ProcessBuilder */
-    private static ProcessBuilder baseProcess(List<String> command, Map<String, String> env) {
-        ProcessBuilder processBuilder = new ProcessBuilder(command).directory(new File(".")).inheritIO();
-        processBuilder.environment().putAll(env);
-        return processBuilder;
-    }
-
-    /** 使用可執行 jar 啟動 Spring Boot，避免依賴 mvnw.cmd */
-    private static void runSpringBootWithProfile(String profile, String additionalArgument, Map<String, String> env)
+    /** 直接啟動主程式，行為與 IDE 按三角形一致 */
+    private static void runSpringBootWithProfile(String profile, String additionalArgument)
             throws Exception {
-        Path jarPath = resolveSpringBootJar(Path.of("target"));
-        List<String> javaCommand = new ArrayList<>();
-        javaCommand.add("java");
-        javaCommand.add("-jar");
-        javaCommand.add(jarPath.toString());
-        javaCommand.add("--spring.profiles.active=" + profile);
+        List<String> springArgs = new ArrayList<>();
+        springArgs.add("--spring.profiles.active=" + profile);
         if (additionalArgument != null && !additionalArgument.isBlank()) {
-            javaCommand.add(additionalArgument);
+            springArgs.add(additionalArgument);
         }
-        runOrThrow(baseProcess(javaCommand, env), javaCommand);
-    }
-
-    /** 從 target 找可執行 jar，優先使用最新修改時間 */
-    private static Path resolveSpringBootJar(Path targetDir) throws Exception {
-        if (!Files.isDirectory(targetDir)) {
-            throw new IllegalStateException("找不到 target 目錄，請先執行建置產生可執行 jar。");
-        }
-
-        try (Stream<Path> stream = Files.list(targetDir)) {
-            Optional<Path> jarPath = stream
-                    .filter(Files::isRegularFile)
-                    .filter(path -> path.getFileName().toString().endsWith(".jar"))
-                    .filter(path -> !path.getFileName().toString().endsWith("-plain.jar"))
-                    .filter(path -> !path.getFileName().toString().endsWith("-sources.jar"))
-                    .sorted(Comparator.comparingLong((Path jar) -> jar.toFile().lastModified()).reversed())
-                    .findFirst();
-            if (jarPath.isPresent()) {
-                return jarPath.get();
-            }
-        }
-        throw new IllegalStateException("找不到可執行 jar，請先建置專案。");
+        MogumoguApplication.main(springArgs.toArray(String[]::new));
     }
 
     /** 刪除 H2 檔案型資料庫（mogumogu*） */
@@ -149,12 +106,4 @@ public class ResetDb {
         }
     }
 
-    /** 執行外部命令，非 0 直接拋錯附帶命令摘要 */
-    private static void runOrThrow(ProcessBuilder processBuilder, List<String> commandPreview) throws Exception {
-        Process process = processBuilder.start();
-        int exitCode = process.waitFor();
-        if (exitCode != 0) {
-            throw new IllegalStateException("Command failed: " + String.join(" ", commandPreview));
-        }
-    }
 }
