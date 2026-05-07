@@ -42,6 +42,9 @@ public class RestaurantResponse {
         @Schema(description = "圖片網址", example = "https://example.com/restaurant.jpg")
         private String imageUrl;
 
+        @Schema(description = "是否封存（軟刪除）", example = "false")
+        private Boolean isArchived;
+
         @Schema(description = "最後被選取時間", pattern = DateTimePatternConstants.STANDARD_DATE_TIME, example = "2026-05-03 14:58:57")
         private Date lastSelectedAt;
 
@@ -61,6 +64,7 @@ public class RestaurantResponse {
                                 .restaurantName(entity.getRestaurantName())
                                 .note(entity.getNote())
                                 .imageUrl(entity.getImageUrl())
+                                .isArchived(entity.getIsArchived())
                                 .lastSelectedAt(entity.getLastSelectedAt())
                                 .createdAt(entity.getCreatedAt())
                                 .updatedAt(entity.getUpdatedAt())

@@ -8,6 +8,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -49,5 +50,12 @@ public class RestaurantController {
             @PathVariable("id") Integer restaurantId,
             @RequestBody @Valid UpdateRestaurantDto request) {
         return restaurantService.updateRestaurant(restaurantId, request);
+    }
+
+    @DeleteMapping("/{id}")
+    @Operation(summary = "刪除餐廳（軟刪除）")
+    @ResponseStatus(HttpStatus.OK)
+    public RestaurantResponse deleteRestaurant(@PathVariable("id") Integer restaurantId) {
+        return restaurantService.deleteRestaurant(restaurantId);
     }
 }

@@ -47,7 +47,8 @@ public class RestaurantService {
         RestaurantCategoryEntity category = findCategoryOrThrow(request.getCategoryId(), groupId);
 
         // 取得同群組內目前最大的 displayOrder
-        RestaurantEntity latestRestaurant = restaurantRepository.findTopByGroupIdOrderByDisplayOrderDesc(groupId);
+        RestaurantEntity latestRestaurant = restaurantRepository
+                .findTopByGroupIdOrderByDisplayOrderDesc(groupId);
         Integer nextDisplayOrder;
         if (latestRestaurant == null || latestRestaurant.getDisplayOrder() == null) {
             nextDisplayOrder = 1;
@@ -65,6 +66,7 @@ public class RestaurantService {
                 .restaurantName(request.getRestaurantName())
                 .note(request.getNote())
                 .imageUrl(request.getImageUrl())
+                .isArchived(false)
                 .lastSelectedAt(null)
                 .createdAt(now)
                 .updatedAt(now)
@@ -140,6 +142,25 @@ public class RestaurantService {
         // 寫回資料庫並轉成回傳 DTO
         RestaurantEntity updatedEntity = restaurantRepository.save(restaurant);
         return RestaurantResponse.restaurantResponse(updatedEntity);
+    }
+
+    /** 軟刪除餐廳 */
+    public RestaurantResponse deleteRestaurant(Integer restaurantId) {
+        // 檢查餐廳是否存在
+        if (restaurantId == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "restaurantId must not be null");
+        }
+
+        // 取得餐廳
+        RestaurantEntity restaurant = restaurantRepository.findById(restaurantId).orElse(null);
+        if (restaurant == null) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Restaurant not found");
+        }
+
+        restaurant.setIsArchived(true);
+        restaurant.setUpdatedAt(new Date());
+        RestaurantEntity deletedEntity = restaurantRepository.save(restaurant);
+        return RestaurantResponse.restaurantResponse(deletedEntity);
     }
 
     /** 檢查分類是否存在 */
