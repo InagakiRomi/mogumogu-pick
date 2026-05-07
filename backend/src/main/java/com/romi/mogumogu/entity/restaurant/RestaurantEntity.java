@@ -46,6 +46,10 @@ public class RestaurantEntity {
     @Column(nullable = false)
     private Integer displayOrder;
 
+    @Comment("被選中的累計次數")
+    @Column(nullable = false, columnDefinition = "INT DEFAULT 0")
+    private Integer selectedCount;
+
     @Comment("餐廳名稱")
     @Column(length = 64, nullable = false)
     private String restaurantName;
@@ -57,10 +61,6 @@ public class RestaurantEntity {
     @Comment("餐廳圖片URL")
     @Column(length = 512)
     private String imageUrl;
-
-    @Comment("被選中的累計次數")
-    @Column(nullable = false, columnDefinition = "INT DEFAULT 0")
-    private Integer selectedCount;
 
     @Comment("最後一次被選中的時間")
     private Date lastSelectedAt;

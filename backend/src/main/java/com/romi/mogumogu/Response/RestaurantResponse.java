@@ -30,7 +30,10 @@ public class RestaurantResponse {
         @Schema(description = "顯示排序", example = "1")
         private Integer displayOrder;
 
-        @Schema(description = "餐廳名稱", example = "壽司郎")
+        @Schema(description = "被選取次數", example = "10")
+        private Integer selectedCount;
+
+        @Schema(description = "餐廳名稱", example = "和食天國")
         private String restaurantName;
 
         @Schema(description = "備註", example = "可訂位")
@@ -38,9 +41,6 @@ public class RestaurantResponse {
 
         @Schema(description = "圖片網址", example = "https://example.com/restaurant.jpg")
         private String imageUrl;
-
-        @Schema(description = "被選取次數", example = "10")
-        private Integer selectedCount;
 
         @Schema(description = "最後被選取時間", pattern = DateTimePatternConstants.STANDARD_DATE_TIME, example = "2026-05-03 14:58:57")
         private Date lastSelectedAt;
@@ -57,10 +57,10 @@ public class RestaurantResponse {
                                 .groupId(entity.getGroupId())
                                 .categoryId(entity.getCategoryId().getCategoryId())
                                 .displayOrder(entity.getDisplayOrder())
+                                .selectedCount(entity.getSelectedCount())
                                 .restaurantName(entity.getRestaurantName())
                                 .note(entity.getNote())
                                 .imageUrl(entity.getImageUrl())
-                                .selectedCount(entity.getSelectedCount())
                                 .lastSelectedAt(entity.getLastSelectedAt())
                                 .createdAt(entity.getCreatedAt())
                                 .updatedAt(entity.getUpdatedAt())

@@ -2,6 +2,8 @@ package com.romi.mogumogu.service.restaurant;
 
 import com.romi.mogumogu.Response.RestaurantResponse;
 import com.romi.mogumogu.dto.CreateRestaurantDto;
+import com.romi.mogumogu.dto.UpdateRestaurantDto;
+import com.romi.mogumogu.entity.restaurant.RestaurantCategoryEntity;
 import com.romi.mogumogu.entity.restaurant.RestaurantEntity;
 import com.romi.mogumogu.repository.restaurant.RestaurantCategoryRepository;
 import com.romi.mogumogu.repository.restaurant.RestaurantRepository;
@@ -38,15 +40,11 @@ public class RestaurantService {
         // 取得群組 ID
         Integer groupId = request.getGroupId();
         if (!restaurantCategoryRepository.existsByGroupId(groupId)) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "該群組不存在");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Group not found");
         }
 
         // 取得分類
-        var categoryOptional = restaurantCategoryRepository
-                .findByCategoryIdAndGroupId(request.getCategoryId(), groupId);
-        if (categoryOptional.isEmpty()) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "該分類不存在");
-        }
+        RestaurantCategoryEntity category = findCategoryOrThrow(request.getCategoryId(), groupId);
 
         // 取得同群組內目前最大的 displayOrder
         RestaurantEntity latestRestaurant = restaurantRepository.findTopByGroupIdOrderByDisplayOrderDesc(groupId);
@@ -58,16 +56,15 @@ public class RestaurantService {
         }
 
         // 新增餐廳
-        var category = categoryOptional.get();
         Date now = new Date();
         RestaurantEntity entity = Objects.requireNonNull(RestaurantEntity.builder()
                 .groupId(groupId)
                 .categoryId(category)
                 .displayOrder(nextDisplayOrder)
+                .selectedCount(0)
                 .restaurantName(request.getRestaurantName())
                 .note(request.getNote())
                 .imageUrl(request.getImageUrl())
-                .selectedCount(0)
                 .lastSelectedAt(null)
                 .createdAt(now)
                 .updatedAt(now)
@@ -76,4 +73,80 @@ public class RestaurantService {
         RestaurantEntity savedEntity = restaurantRepository.save(entity);
         return RestaurantResponse.restaurantResponse(savedEntity);
     }
+
+    /** 修改餐廳 */
+    public RestaurantResponse updateRestaurant(Integer restaurantId, UpdateRestaurantDto request) {
+        // 檢查餐廳是否存在
+        if (restaurantId == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "restaurantId must not be null");
+        }
+
+        // 取得餐廳
+        RestaurantEntity restaurant = restaurantRepository.findById(restaurantId).orElse(null);
+        if (restaurant == null) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Restaurant not found");
+        }
+
+        // 修改分類
+        if (request.getCategoryId() != null) {
+            Integer targetGroupId = restaurant.getGroupId();
+            Integer targetCategoryId = request.getCategoryId();
+            RestaurantCategoryEntity category = findCategoryOrThrow(targetCategoryId, targetGroupId);
+            restaurant.setCategoryId(category);
+        }
+
+        // 修改顯示順序
+        if (request.getDisplayOrder() != null) {
+            Integer displayOrder = request.getDisplayOrder();
+
+            // 檢查顯示順序是否已存在
+            if (restaurantRepository.existsByGroupIdAndDisplayOrderAndRestaurantIdNot(
+                    restaurant.getGroupId(), displayOrder, restaurant.getRestaurantId())) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "displayOrder already exists in this group");
+            }
+
+            restaurant.setDisplayOrder(displayOrder);
+        }
+
+        // 修改選中次數
+        if (request.getSelectedCount() != null) {
+            restaurant.setSelectedCount(request.getSelectedCount());
+        }
+
+        // 修改餐廳名稱
+        if (request.getRestaurantName() != null && !request.getRestaurantName().isBlank()) {
+            String restaurantName = request.getRestaurantName();
+            restaurant.setRestaurantName(restaurantName);
+        }
+
+        // 修改備註
+        if (request.getNote() != null) {
+            restaurant.setNote(request.getNote());
+        }
+
+        // 修改圖片 URL
+        if (request.getImageUrl() != null) {
+            restaurant.setImageUrl(request.getImageUrl());
+        }
+
+        // 修改最後選中時間
+        if (request.getLastSelectedAt() != null) {
+            restaurant.setLastSelectedAt(request.getLastSelectedAt());
+        }
+
+        // 更新最後修改時間
+        restaurant.setUpdatedAt(new Date());
+
+        // 寫回資料庫並轉成回傳 DTO
+        RestaurantEntity updatedEntity = restaurantRepository.save(restaurant);
+        return RestaurantResponse.restaurantResponse(updatedEntity);
+    }
+
+    /** 檢查分類是否存在 */
+    private RestaurantCategoryEntity findCategoryOrThrow(Integer categoryId, Integer groupId) {
+        return restaurantCategoryRepository
+                .findByCategoryIdAndGroupId(categoryId, groupId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "Category not found"));
+    }
+
 }
