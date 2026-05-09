@@ -9,12 +9,17 @@ import com.romi.mogumogu.repository.restaurant.RestaurantCategoryRepository;
 import com.romi.mogumogu.repository.restaurant.RestaurantRepository;
 
 import org.springframework.http.HttpStatus;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
+import jakarta.persistence.criteria.Predicate;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
+import java.util.Locale;
 
 @Service
 public class RestaurantService {
@@ -29,10 +34,56 @@ public class RestaurantService {
     }
 
     /** 取得所有餐廳 */
-    public List<RestaurantResponse> getRestaurants() {
-        return restaurantRepository.findAll().stream()
+    public List<RestaurantResponse> getRestaurants(
+            Integer groupId,
+            Integer categoryId,
+            Boolean isArchived,
+            String search) {
+
+        String normalizedSearch = Optional.ofNullable(search)
+                .map(String::trim) // 去除前後空白
+                .filter(value -> !value.isEmpty()) // 去除空字串
+                .map(value -> value.toLowerCase(Locale.ROOT)) // 轉換為小寫
+                .orElse(null); // 如果為空則返回 null
+
+        // 建立不帶任何過濾條件的查詢規格
+        Specification<RestaurantEntity> spec = Specification.unrestricted();
+
+        // 加入過濾條件
+        spec = spec.and((root, query, cb) -> {
+            List<Predicate> predicates = new ArrayList<>();
+
+            // 檢查群組 ID
+            if (groupId != null) {
+                predicates.add(cb.equal(root.get("groupId"), groupId));
+            }
+
+            // 檢查分類 ID
+            if (categoryId != null) {
+                predicates.add(cb.equal(root.get("categoryId").get("categoryId"), categoryId));
+            }
+
+            // 檢查是否已刪除
+            if (isArchived != null) {
+                predicates.add(cb.equal(root.get("isArchived"), isArchived));
+            }
+
+            // 檢查餐廳名稱
+            if (normalizedSearch != null) {
+                String keyword = "%" + normalizedSearch + "%";
+                predicates.add(cb.like(cb.lower(root.get("restaurantName")), keyword));
+            }
+
+            // 回傳過濾條件
+            return cb.and(predicates.toArray(new Predicate[0]));
+        });
+
+        // 取得餐廳列表
+        List<RestaurantResponse> restaurantResponses = restaurantRepository.findAll(spec).stream()
                 .map(RestaurantResponse::restaurantResponse)
                 .toList();
+
+        return restaurantResponses;
     }
 
     /** 新增餐廳 */

@@ -92,7 +92,8 @@ class RestaurantControllerTest {
         when(restaurantService.createRestaurant(any(CreateRestaurantDto.class)))
                 .thenThrow(new ResponseStatusException(HttpStatus.BAD_REQUEST, "Category not found"));
 
-        assertErrorResponse(performPostRestaurants(request), HttpStatus.BAD_REQUEST, "/restaurants", "Category not found");
+        assertErrorResponse(performPostRestaurants(request), HttpStatus.BAD_REQUEST, "/restaurants",
+                "Category not found");
 
         verify(restaurantService).createRestaurant(any(CreateRestaurantDto.class));
     }
@@ -186,7 +187,7 @@ class RestaurantControllerTest {
     void testGetRestaurants_success_returnsRestaurantList() throws Exception {
         RestaurantResponse first = buildRestaurantResponse(1, 1, 10, "拉麵店");
         RestaurantResponse second = buildRestaurantResponse(2, 1, 11, "壽司店");
-        when(restaurantService.getRestaurants()).thenReturn(List.of(first, second));
+        when(restaurantService.getRestaurants(null, null, null, null)).thenReturn(List.of(first, second));
 
         mockMvc.perform(get("/restaurants"))
                 .andExpect(status().isOk())
@@ -196,39 +197,59 @@ class RestaurantControllerTest {
                 .andExpect(jsonPath("$[1].restaurantId").value(2))
                 .andExpect(jsonPath("$[1].restaurantName").value("壽司店"));
 
-        verify(restaurantService).getRestaurants();
+        verify(restaurantService).getRestaurants(null, null, null, null);
     }
 
     @Test
     void testGetRestaurants_success_returnsEmptyList() throws Exception {
-        when(restaurantService.getRestaurants()).thenReturn(List.of());
+        when(restaurantService.getRestaurants(null, null, null, null)).thenReturn(List.of());
 
         mockMvc.perform(get("/restaurants"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.length()").value(0));
 
-        verify(restaurantService).getRestaurants();
+        verify(restaurantService).getRestaurants(null, null, null, null);
     }
 
     @Test
     void testGetRestaurants_serviceThrowsUnexpectedException_returns500() throws Exception {
-        when(restaurantService.getRestaurants()).thenThrow(new RuntimeException("Database unavailable"));
+        when(restaurantService.getRestaurants(null, null, null, null))
+                .thenThrow(new RuntimeException("Database unavailable"));
 
         assertErrorResponse(mockMvc.perform(get("/restaurants")),
                 HttpStatus.INTERNAL_SERVER_ERROR, "/restaurants", "Database unavailable");
 
-        verify(restaurantService).getRestaurants();
+        verify(restaurantService).getRestaurants(null, null, null, null);
     }
 
     @Test
     void testGetRestaurants_serviceThrowsResponseStatusException_returns503() throws Exception {
-        when(restaurantService.getRestaurants())
-                .thenThrow(new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE, "Service temporarily unavailable"));
+        when(restaurantService.getRestaurants(null, null, null, null))
+                .thenThrow(
+                        new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE, "Service temporarily unavailable"));
 
         assertErrorResponse(mockMvc.perform(get("/restaurants")),
                 HttpStatus.SERVICE_UNAVAILABLE, "/restaurants", "Service temporarily unavailable");
 
-        verify(restaurantService).getRestaurants();
+        verify(restaurantService).getRestaurants(null, null, null, null);
+    }
+
+    @Test
+    void testGetRestaurants_withFilters_passesQueryParamsToService() throws Exception {
+        RestaurantResponse filtered = buildRestaurantResponse(3, 2, 21, "牛排館");
+        when(restaurantService.getRestaurants(2, 21, false, "牛排")).thenReturn(List.of(filtered));
+
+        mockMvc.perform(get("/restaurants")
+                .param("groupId", "2")
+                .param("categoryId", "21")
+                .param("isArchived", "false")
+                .param("search", "牛排"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(1))
+                .andExpect(jsonPath("$[0].restaurantId").value(3))
+                .andExpect(jsonPath("$[0].restaurantName").value("牛排館"));
+
+        verify(restaurantService).getRestaurants(eq(2), eq(21), eq(false), eq("牛排"));
     }
 
     @Test
@@ -266,7 +287,8 @@ class RestaurantControllerTest {
     void testUpdateRestaurant_serviceThrowsBadRequest_returns400() throws Exception {
         UpdateRestaurantDto request = buildUpdateRequest(null, null, 1);
         when(restaurantService.updateRestaurant(eq(12), any(UpdateRestaurantDto.class)))
-                .thenThrow(new ResponseStatusException(HttpStatus.BAD_REQUEST, "displayOrder already exists in this group"));
+                .thenThrow(new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                        "displayOrder already exists in this group"));
 
         assertErrorResponse(performPatchRestaurant(12, request),
                 HttpStatus.BAD_REQUEST, "/restaurants/12", "displayOrder already exists in this group");
@@ -291,8 +313,8 @@ class RestaurantControllerTest {
         UpdateRestaurantDto request = buildUpdateRequest("不會送到 service", null, null);
 
         assertErrorResponseContains(mockMvc.perform(patch("/restaurants/{id}", "bad-id")
-                        .contentType("application/json")
-                        .content(Objects.requireNonNull(objectMapper.writeValueAsString(request)))),
+                .contentType("application/json")
+                .content(Objects.requireNonNull(objectMapper.writeValueAsString(request)))),
                 500, "INTERNAL_SERVER_ERROR", "/restaurants/bad-id", "Failed to convert value of type");
 
         verifyNoInteractions(restaurantService);
@@ -320,7 +342,7 @@ class RestaurantControllerTest {
     @Test
     void testUpdateRestaurant_missingBody_returns500AndSkipsServiceCall() throws Exception {
         assertErrorResponseContains(mockMvc.perform(patch("/restaurants/{id}", 1)
-                        .contentType("application/json")),
+                .contentType("application/json")),
                 500, "INTERNAL_SERVER_ERROR", "/restaurants/1", "Required request body is missing");
 
         verifyNoInteractions(restaurantService);
@@ -331,14 +353,15 @@ class RestaurantControllerTest {
         String invalidJson = "{\"restaurantName\":\"abc\""; // 缺結尾 }
 
         assertErrorResponseContains(mockMvc.perform(patch("/restaurants/{id}", 1)
-                        .contentType("application/json")
-                        .content(Objects.requireNonNull(invalidJson))),
+                .contentType("application/json")
+                .content(Objects.requireNonNull(invalidJson))),
                 500, "INTERNAL_SERVER_ERROR", "/restaurants/1", "JSON parse error");
 
         verifyNoInteractions(restaurantService);
     }
 
-    private RestaurantResponse buildRestaurantResponse(Integer restaurantId, Integer groupId, Integer categoryId, String name) {
+    private RestaurantResponse buildRestaurantResponse(Integer restaurantId, Integer groupId, Integer categoryId,
+            String name) {
         Date now = new Date();
         return RestaurantResponse.builder()
                 .restaurantId(restaurantId)
