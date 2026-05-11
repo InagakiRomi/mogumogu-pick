@@ -1,6 +1,7 @@
 package com.romi.mogumogu.controller.restaurant;
 
 import com.romi.mogumogu.Response.RestaurantResponse;
+import com.romi.mogumogu.Response.RestaurantListResponse;
 import com.romi.mogumogu.dto.CreateRestaurantDto;
 import com.romi.mogumogu.dto.GetRestaurantQuery;
 import com.romi.mogumogu.dto.UpdateRestaurantDto;
@@ -21,8 +22,6 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
-import java.util.List;
-
 @RestController
 @RequestMapping("/restaurants")
 @Tag(name = "restaurants", description = "餐廳")
@@ -36,7 +35,8 @@ public class RestaurantController {
 
     @GetMapping("")
     @Operation(summary = "取得餐廳清單")
-    public List<RestaurantResponse> getRestaurants(@ModelAttribute @ParameterObject GetRestaurantQuery queryParams) {
+    public RestaurantListResponse getRestaurants(
+            @Valid @ModelAttribute @ParameterObject GetRestaurantQuery queryParams) {
         return restaurantService.getRestaurants(queryParams);
     }
 

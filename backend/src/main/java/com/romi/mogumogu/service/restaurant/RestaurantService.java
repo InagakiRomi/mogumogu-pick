@@ -1,6 +1,7 @@
 package com.romi.mogumogu.service.restaurant;
 
 import com.romi.mogumogu.Response.RestaurantResponse;
+import com.romi.mogumogu.Response.RestaurantListResponse;
 import com.romi.mogumogu.dto.CreateRestaurantDto;
 import com.romi.mogumogu.dto.GetRestaurantQuery;
 import com.romi.mogumogu.dto.UpdateRestaurantDto;
@@ -12,6 +13,9 @@ import com.romi.mogumogu.repository.restaurant.RestaurantRepository;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.data.jpa.domain.Specification;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
@@ -37,13 +41,15 @@ public class RestaurantService {
     }
 
     /** 取得所有餐廳 */
-    public List<RestaurantResponse> getRestaurants(GetRestaurantQuery queryParams) {
+    public RestaurantListResponse getRestaurants(GetRestaurantQuery queryParams) {
         Integer groupId = queryParams.getGroupId();
         Integer categoryId = queryParams.getCategoryId();
         Boolean isArchived = queryParams.getIsArchived();
         String search = queryParams.getSearch();
         RestaurantSort.SortBy orderBy = queryParams.getOrderBy();
         RestaurantSort.SortOrder sort = queryParams.getSort();
+        Integer page = queryParams.getPage();
+        Integer limit = queryParams.getLimit();
 
         String normalizedSearch = Optional.ofNullable(search)
                 .map(String::trim) // 去除前後空白
@@ -104,13 +110,21 @@ public class RestaurantService {
         // 建立排序規則
         Sort jpaSort = Sort.by(sortDirection, sortProperty);
 
+        // JPA Pageable 使用 0-based，API 採 1-based
+        Pageable pageable = PageRequest.of(page - 1, limit, jpaSort);
+
         // 取得餐廳列表
-        List<RestaurantEntity> entities = restaurantRepository.findAll(spec, jpaSort);
-        List<RestaurantResponse> restaurantResponses = entities.stream()
+        Page<RestaurantEntity> pageResult = restaurantRepository.findAll(spec, pageable);
+        List<RestaurantResponse> restaurantResponses = pageResult.getContent().stream()
                 .map(RestaurantResponse::restaurantResponse)
                 .toList();
 
-        return restaurantResponses;
+        return RestaurantListResponse.builder()
+                .data(restaurantResponses)
+                .page(page)
+                .limit(limit)
+                .total(pageResult.getTotalElements())
+                .build();
     }
 
     /** 新增餐廳 */

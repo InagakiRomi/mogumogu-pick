@@ -2,6 +2,7 @@ package com.romi.mogumogu.controller.restaurant;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.JsonNode;
+import com.romi.mogumogu.Response.RestaurantListResponse;
 import com.romi.mogumogu.Response.RestaurantResponse;
 import com.romi.mogumogu.dto.CreateRestaurantDto;
 import com.romi.mogumogu.dto.GetRestaurantQuery;
@@ -196,15 +197,18 @@ class RestaurantControllerTest {
                 RestaurantResponse first = buildRestaurantResponse(1, 1, 10, "拉麵店");
                 RestaurantResponse second = buildRestaurantResponse(2, 1, 11, "壽司店");
                 when(restaurantService.getRestaurants(argThat(RestaurantControllerTest::matchesDefaultListQuery)))
-                                .thenReturn(List.of(first, second));
+                                .thenReturn(buildRestaurantListResponse(List.of(first, second), 1, 10, 2L));
 
                 performGetRestaurants()
                                 .andExpect(status().isOk())
-                                .andExpect(jsonPath("$.length()").value(2))
-                                .andExpect(jsonPath("$[0].restaurantId").value(1))
-                                .andExpect(jsonPath("$[0].restaurantName").value("拉麵店"))
-                                .andExpect(jsonPath("$[1].restaurantId").value(2))
-                                .andExpect(jsonPath("$[1].restaurantName").value("壽司店"));
+                                .andExpect(jsonPath("$.page").value(1))
+                                .andExpect(jsonPath("$.limit").value(10))
+                                .andExpect(jsonPath("$.total").value(2))
+                                .andExpect(jsonPath("$.data.length()").value(2))
+                                .andExpect(jsonPath("$.data[0].restaurantId").value(1))
+                                .andExpect(jsonPath("$.data[0].restaurantName").value("拉麵店"))
+                                .andExpect(jsonPath("$.data[1].restaurantId").value(2))
+                                .andExpect(jsonPath("$.data[1].restaurantName").value("壽司店"));
 
                 verify(restaurantService).getRestaurants(argThat(RestaurantControllerTest::matchesDefaultListQuery));
         }
@@ -212,11 +216,14 @@ class RestaurantControllerTest {
         @Test
         void testGetRestaurants_success_returnsEmptyList() throws Exception {
                 when(restaurantService.getRestaurants(argThat(RestaurantControllerTest::matchesDefaultListQuery)))
-                                .thenReturn(List.of());
+                                .thenReturn(buildRestaurantListResponse(List.of(), 1, 10, 0L));
 
                 performGetRestaurants()
                                 .andExpect(status().isOk())
-                                .andExpect(jsonPath("$.length()").value(0));
+                                .andExpect(jsonPath("$.page").value(1))
+                                .andExpect(jsonPath("$.limit").value(10))
+                                .andExpect(jsonPath("$.total").value(0))
+                                .andExpect(jsonPath("$.data.length()").value(0));
 
                 verify(restaurantService).getRestaurants(argThat(RestaurantControllerTest::matchesDefaultListQuery));
         }
@@ -249,7 +256,7 @@ class RestaurantControllerTest {
         void testGetRestaurants_withFilters_passesQueryParamsToService() throws Exception {
                 RestaurantResponse filtered = buildRestaurantResponse(3, 2, 21, "牛排館");
                 when(restaurantService.getRestaurants(argThat(RestaurantControllerTest::matchesFilteredListQuery)))
-                                .thenReturn(List.of(filtered));
+                                .thenReturn(buildRestaurantListResponse(List.of(filtered), 1, 10, 1L));
 
                 performGetRestaurants(Map.of(
                                 "groupId", "2",
@@ -257,9 +264,9 @@ class RestaurantControllerTest {
                                 "isArchived", "false",
                                 "search", "牛排"))
                                 .andExpect(status().isOk())
-                                .andExpect(jsonPath("$.length()").value(1))
-                                .andExpect(jsonPath("$[0].restaurantId").value(3))
-                                .andExpect(jsonPath("$[0].restaurantName").value("牛排館"));
+                                .andExpect(jsonPath("$.data.length()").value(1))
+                                .andExpect(jsonPath("$.data[0].restaurantId").value(3))
+                                .andExpect(jsonPath("$.data[0].restaurantName").value("牛排館"));
 
                 verify(restaurantService).getRestaurants(argThat(RestaurantControllerTest::matchesFilteredListQuery));
         }
@@ -268,17 +275,37 @@ class RestaurantControllerTest {
         void testGetRestaurants_withOrderByAndSort_passesQueryParamsToService() throws Exception {
                 RestaurantResponse sorted = buildRestaurantResponse(8, 1, 2, "燒肉店");
                 when(restaurantService.getRestaurants(argThat(RestaurantControllerTest::matchesSortedListQuery)))
-                                .thenReturn(List.of(sorted));
+                                .thenReturn(buildRestaurantListResponse(List.of(sorted), 1, 10, 1L));
 
                 performGetRestaurants(Map.of(
                                 "orderBy", "SELECTED_COUNT",
                                 "sort", "DESC"))
                                 .andExpect(status().isOk())
-                                .andExpect(jsonPath("$.length()").value(1))
-                                .andExpect(jsonPath("$[0].restaurantId").value(8))
-                                .andExpect(jsonPath("$[0].restaurantName").value("燒肉店"));
+                                .andExpect(jsonPath("$.data.length()").value(1))
+                                .andExpect(jsonPath("$.data[0].restaurantId").value(8))
+                                .andExpect(jsonPath("$.data[0].restaurantName").value("燒肉店"));
 
                 verify(restaurantService).getRestaurants(argThat(RestaurantControllerTest::matchesSortedListQuery));
+        }
+
+        @Test
+        void testGetRestaurants_withPageAndLimit_passesQueryParamsToService() throws Exception {
+                RestaurantResponse paged = buildRestaurantResponse(9, 1, 2, "火鍋店");
+                when(restaurantService.getRestaurants(argThat(RestaurantControllerTest::matchesPagedListQuery)))
+                                .thenReturn(buildRestaurantListResponse(List.of(paged), 2, 5, 11L));
+
+                performGetRestaurants(Map.of(
+                                "page", "2",
+                                "limit", "5"))
+                                .andExpect(status().isOk())
+                                .andExpect(jsonPath("$.page").value(2))
+                                .andExpect(jsonPath("$.limit").value(5))
+                                .andExpect(jsonPath("$.total").value(11))
+                                .andExpect(jsonPath("$.data.length()").value(1))
+                                .andExpect(jsonPath("$.data[0].restaurantId").value(9))
+                                .andExpect(jsonPath("$.data[0].restaurantName").value("火鍋店"));
+
+                verify(restaurantService).getRestaurants(argThat(RestaurantControllerTest::matchesPagedListQuery));
         }
 
         @Test
@@ -293,6 +320,24 @@ class RestaurantControllerTest {
         void testGetRestaurants_invalidSort_returns400AndSkipsServiceCall() throws Exception {
                 assertErrorResponseContains(performGetRestaurants(Map.of("sort", "INVALID_SORT_ORDER")),
                                 400, "BAD_REQUEST", "/restaurants", "sort is invalid");
+
+                verifyNoInteractions(restaurantService);
+        }
+
+        @Test
+        void testGetRestaurants_invalidPage_returns400AndSkipsServiceCall() throws Exception {
+                assertErrorResponseContains(performGetRestaurants(Map.of("page", "0")),
+                                400, "BAD_REQUEST", "/restaurants",
+                                "page must be greater than or equal to the minimum value");
+
+                verifyNoInteractions(restaurantService);
+        }
+
+        @Test
+        void testGetRestaurants_invalidLimit_returns400AndSkipsServiceCall() throws Exception {
+                assertErrorResponseContains(performGetRestaurants(Map.of("limit", "0")),
+                                400, "BAD_REQUEST", "/restaurants",
+                                "limit must be greater than or equal to the minimum value");
 
                 verifyNoInteractions(restaurantService);
         }
@@ -446,6 +491,16 @@ class RestaurantControllerTest {
                                 .build();
         }
 
+        private RestaurantListResponse buildRestaurantListResponse(List<RestaurantResponse> data, Integer page,
+                        Integer limit, Long total) {
+                return RestaurantListResponse.builder()
+                                .data(data)
+                                .page(page)
+                                .limit(limit)
+                                .total(total)
+                                .build();
+        }
+
         private ResultActions performPostRestaurants(Object request) throws Exception {
                 return mockMvc.perform(post("/restaurants")
                                 .contentType("application/json")
@@ -498,7 +553,9 @@ class RestaurantControllerTest {
                                 null,
                                 null,
                                 RestaurantSort.SortBy.RESTAURANT_ID,
-                                RestaurantSort.SortOrder.ASC);
+                                RestaurantSort.SortOrder.ASC,
+                                1,
+                                10);
         }
 
         private static boolean matchesFilteredListQuery(GetRestaurantQuery p) {
@@ -509,7 +566,9 @@ class RestaurantControllerTest {
                                 false,
                                 "牛排",
                                 RestaurantSort.SortBy.RESTAURANT_ID,
-                                RestaurantSort.SortOrder.ASC);
+                                RestaurantSort.SortOrder.ASC,
+                                1,
+                                10);
         }
 
         private static boolean matchesSortedListQuery(GetRestaurantQuery p) {
@@ -520,7 +579,22 @@ class RestaurantControllerTest {
                                 null,
                                 null,
                                 RestaurantSort.SortBy.SELECTED_COUNT,
-                                RestaurantSort.SortOrder.DESC);
+                                RestaurantSort.SortOrder.DESC,
+                                1,
+                                10);
+        }
+
+        private static boolean matchesPagedListQuery(GetRestaurantQuery p) {
+                return matchesListQuery(
+                                p,
+                                null,
+                                null,
+                                null,
+                                null,
+                                RestaurantSort.SortBy.RESTAURANT_ID,
+                                RestaurantSort.SortOrder.ASC,
+                                2,
+                                5);
         }
 
         private static boolean matchesListQuery(
@@ -530,12 +604,16 @@ class RestaurantControllerTest {
                         Boolean isArchived,
                         String search,
                         RestaurantSort.SortBy orderBy,
-                        RestaurantSort.SortOrder sort) {
+                        RestaurantSort.SortOrder sort,
+                        Integer page,
+                        Integer limit) {
                 return Objects.equals(p.getGroupId(), groupId)
                                 && Objects.equals(p.getCategoryId(), categoryId)
                                 && Objects.equals(p.getIsArchived(), isArchived)
                                 && Objects.equals(p.getSearch(), search)
                                 && p.getOrderBy() == orderBy
-                                && p.getSort() == sort;
+                                && p.getSort() == sort
+                                && Objects.equals(p.getPage(), page)
+                                && Objects.equals(p.getLimit(), limit);
         }
 }

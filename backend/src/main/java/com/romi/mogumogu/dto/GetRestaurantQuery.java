@@ -3,6 +3,7 @@ package com.romi.mogumogu.dto;
 import com.romi.mogumogu.enums.RestaurantSort;
 
 import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.validation.constraints.Min;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Builder.Default;
@@ -35,4 +36,14 @@ public class GetRestaurantQuery {
     @Schema(description = "排序方向")
     @Default
     private RestaurantSort.SortOrder sort = RestaurantSort.SortOrder.ASC;
+
+    @Schema(description = "頁碼")
+    @Default
+    @Min(value = 1, message = "page must be greater than or equal to the minimum value")
+    private Integer page = 1;
+
+    @Schema(description = "每頁筆數")
+    @Default
+    @Min(value = 1, message = "limit must be greater than or equal to the minimum value")
+    private Integer limit = 20;
 }
