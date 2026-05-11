@@ -2,14 +2,17 @@ package com.romi.mogumogu.service.restaurant;
 
 import com.romi.mogumogu.Response.RestaurantResponse;
 import com.romi.mogumogu.dto.CreateRestaurantDto;
+import com.romi.mogumogu.dto.GetRestaurantQuery;
 import com.romi.mogumogu.dto.UpdateRestaurantDto;
 import com.romi.mogumogu.entity.restaurant.RestaurantCategoryEntity;
 import com.romi.mogumogu.entity.restaurant.RestaurantEntity;
+import com.romi.mogumogu.enums.RestaurantSort;
 import com.romi.mogumogu.repository.restaurant.RestaurantCategoryRepository;
 import com.romi.mogumogu.repository.restaurant.RestaurantRepository;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.data.jpa.domain.Specification;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
@@ -34,11 +37,13 @@ public class RestaurantService {
     }
 
     /** 取得所有餐廳 */
-    public List<RestaurantResponse> getRestaurants(
-            Integer groupId,
-            Integer categoryId,
-            Boolean isArchived,
-            String search) {
+    public List<RestaurantResponse> getRestaurants(GetRestaurantQuery queryParams) {
+        Integer groupId = queryParams.getGroupId();
+        Integer categoryId = queryParams.getCategoryId();
+        Boolean isArchived = queryParams.getIsArchived();
+        String search = queryParams.getSearch();
+        RestaurantSort.SortBy orderBy = queryParams.getOrderBy();
+        RestaurantSort.SortOrder sort = queryParams.getSort();
 
         String normalizedSearch = Optional.ofNullable(search)
                 .map(String::trim) // 去除前後空白
@@ -78,8 +83,30 @@ public class RestaurantService {
             return cb.and(predicates.toArray(new Predicate[0]));
         });
 
+        // 取得排序方式
+        RestaurantSort.SortOrder safeSort = RestaurantSort.SortOrder.ASC;
+        if (sort != null) {
+            safeSort = sort;
+        }
+
+        // 取得排序欄位
+        RestaurantSort.SortBy safeOrderBy = RestaurantSort.SortBy.DISPLAY_ORDER;
+        if (orderBy != null) {
+            safeOrderBy = orderBy;
+        }
+
+        // 建立排序規則
+        Sort.Direction sortDirection = Objects.requireNonNull(safeSort.getSortDirection());
+
+        // 取得排序欄位名稱
+        String sortProperty = safeOrderBy.getSortProperty();
+
+        // 建立排序規則
+        Sort jpaSort = Sort.by(sortDirection, sortProperty);
+
         // 取得餐廳列表
-        List<RestaurantResponse> restaurantResponses = restaurantRepository.findAll(spec).stream()
+        List<RestaurantEntity> entities = restaurantRepository.findAll(spec, jpaSort);
+        List<RestaurantResponse> restaurantResponses = entities.stream()
                 .map(RestaurantResponse::restaurantResponse)
                 .toList();
 
