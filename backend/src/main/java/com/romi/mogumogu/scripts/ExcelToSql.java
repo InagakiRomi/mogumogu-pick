@@ -228,9 +228,23 @@ public class ExcelToSql {
             return "";
         }
 
-        return "INSERT INTO " + tableName + "\n(" + String.join(", ", layout.columnNames()) + ") VALUES\n"
+        String quotedTable = quoteTableNameForInsert(tableName, dialect);
+        return "INSERT INTO " + quotedTable + "\n(" + String.join(", ", layout.columnNames()) + ") VALUES\n"
                 + String.join(",\n", valueTuples)
                 + ";";
+    }
+
+    /**
+     * {@code user} 為 H2 / MySQL 保留字，需與 Flyway（{@code "user"} / {@code `user`}）一致加上引號。
+     */
+    private static String quoteTableNameForInsert(String tableName, SqlDialect dialect) {
+        if (!"user".equalsIgnoreCase(tableName)) {
+            return tableName;
+        }
+        return switch (dialect) {
+            case MYSQL -> "`" + tableName.replace("`", "``") + "`";
+            case H2 -> "\"" + tableName.replace("\"", "\"\"") + "\"";
+        };
     }
 
     /** 解析欄位名稱列，略過空欄 */

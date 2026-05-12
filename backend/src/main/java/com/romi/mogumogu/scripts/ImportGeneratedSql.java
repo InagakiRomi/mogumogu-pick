@@ -385,7 +385,7 @@ public class ImportGeneratedSql {
     /** 建立 MySQL 匯入目標配置 */
     private static ImportTarget mysqlTarget() {
         String dbHost = env("DB_HOST", DEFAULT_MYSQL_HOST);
-        String dbPort = env("PORT", DEFAULT_MYSQL_PORT);
+        String dbPort = env("DB_PORT", DEFAULT_MYSQL_PORT);
         String dbName = env("DB_NAME", DEFAULT_MYSQL_DB);
         String dbUser = env("DB_USERNAME", DEFAULT_MYSQL_USER);
         String dbPassword = env("DB_PASSWORD", DEFAULT_MYSQL_PASSWORD);

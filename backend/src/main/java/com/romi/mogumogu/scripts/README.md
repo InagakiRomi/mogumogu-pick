@@ -1,62 +1,15 @@
-# scripts 使用說明
+# scripts 說明
 
-這個資料夾的腳本負責三件事：
+| 指令 | 用途 |
+|------|------|
+| `mvn exec:java@excel-to-sql` | 讀 `excel-data/*.xlsx`，輸出 `sql/generated/data-mysql.sql` 與 `data-h2.sql` |
+| `mvn exec:java` | 依 profile 重建資料庫後啟動 Spring Boot（`ResetDb` + 主程式） |
+| `mvn exec:java@import-generated-sql` | 清空資料表（保留 `flyway_schema_history`）後匯入 `sql/generated/*.sql` |
 
-- 從 `excel-data/*.xlsx` 產生 SQL（MySQL/H2 各一份）
-- 匯入 `sql/generated/*.sql` 到目前 profile 指定的資料庫
-- 重建資料庫後直接啟動 Spring Boot
+**Excel 轉 SQL：** 第 2 列為欄名、第 3 列起為資料。
 
-## 建議執行順序
+**匯入目標：** `SPRING_PROFILES_ACTIVE` 須含 `mysql` 或 `h2`，對應匯入 MySQL 或 H2；其他值會報錯。
 
-### 1) Excel 轉 SQL
+**環境變數：** `SPRING_PROFILES_ACTIVE`、`DB_HOST`、`DB_PORT`（MySQL，預設 3306）、`DB_NAME`、`DB_USERNAME`、`DB_PASSWORD`。讀取順序：系統環境變數 → 專案根 `.env` → 內建預設。
 
-```powershell
-mvn exec:java@excel-to-sql
-```
-
-- Excel 規格：第 2 列為欄名、第 3 列起為資料
-- 來源資料夾：`excel-data`
-- 輸出檔案：
-  - `sql/generated/data-mysql.sql`
-  - `sql/generated/data-h2.sql`
-
-### 2) 重建 DB 並啟動後端
-
-```powershell
-mvn exec:java
-```
-
-- `ResetDb` 會依 `SPRING_PROFILES_ACTIVE` 判斷重建 MySQL 或 H2
-- 完成後直接呼叫 `MogumoguApplication.main(...)` 啟動（行為接近 IDE 執行主程式）
-
-### 3) 匯入 SQL
-
-```powershell
-mvn exec:java@import-generated-sql
-```
-
-- 匯入前會先清空資料表（保留 `flyway_schema_history`）
-- 會依 `SPRING_PROFILES_ACTIVE` 選擇目標：
-  - 包含 `mysql` -> 匯入 MySQL
-  - 包含 `h2` -> 匯入 H2
-  - 其他值 -> 直接報錯
-
-## 常用環境變數
-
-- `SPRING_PROFILES_ACTIVE`
-- `DB_HOST`
-- `PORT`
-- `DB_NAME`
-- `DB_USERNAME`
-- `DB_PASSWORD`
-
-腳本讀值順序為：系統環境變數 -> 專案根目錄 `.env` -> 內建預設值。
-
-## 常見問題
-
-- `excel-data` 有檔案但仍報找不到可用 xlsx：
-  - 先確認不是 Excel 暫存鎖檔（`~$*.xlsx`）
-  - 關閉 Excel 後再執行
-- `import-generated-sql` 失敗：
-  - 先確認目前 `SPRING_PROFILES_ACTIVE` 是否為 `mysql` 或 `h2`
-  - 再確認對應 SQL 檔存在於 `sql/generated`
+**若出錯：** 先 `mvn compile` 再執行（或 `mvn compile exec:java@...`）。找不到 xlsx 時排除 `~$*.xlsx` 並關閉 Excel。匯入失敗時檢查 profile 與 `sql/generated` 是否有對應檔案。

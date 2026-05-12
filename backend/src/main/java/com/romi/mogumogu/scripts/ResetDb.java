@@ -42,7 +42,8 @@ public class ResetDb {
     private static void resetMysql(Map<String, String> env) throws Exception {
         String dbName = env.getOrDefault("DB_NAME", DEFAULT_DB_NAME);
         String mysqlHost = env.getOrDefault("DB_HOST", DEFAULT_MYSQL_HOST).trim();
-        String mysqlPort = env.getOrDefault("PORT", DEFAULT_MYSQL_PORT).trim();
+        String dbPort = env.get("DB_PORT");
+        String mysqlPort = (dbPort != null && !dbPort.isBlank()) ? dbPort.trim() : DEFAULT_MYSQL_PORT;
         String mysqlUser = env.getOrDefault("DB_USERNAME", DEFAULT_MYSQL_USER).trim();
         String mysqlPassword = env.getOrDefault("DB_PASSWORD", "").trim();
 
