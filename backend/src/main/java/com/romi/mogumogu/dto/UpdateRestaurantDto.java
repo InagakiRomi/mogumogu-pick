@@ -22,8 +22,8 @@ public class UpdateRestaurantDto {
     private Integer categoryId;
 
     @Min(0)
-    @Schema(description = "群組內顯示排序", example = "1")
-    private Integer displayOrder;
+    @Schema(description = "群組內顯示排序 ID", example = "1")
+    private Integer displayOrderId;
 
     @Min(0)
     @Schema(description = "被選取次數", example = "10")

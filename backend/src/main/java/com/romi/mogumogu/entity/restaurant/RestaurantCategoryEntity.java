@@ -37,7 +37,7 @@ public class RestaurantCategoryEntity {
 
     @Comment("群組內排序 ID")
     @Column(nullable = false)
-    private Integer displayOrder;
+    private Integer displayOrderId;
 
     @Comment("分類名稱")
     @Column(length = 32, nullable = false)

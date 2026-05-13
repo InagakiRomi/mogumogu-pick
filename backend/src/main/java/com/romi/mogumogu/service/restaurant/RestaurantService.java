@@ -96,7 +96,7 @@ public class RestaurantService {
         }
 
         // 取得排序欄位
-        RestaurantSort.SortBy safeOrderBy = RestaurantSort.SortBy.DISPLAY_ORDER;
+        RestaurantSort.SortBy safeOrderBy = RestaurantSort.SortBy.DISPLAY_ORDER_ID;
         if (orderBy != null) {
             safeOrderBy = orderBy;
         }
@@ -138,14 +138,14 @@ public class RestaurantService {
         // 取得分類
         RestaurantCategoryEntity category = findCategoryOrThrow(request.getCategoryId(), groupId);
 
-        // 取得同群組內目前最大的 displayOrder
+        // 取得同群組內目前最大的 displayOrderId
         RestaurantEntity latestRestaurant = restaurantRepository
-                .findTopByGroupIdOrderByDisplayOrderDesc(groupId);
-        Integer nextDisplayOrder;
-        if (latestRestaurant == null || latestRestaurant.getDisplayOrder() == null) {
-            nextDisplayOrder = 1;
+                .findTopByGroupIdOrderByDisplayOrderIdDesc(groupId);
+        Integer nextDisplayOrderId;
+        if (latestRestaurant == null || latestRestaurant.getDisplayOrderId() == null) {
+            nextDisplayOrderId = 1;
         } else {
-            nextDisplayOrder = latestRestaurant.getDisplayOrder() + 1;
+            nextDisplayOrderId = latestRestaurant.getDisplayOrderId() + 1;
         }
 
         // 新增餐廳
@@ -153,7 +153,7 @@ public class RestaurantService {
         RestaurantEntity entity = Objects.requireNonNull(RestaurantEntity.builder()
                 .groupId(groupId)
                 .categoryId(category)
-                .displayOrder(nextDisplayOrder)
+                .displayOrderId(nextDisplayOrderId)
                 .selectedCount(0)
                 .restaurantName(request.getRestaurantName())
                 .note(request.getNote())
@@ -190,16 +190,16 @@ public class RestaurantService {
         }
 
         // 修改顯示順序
-        if (request.getDisplayOrder() != null) {
-            Integer displayOrder = request.getDisplayOrder();
+        if (request.getDisplayOrderId() != null) {
+            Integer displayOrderId = request.getDisplayOrderId();
 
             // 檢查顯示順序是否已存在
-            if (restaurantRepository.existsByGroupIdAndDisplayOrderAndRestaurantIdNot(
-                    restaurant.getGroupId(), displayOrder, restaurant.getRestaurantId())) {
-                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "displayOrder already exists in this group");
+            if (restaurantRepository.existsByGroupIdAndDisplayOrderIdAndRestaurantIdNot(
+                    restaurant.getGroupId(), displayOrderId, restaurant.getRestaurantId())) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "displayOrderId already exists in this group");
             }
 
-            restaurant.setDisplayOrder(displayOrder);
+            restaurant.setDisplayOrderId(displayOrderId);
         }
 
         // 修改選中次數

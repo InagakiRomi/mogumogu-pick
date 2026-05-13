@@ -18,8 +18,8 @@ public final class RestaurantSort {
         RESTAURANT_ID("restaurantId"),
         /** 餐廳分類 ID */
         CATEGORY_ID("categoryId"),
-        /** 顯示順序 */
-        DISPLAY_ORDER("displayOrder"),
+        /** 群組內顯示排序 ID */
+        DISPLAY_ORDER_ID("displayOrderId"),
         /** 選擇次數 */
         SELECTED_COUNT("selectedCount"),
         /** 餐廳名稱 */

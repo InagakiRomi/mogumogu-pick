@@ -1,11 +1,11 @@
 INSERT INTO restaurant_category
-(category_id, group_id, display_order, category_name, created_at) VALUES
+(category_id, group_id, display_order_id, category_name, created_at) VALUES
 (1, 1, 1, '主食', '2026-05-02 16:32:14'),
 (2, 1, 2, '輕食', '2026-05-02 16:32:15'),
 (3, 1, 3, '飲料', '2026-05-02 16:32:16');
 
 INSERT INTO restaurant
-(restaurant_id, group_id, category_id, display_order, selected_count, restaurant_name, note, image_url, is_archived, last_selected_at, created_at, updated_at) VALUES
+(restaurant_id, group_id, category_id, display_order_id, selected_count, restaurant_name, note, image_url, is_archived, last_selected_at, created_at, updated_at) VALUES
 (1, 1, 1, 1, 3, '一番湯屋', '這湯的香味可以拿去當香水賣', 'https://images.unsplash.com/photo-1614563637806-1d0e645e0940?q=80&w=1973&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D', FALSE, '2025-06-06 17:37:50', '2025-07-29 12:07:33', '2025-07-29 12:07:33'),
 (2, 1, 1, 2, 1, '飯淋咖哩郎', '日式咖哩店', 'https://images.unsplash.com/photo-1694953593181-6ce423500712?q=80&w=2080&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D', FALSE, '2025-05-24 12:00:00', '2025-07-29 16:41:19', '2025-07-29 16:41:19'),
 (3, 1, 2, 3, 1, '鬆餅老師', '鬆餅厚到可以當枕頭', 'https://images.unsplash.com/photo-1669277038512-2dc8b3a2aac8?q=80&w=2048&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D', FALSE, '2025-05-24 15:06:58', '2025-05-18 23:06:13', '2025-05-18 23:06:13'),

@@ -27,8 +27,8 @@ public class RestaurantResponse {
         @Schema(description = "分類 ID", example = "1")
         private Integer categoryId;
 
-        @Schema(description = "顯示排序", example = "1")
-        private Integer displayOrder;
+        @Schema(description = "群組內顯示排序 ID", example = "1")
+        private Integer displayOrderId;
 
         @Schema(description = "被選取次數", example = "10")
         private Integer selectedCount;
@@ -59,7 +59,7 @@ public class RestaurantResponse {
                                 .restaurantId(entity.getRestaurantId())
                                 .groupId(entity.getGroupId())
                                 .categoryId(entity.getCategoryId().getCategoryId())
-                                .displayOrder(entity.getDisplayOrder())
+                                .displayOrderId(entity.getDisplayOrderId())
                                 .selectedCount(entity.getSelectedCount())
                                 .restaurantName(entity.getRestaurantName())
                                 .note(entity.getNote())

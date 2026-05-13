@@ -197,12 +197,12 @@ class RestaurantControllerTest {
                 RestaurantResponse first = buildRestaurantResponse(1, 1, 10, "拉麵店");
                 RestaurantResponse second = buildRestaurantResponse(2, 1, 11, "壽司店");
                 when(restaurantService.getRestaurants(argThat(RestaurantControllerTest::matchesDefaultListQuery)))
-                                .thenReturn(buildRestaurantListResponse(List.of(first, second), 1, 10, 2L));
+                                .thenReturn(buildRestaurantListResponse(List.of(first, second), 1, 20, 2L));
 
                 performGetRestaurants()
                                 .andExpect(status().isOk())
                                 .andExpect(jsonPath("$.page").value(1))
-                                .andExpect(jsonPath("$.limit").value(10))
+                                .andExpect(jsonPath("$.limit").value(20))
                                 .andExpect(jsonPath("$.total").value(2))
                                 .andExpect(jsonPath("$.data.length()").value(2))
                                 .andExpect(jsonPath("$.data[0].restaurantId").value(1))
@@ -216,12 +216,12 @@ class RestaurantControllerTest {
         @Test
         void testGetRestaurants_success_returnsEmptyList() throws Exception {
                 when(restaurantService.getRestaurants(argThat(RestaurantControllerTest::matchesDefaultListQuery)))
-                                .thenReturn(buildRestaurantListResponse(List.of(), 1, 10, 0L));
+                                .thenReturn(buildRestaurantListResponse(List.of(), 1, 20, 0L));
 
                 performGetRestaurants()
                                 .andExpect(status().isOk())
                                 .andExpect(jsonPath("$.page").value(1))
-                                .andExpect(jsonPath("$.limit").value(10))
+                                .andExpect(jsonPath("$.limit").value(20))
                                 .andExpect(jsonPath("$.total").value(0))
                                 .andExpect(jsonPath("$.data.length()").value(0));
 
@@ -256,7 +256,7 @@ class RestaurantControllerTest {
         void testGetRestaurants_withFilters_passesQueryParamsToService() throws Exception {
                 RestaurantResponse filtered = buildRestaurantResponse(3, 2, 21, "牛排館");
                 when(restaurantService.getRestaurants(argThat(RestaurantControllerTest::matchesFilteredListQuery)))
-                                .thenReturn(buildRestaurantListResponse(List.of(filtered), 1, 10, 1L));
+                                .thenReturn(buildRestaurantListResponse(List.of(filtered), 1, 20, 1L));
 
                 performGetRestaurants(Map.of(
                                 "groupId", "2",
@@ -275,7 +275,7 @@ class RestaurantControllerTest {
         void testGetRestaurants_withOrderByAndSort_passesQueryParamsToService() throws Exception {
                 RestaurantResponse sorted = buildRestaurantResponse(8, 1, 2, "燒肉店");
                 when(restaurantService.getRestaurants(argThat(RestaurantControllerTest::matchesSortedListQuery)))
-                                .thenReturn(buildRestaurantListResponse(List.of(sorted), 1, 10, 1L));
+                                .thenReturn(buildRestaurantListResponse(List.of(sorted), 1, 20, 1L));
 
                 performGetRestaurants(Map.of(
                                 "orderBy", "SELECTED_COUNT",
@@ -347,7 +347,7 @@ class RestaurantControllerTest {
                 UpdateRestaurantDto request = buildUpdateRequest("新餐廳名稱", 20, 5);
                 RestaurantResponse updated = buildRestaurantResponse(5, 1, 2, "新餐廳名稱");
                 updated.setSelectedCount(20);
-                updated.setDisplayOrder(5);
+                updated.setDisplayOrderId(5);
 
                 when(restaurantService.updateRestaurant(eq(5), any(UpdateRestaurantDto.class))).thenReturn(updated);
 
@@ -356,7 +356,7 @@ class RestaurantControllerTest {
                                 .andExpect(jsonPath("$.restaurantId").value(5))
                                 .andExpect(jsonPath("$.restaurantName").value("新餐廳名稱"))
                                 .andExpect(jsonPath("$.selectedCount").value(20))
-                                .andExpect(jsonPath("$.displayOrder").value(5));
+                                .andExpect(jsonPath("$.displayOrderId").value(5));
 
                 verify(restaurantService).updateRestaurant(eq(5), any(UpdateRestaurantDto.class));
         }
@@ -378,10 +378,10 @@ class RestaurantControllerTest {
                 UpdateRestaurantDto request = buildUpdateRequest(null, null, 1);
                 when(restaurantService.updateRestaurant(eq(12), any(UpdateRestaurantDto.class)))
                                 .thenThrow(new ResponseStatusException(HttpStatus.BAD_REQUEST,
-                                                "displayOrder already exists in this group"));
+                                                "displayOrderId already exists in this group"));
 
                 assertErrorResponse(performPatchRestaurant(12, request),
-                                HttpStatus.BAD_REQUEST, "/restaurants/12", "displayOrder already exists in this group");
+                                HttpStatus.BAD_REQUEST, "/restaurants/12", "displayOrderId already exists in this group");
 
                 verify(restaurantService).updateRestaurant(eq(12), any(UpdateRestaurantDto.class));
         }
@@ -413,7 +413,7 @@ class RestaurantControllerTest {
         @Test
         void testUpdateRestaurant_validationFailed_returns400AndSkipsServiceCall() throws Exception {
                 UpdateRestaurantDto invalidRequest = UpdateRestaurantDto.builder()
-                                .displayOrder(-1)
+                                .displayOrderId(-1)
                                 .restaurantName("x".repeat(65))
                                 .build();
 
@@ -425,7 +425,7 @@ class RestaurantControllerTest {
                                 .getResponse()
                                 .getContentAsString();
                 assertMessageContains(responseJson,
-                                "displayOrder must be greater than or equal to the minimum value");
+                                "displayOrderId must be greater than or equal to the minimum value");
                 assertMessageContains(responseJson,
                                 "restaurantName size is out of allowed range");
 
@@ -460,7 +460,7 @@ class RestaurantControllerTest {
                                 .restaurantId(restaurantId)
                                 .groupId(groupId)
                                 .categoryId(categoryId)
-                                .displayOrder(1)
+                                .displayOrderId(1)
                                 .selectedCount(0)
                                 .restaurantName(name)
                                 .note("測試備註")
@@ -483,11 +483,11 @@ class RestaurantControllerTest {
         }
 
         private UpdateRestaurantDto buildUpdateRequest(String restaurantName, Integer selectedCount,
-                        Integer displayOrder) {
+                        Integer displayOrderId) {
                 return UpdateRestaurantDto.builder()
                                 .restaurantName(restaurantName)
                                 .selectedCount(selectedCount)
-                                .displayOrder(displayOrder)
+                                .displayOrderId(displayOrderId)
                                 .build();
         }
 
@@ -555,7 +555,7 @@ class RestaurantControllerTest {
                                 RestaurantSort.SortBy.RESTAURANT_ID,
                                 RestaurantSort.SortOrder.ASC,
                                 1,
-                                10);
+                                20);
         }
 
         private static boolean matchesFilteredListQuery(GetRestaurantQuery p) {
@@ -568,7 +568,7 @@ class RestaurantControllerTest {
                                 RestaurantSort.SortBy.RESTAURANT_ID,
                                 RestaurantSort.SortOrder.ASC,
                                 1,
-                                10);
+                                20);
         }
 
         private static boolean matchesSortedListQuery(GetRestaurantQuery p) {
@@ -581,7 +581,7 @@ class RestaurantControllerTest {
                                 RestaurantSort.SortBy.SELECTED_COUNT,
                                 RestaurantSort.SortOrder.DESC,
                                 1,
-                                10);
+                                20);
         }
 
         private static boolean matchesPagedListQuery(GetRestaurantQuery p) {

@@ -42,9 +42,9 @@ public class RestaurantEntity {
     @JoinColumn(name = "category_id", nullable = false)
     private RestaurantCategoryEntity categoryId;
 
-    @Comment("群組內排序")
+    @Comment("群組內排序 ID")
     @Column(nullable = false)
-    private Integer displayOrder;
+    private Integer displayOrderId;
 
     @Comment("被選中的累計次數")
     @Column(nullable = false, columnDefinition = "INT DEFAULT 0")
