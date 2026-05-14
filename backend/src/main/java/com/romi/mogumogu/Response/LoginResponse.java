@@ -30,4 +30,7 @@ public class LoginResponse {
 
     /** 帳號最後更新時間 */
     private Date updatedAt;
+
+    /** JWT access token */
+    private String token;
 }

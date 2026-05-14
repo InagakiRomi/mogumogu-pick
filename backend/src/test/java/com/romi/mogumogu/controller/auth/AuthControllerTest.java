@@ -68,6 +68,7 @@ class AuthControllerTest {
                 .role(UserRole.USER)
                 .createdAt(created)
                 .updatedAt(modified)
+                .token("stub-access-token")
                 .build());
 
         performLogin(body)
@@ -78,7 +79,8 @@ class AuthControllerTest {
                 .andExpect(jsonPath("$.username").value("demo"))
                 .andExpect(jsonPath("$.role").value("USER"))
                 .andExpect(jsonPath("$.createdAt").exists())
-                .andExpect(jsonPath("$.updatedAt").exists());
+                .andExpect(jsonPath("$.updatedAt").exists())
+                .andExpect(jsonPath("$.token").value("stub-access-token"));
 
         verify(authService).login(argThat(req -> "demo@example.com".equals(req.getEmail())
                 && "password123".equals(req.getPassword())));
@@ -95,11 +97,13 @@ class AuthControllerTest {
                 .email("admin@example.com")
                 .username("admin")
                 .role(role)
+                .token("stub-token")
                 .build());
 
         performLogin(body)
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.role").value(role.name()));
+                .andExpect(jsonPath("$.role").value(role.name()))
+                .andExpect(jsonPath("$.token").value("stub-token"));
 
         verifyLoginInvokedOnce();
     }

@@ -10,12 +10,12 @@ import lombok.Setter;
 @Setter
 public class LoginRequest {
 
-    @Schema(description = "電子郵件")
+    @Schema(description = "電子郵件", example = "super@test.com")
     @NotBlank
     @Email
     private String email;
 
-    @Schema(description = "密碼")
+    @Schema(description = "密碼", example = "123")
     @NotBlank
     private String password;
 }

@@ -8,6 +8,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
 import com.romi.mogumogu.Response.LoginResponse;
+import com.romi.mogumogu.config.JwtTokenProvider;
 import com.romi.mogumogu.dto.LoginRequest;
 import com.romi.mogumogu.entity.user.UserEntity;
 import com.romi.mogumogu.repository.user.UserRepository;
@@ -16,10 +17,12 @@ import com.romi.mogumogu.repository.user.UserRepository;
 public class AuthService {
 
     private final UserRepository userRepository;
+    private final JwtTokenProvider jwtTokenProvider;
     private final BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
 
-    public AuthService(UserRepository userRepository) {
+    public AuthService(UserRepository userRepository, JwtTokenProvider jwtTokenProvider) {
         this.userRepository = userRepository;
+        this.jwtTokenProvider = jwtTokenProvider;
     }
 
     /** 登入 */
@@ -39,7 +42,10 @@ public class AuthService {
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid email or password");
         }
 
-        // 回傳登入成功資訊
+        // 生成 JWT token
+        String accessToken = jwtTokenProvider.generateAccessToken(user);
+
+        // 回傳登入成功資訊（含 JWT）
         return LoginResponse.builder()
                 .userId(user.getUserId())
                 .groupId(user.getGroupId())
@@ -48,6 +54,7 @@ public class AuthService {
                 .role(user.getRoles())
                 .createdAt(user.getCreatedAt())
                 .updatedAt(user.getUpdatedAt())
+                .token(accessToken)
                 .build();
     }
 }

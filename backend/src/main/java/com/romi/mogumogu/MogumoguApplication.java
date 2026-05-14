@@ -4,12 +4,16 @@ import java.util.logging.Logger;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.ConfigurableApplicationContext;
+
+import com.romi.mogumogu.config.JwtTokenProvider;
 import com.romi.mogumogu.logging.JulLoggerFactory;
 import io.swagger.v3.oas.annotations.OpenAPIDefinition;
 import io.swagger.v3.oas.annotations.info.Info;
 
 @SpringBootApplication
+@EnableConfigurationProperties(JwtTokenProvider.class)
 @OpenAPIDefinition(info = @Info(title = "MoguMogu Pick API"))
 public class MogumoguApplication {
 
