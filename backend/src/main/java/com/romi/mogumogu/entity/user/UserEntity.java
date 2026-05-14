@@ -36,7 +36,6 @@ public class UserEntity {
     private Integer userId;
 
     @Comment("所屬群組 ID")
-    @Column(nullable = false)
     private Integer groupId;
 
     @Comment("群組內排序 ID")

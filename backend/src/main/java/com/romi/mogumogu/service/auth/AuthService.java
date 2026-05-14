@@ -1,16 +1,22 @@
 package com.romi.mogumogu.service.auth;
 
+import java.util.Date;
+import java.util.Locale;
+import java.util.Objects;
 import java.util.Optional;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 import com.romi.mogumogu.Response.LoginResponse;
 import com.romi.mogumogu.config.JwtTokenProvider;
 import com.romi.mogumogu.dto.LoginRequest;
+import com.romi.mogumogu.dto.RegisterRequest;
 import com.romi.mogumogu.entity.user.UserEntity;
+import com.romi.mogumogu.enums.UserRole;
 import com.romi.mogumogu.repository.user.UserRepository;
 
 @Service
@@ -55,6 +61,45 @@ public class AuthService {
                 .createdAt(user.getCreatedAt())
                 .updatedAt(user.getUpdatedAt())
                 .token(accessToken)
+                .build();
+    }
+
+    /** 註冊帳號 */
+    @Transactional
+    public LoginResponse register(RegisterRequest request) {
+        // 檢查電子郵件是否已註冊
+        String email = request.getEmail().trim().toLowerCase(Locale.ROOT);
+        if (userRepository.existsByEmailIgnoreCase(email)) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "This email is already registered");
+        }
+
+        // 使用者名稱去掉空白字元
+        String username = request.getUsername().trim();
+
+        // 建立新使用者
+        Date now = new Date();
+        UserEntity newUser = UserEntity.builder()
+                .groupId(null)
+                .displayOrderId(0)
+                .username(username)
+                .email(email)
+                .userPassword(passwordEncoder.encode(request.getPassword()))
+                .roles(UserRole.USER)
+                .createdAt(now)
+                .updatedAt(now)
+                .build();
+
+        UserEntity saved = Objects.requireNonNull(
+                userRepository.save(Objects.requireNonNull(newUser)));
+
+        return LoginResponse.builder()
+                .userId(saved.getUserId())
+                .groupId(saved.getGroupId())
+                .email(saved.getEmail())
+                .username(saved.getUsername())
+                .role(saved.getRoles())
+                .createdAt(saved.getCreatedAt())
+                .updatedAt(saved.getUpdatedAt())
                 .build();
     }
 }
