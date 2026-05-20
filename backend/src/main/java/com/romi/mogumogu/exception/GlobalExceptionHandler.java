@@ -10,7 +10,6 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.server.ResponseStatusException;
 
-import java.time.LocalDateTime;
 import java.util.stream.Collectors;
 
 @RestControllerAdvice
@@ -34,7 +33,7 @@ public class GlobalExceptionHandler {
             message = "Validation failed";
         }
 
-        return buildErrorResponse(
+        return ErrorResponseFactory.toResponseEntity(
                 HttpStatus.BAD_REQUEST,
                 message,
                 request.getRequestURI());
@@ -52,7 +51,7 @@ public class GlobalExceptionHandler {
             message = status.getReasonPhrase();
         }
 
-        return buildErrorResponse(
+        return ErrorResponseFactory.toResponseEntity(
                 status,
                 message,
                 request.getRequestURI());
@@ -69,23 +68,10 @@ public class GlobalExceptionHandler {
             message = HttpStatus.INTERNAL_SERVER_ERROR.getReasonPhrase();
         }
 
-        return buildErrorResponse(
+        return ErrorResponseFactory.toResponseEntity(
                 HttpStatus.INTERNAL_SERVER_ERROR,
                 message,
                 request.getRequestURI());
-    }
-
-    /** 建立統一的錯誤回應格式 */
-    private ResponseEntity<ErrorResponse> buildErrorResponse(HttpStatus status, String message, String path) {
-        ErrorResponse errorResponse = ErrorResponse.builder()
-                .result("error")
-                .statusCode(status.value())
-                .message(message)
-                .code(status.name())
-                .path(path)
-                .timestamp(LocalDateTime.now())
-                .build();
-        return ResponseEntity.status(status).body(errorResponse);
     }
 
     /** 將驗證錯誤統一轉為英文訊息，避免受 i18n 設定影響 */

@@ -2,13 +2,17 @@ package com.romi.mogumogu.Response;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
 import com.romi.mogumogu.constant.DateTimePatternConstants;
+import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
 
 @Getter
 @Builder
+@NoArgsConstructor
+@AllArgsConstructor
 public class ErrorResponse {
     /** 結果 */
     private String result;

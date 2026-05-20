@@ -284,6 +284,113 @@ class JwtTokenProviderTest {
     }
 
     @Nested
+    @DisplayName("parseValidClaims")
+    class ParseValidClaimsTests {
+
+        @Test
+        @DisplayName("合法 token 回傳 Claims")
+        void validToken_returnsClaims() {
+            String jwt = accessToken(TTL_DEFAULT_MS, BASE_USER);
+            assertThat(provider(TTL_DEFAULT_MS).parseValidClaims(jwt)).isPresent();
+        }
+
+        @Test
+        @DisplayName("null、空白、非 JWT 字串回傳 empty")
+        void invalidInput_returnsEmpty() {
+            JwtTokenProvider provider = provider(TTL_DEFAULT_MS);
+            assertThat(provider.parseValidClaims(null)).isEmpty();
+            assertThat(provider.parseValidClaims("   ")).isEmpty();
+            assertThat(provider.parseValidClaims("not-a-jwt")).isEmpty();
+        }
+
+        @Test
+        @DisplayName("過期 token 回傳 empty")
+        void expiredToken_returnsEmpty() {
+            Date issuedAt = new Date(System.currentTimeMillis() - 300_000L);
+            Date expiredAt = new Date(System.currentTimeMillis() - 180_000L);
+            String jwt = Jwts.builder()
+                    .subject("1")
+                    .claim("email", "a@b.c")
+                    .claim("groupId", 1)
+                    .claim("role", "USER")
+                    .issuedAt(issuedAt)
+                    .expiration(expiredAt)
+                    .signWith(DEFAULT_SIGNING_KEY)
+                    .compact();
+
+            assertThat(provider(TTL_DEFAULT_MS).parseValidClaims(jwt)).isEmpty();
+        }
+
+        @Test
+        @DisplayName("不同金鑰簽署的 token 回傳 empty")
+        void wrongKey_returnsEmpty() {
+            String jwt = accessToken(TTL_DEFAULT_MS, BASE_USER);
+            JwtTokenProvider other = provider("b".repeat(32), TTL_DEFAULT_MS);
+            assertThat(other.parseValidClaims(jwt)).isEmpty();
+        }
+
+        @Test
+        @DisplayName("前後空白會 trim 後解析")
+        void trimsWhitespace() {
+            String jwt = "  " + accessToken(TTL_DEFAULT_MS, BASE_USER) + "  ";
+            assertThat(provider(TTL_DEFAULT_MS).parseValidClaims(jwt)).isPresent();
+        }
+    }
+
+    @Nested
+    @DisplayName("resolveAuthentication")
+    class ResolveAuthenticationTests {
+
+        @Test
+        @DisplayName("Bearer token 回傳 Authentication 與 ROLE_ 前綴")
+        void bearerToken_returnsAuthenticationWithRole() {
+            UserEntity admin = user(7, "admin@example.com", 1, UserRole.SYSTEM_ADMIN);
+            String header = "Bearer " + accessToken(TTL_DEFAULT_MS, admin);
+
+            var authOpt = provider(TTL_DEFAULT_MS).resolveAuthentication(header);
+            assertThat(authOpt).isPresent();
+            assertThat(authOpt.get().getPrincipal()).isEqualTo("7");
+            assertThat(authOpt.get().getAuthorities())
+                    .extracting("authority")
+                    .containsExactly("ROLE_SYSTEM_ADMIN");
+        }
+
+        @Test
+        @DisplayName("bearer 前綴大小寫不敏感")
+        void bearerPrefix_isCaseInsensitive() {
+            String jwt = accessToken(TTL_DEFAULT_MS, BASE_USER);
+            assertThat(provider(TTL_DEFAULT_MS).resolveAuthentication("bearer " + jwt)).isPresent();
+        }
+
+        @Test
+        @DisplayName("缺少 Bearer 前綴回傳 empty")
+        void missingBearerPrefix_returnsEmpty() {
+            String jwt = accessToken(TTL_DEFAULT_MS, BASE_USER);
+            assertThat(provider(TTL_DEFAULT_MS).resolveAuthentication(jwt)).isEmpty();
+        }
+
+        @Test
+        @DisplayName("無效 role claim 回傳 empty")
+        void invalidRoleClaim_returnsEmpty() {
+            String jwt = Jwts.builder()
+                    .subject("1")
+                    .claim("role", "NOT_A_REAL_ROLE")
+                    .issuedAt(new Date())
+                    .expiration(new Date(System.currentTimeMillis() + TTL_DEFAULT_MS))
+                    .signWith(DEFAULT_SIGNING_KEY)
+                    .compact();
+
+            assertThat(provider(TTL_DEFAULT_MS).resolveAuthentication("Bearer " + jwt)).isEmpty();
+        }
+
+        @Test
+        @DisplayName("null header 回傳 empty")
+        void nullHeader_returnsEmpty() {
+            assertThat(provider(TTL_DEFAULT_MS).resolveAuthentication(null)).isEmpty();
+        }
+    }
+
+    @Nested
     @DisplayName("邊界：JWT 結構與驗證")
     class TokenStructureTests {
 

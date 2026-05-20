@@ -10,6 +10,7 @@ import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.Positive;
 import jakarta.validation.constraints.Size;
+import java.util.Objects;
 import org.junit.jupiter.api.Test;
 import org.springframework.core.MethodParameter;
 import org.springframework.http.HttpStatus;
@@ -37,7 +38,6 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 
-@SuppressWarnings("null")
 public class GlobalExceptionHandlerTest {
 
     private final ObjectMapper objectMapper = new ObjectMapper();
@@ -82,18 +82,18 @@ public class GlobalExceptionHandlerTest {
 
         assertErrorResponseContains(
                 mockMvc().perform(post("/test/validate")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(body))),
+                        .contentType(Objects.requireNonNull(MediaType.APPLICATION_JSON))
+                        .content(Objects.requireNonNull(objectMapper.writeValueAsString(body)))),
                 400,
                 "BAD_REQUEST",
                 "/test/validate",
                 "name is required")
-                .andExpect(jsonPath("$.message").value(allOf(
+                .andExpect(jsonPath("$.message").value(Objects.requireNonNull(allOf(
                         containsString("name is required"),
                         containsString("code size is out of allowed range"),
                         containsString("email must be a valid email address"),
                         containsString("age must be greater than 0")
-                )));
+                ))));
     }
 
     @Test
@@ -112,7 +112,7 @@ public class GlobalExceptionHandlerTest {
                 HttpStatus.BAD_REQUEST,
                 "/test/manual-validation-duplicate-messages",
                 "name is required")
-                .andExpect(jsonPath("$.message").value(not(containsString(";"))));
+                .andExpect(jsonPath("$.message").value(Objects.requireNonNull(not(containsString(";")))));
     }
 
     @Test
@@ -126,18 +126,18 @@ public class GlobalExceptionHandlerTest {
 
         assertErrorResponseContains(
                 mockMvc().perform(post("/test/validate-more-codes")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(body))),
+                        .contentType(Objects.requireNonNull(MediaType.APPLICATION_JSON))
+                        .content(Objects.requireNonNull(objectMapper.writeValueAsString(body)))),
                 400,
                 "BAD_REQUEST",
                 "/test/validate-more-codes",
                 "count must be greater than or equal to 0")
-                .andExpect(jsonPath("$.message").value(allOf(
+                .andExpect(jsonPath("$.message").value(Objects.requireNonNull(allOf(
                         containsString("count must be greater than or equal to 0"),
                         containsString("minValue must be greater than or equal to the minimum value"),
                         containsString("maxValue must be less than or equal to the maximum value"),
                         containsString("token format is invalid")
-                )));
+                ))));
     }
 
     @Test
@@ -148,10 +148,10 @@ public class GlobalExceptionHandlerTest {
                 "BAD_REQUEST",
                 "/test/manual-validation-unknown-and-null-code",
                 "customField is invalid")
-                .andExpect(jsonPath("$.message").value(allOf(
+                .andExpect(jsonPath("$.message").value(Objects.requireNonNull(allOf(
                         containsString("customField is invalid"),
                         containsString("nullCodeField is invalid")
-                )));
+                ))));
     }
 
     @Test
@@ -221,7 +221,7 @@ public class GlobalExceptionHandlerTest {
 
         @GetMapping("/manual-validation-empty-errors")
         public String manualValidationEmptyErrors() throws Exception {
-            throw new MethodArgumentNotValidException(methodParameter("validate"), new BeanPropertyBindingResult(new Object(), "dto"));
+            throw new MethodArgumentNotValidException(Objects.requireNonNull(methodParameter("validate")), new BeanPropertyBindingResult(new Object(), "dto"));
         }
 
         @GetMapping("/manual-validation-duplicate-messages")
@@ -230,7 +230,7 @@ public class GlobalExceptionHandlerTest {
             // 同一個 field + code 會映射成同一句英文訊息，handler 會 distinct 去重
             bindingResult.addError(new FieldError("dto", "name", null, false, new String[]{"NotBlank"}, null, "ignored"));
             bindingResult.addError(new FieldError("dto", "name", null, false, new String[]{"NotBlank"}, null, "ignored again"));
-            throw new MethodArgumentNotValidException(methodParameter("validate"), bindingResult);
+            throw new MethodArgumentNotValidException(Objects.requireNonNull(methodParameter("validate")), bindingResult);
         }
 
         @GetMapping("/manual-validation-unknown-and-null-code")
@@ -240,11 +240,12 @@ public class GlobalExceptionHandlerTest {
             bindingResult.addError(new FieldError("dto", "customField", null, false, new String[]{"TotallyUnknown"}, null, "ignored"));
             // null code -> code 為空 -> "<field> is invalid"
             bindingResult.addError(new FieldError("dto", "nullCodeField", null, false, null, null, "ignored"));
-            throw new MethodArgumentNotValidException(methodParameter("validate"), bindingResult);
+            throw new MethodArgumentNotValidException(Objects.requireNonNull(methodParameter("validate")), bindingResult);
         }
 
         private static MethodParameter methodParameter(String methodName) throws NoSuchMethodException {
-            return new MethodParameter(TestController.class.getDeclaredMethod(methodName, CreateDto.class), 0);
+            return new MethodParameter(
+                    Objects.requireNonNull(TestController.class.getDeclaredMethod(methodName, CreateDto.class)), 0);
         }
     }
 

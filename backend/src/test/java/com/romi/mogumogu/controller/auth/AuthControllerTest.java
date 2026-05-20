@@ -1,7 +1,9 @@
 package com.romi.mogumogu.controller.auth;
 
+import static com.romi.mogumogu.testutil.ErrorResponseTestUtils.DEFAULT_TIMESTAMP_REGEX;
 import static com.romi.mogumogu.testutil.ErrorResponseTestUtils.assertErrorResponse;
 import static com.romi.mogumogu.testutil.ErrorResponseTestUtils.assertErrorResponseContains;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
@@ -17,15 +19,18 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import java.util.Date;
 import java.util.Objects;
+import java.util.regex.Pattern;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.HttpStatus;
+import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
@@ -39,9 +44,12 @@ import com.romi.mogumogu.dto.RegisterRequest;
 import com.romi.mogumogu.enums.UserRole;
 import com.romi.mogumogu.exception.GlobalExceptionHandler;
 import com.romi.mogumogu.service.auth.AuthService;
+import com.romi.mogumogu.testsupport.TestSecurityConfig;
 
-@WebMvcTest(AuthController.class)
-@Import(GlobalExceptionHandler.class)
+@WebMvcTest(controllers = AuthController.class)
+@ActiveProfiles("test")
+@AutoConfigureMockMvc(addFilters = false)
+@Import({GlobalExceptionHandler.class, TestSecurityConfig.class})
 class AuthControllerTest {
 
     private static final String AUTH_LOGIN_PATH = "/auth/login";
@@ -590,14 +598,27 @@ class AuthControllerTest {
     private void assertUnsupportedPlainTextPost(String path, String entityBody) throws Exception {
         final String safePath = Objects.requireNonNull(path, "path");
         final String safeBody = Objects.requireNonNull(entityBody, "entityBody");
-        assertErrorResponseContains(
-                mockMvc.perform(post(safePath)
+        String responseBody = mockMvc.perform(post(safePath)
                         .contentType(CONTENT_TYPE_TEXT_PLAIN)
-                        .content(safeBody)),
-                HTTP_INTERNAL_SERVER_ERROR,
-                CODE_INTERNAL_SERVER_ERROR,
-                safePath,
-                "Content-Type 'text/plain;charset=UTF-8' is not supported");
+                        .content(safeBody))
+                .andExpect(status().is(HTTP_INTERNAL_SERVER_ERROR))
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+        JsonNode root = objectMapper.readTree(responseBody);
+        assertEquals("error", root.path("result").asText());
+        assertEquals(HTTP_INTERNAL_SERVER_ERROR, root.path("statusCode").asInt());
+        assertEquals(CODE_INTERNAL_SERVER_ERROR, root.path("code").asText());
+        assertEquals(safePath, root.path("path").asText());
+        String message = root.path("message").asText();
+        assertTrue(
+                message.contains("Content-Type 'text/plain;charset=UTF-8' is not supported")
+                        || message.contains("Content-Type 'text/plain' is not supported"),
+                () -> "unexpected message: " + message);
+        String timestamp = root.path("timestamp").asText();
+        assertTrue(
+                Pattern.compile(DEFAULT_TIMESTAMP_REGEX).matcher(timestamp).matches(),
+                () -> "unexpected timestamp: " + timestamp);
         verifyNoInteractions(authService);
     }
 

@@ -1,16 +1,25 @@
 package com.romi.mogumogu.testutil;
 
-import org.springframework.http.HttpStatus;
-import org.springframework.test.web.servlet.ResultActions;
+import java.util.Objects;
+import java.util.regex.Pattern;
 
-import static org.hamcrest.Matchers.matchesPattern;
+import org.springframework.http.HttpStatus;
+import org.springframework.lang.NonNull;
+import org.springframework.test.web.servlet.MvcResult;
+import org.springframework.test.web.servlet.ResultActions;
+import org.springframework.test.web.servlet.ResultMatcher;
+
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-@SuppressWarnings("null")
 public final class ErrorResponseTestUtils {
-    private ErrorResponseTestUtils() {
-    }
+
+    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
+
+    private ErrorResponseTestUtils() {}
 
     public static final String DEFAULT_TIMESTAMP_REGEX = "\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}:\\d{2}";
 
@@ -34,8 +43,8 @@ public final class ErrorResponseTestUtils {
                 .andExpect(jsonPath("$.statusCode").value(statusCode))
                 .andExpect(jsonPath("$.code").value(code))
                 .andExpect(jsonPath("$.message").value(message))
-                .andExpect(jsonPath("$.path").value(path))
-                .andExpect(jsonPath("$.timestamp").value(matchesPattern(DEFAULT_TIMESTAMP_REGEX)));
+                .andExpect(Objects.requireNonNull(jsonPath("$.path").value(path)))
+                .andExpect(errorTimestampMatchesDefaultPattern());
     }
 
     public static ResultActions assertErrorResponseContains(
@@ -49,9 +58,42 @@ public final class ErrorResponseTestUtils {
                 .andExpect(jsonPath("$.result").value("error"))
                 .andExpect(jsonPath("$.statusCode").value(statusCode))
                 .andExpect(jsonPath("$.code").value(code))
-                .andExpect(jsonPath("$.path").value(path))
-                .andExpect(jsonPath("$.message").value(org.hamcrest.Matchers.containsString(messagePart)))
-                .andExpect(jsonPath("$.timestamp").value(matchesPattern(DEFAULT_TIMESTAMP_REGEX)));
+                .andExpect(Objects.requireNonNull(jsonPath("$.path").value(path)))
+                .andExpect(errorMessageContains(messagePart))
+                .andExpect(errorTimestampMatchesDefaultPattern());
+    }
+
+    @NonNull
+    private static ResultMatcher errorMessageContains(String expectedPart) {
+        return new ResultMatcher() {
+            @Override
+            public void match(@NonNull MvcResult result) throws Exception {
+                JsonNode root = OBJECT_MAPPER.readTree(result.getResponse().getContentAsString());
+                String message = root.path("message").asText();
+                if (!message.contains(expectedPart)) {
+                    throw new AssertionError(
+                            "expected $.message containing \"" + expectedPart + "\" but was: " + message);
+                }
+            }
+        };
+    }
+
+    @NonNull
+    private static ResultMatcher errorTimestampMatchesDefaultPattern() {
+        Pattern pattern = Pattern.compile(DEFAULT_TIMESTAMP_REGEX);
+        return new ResultMatcher() {
+            @Override
+            public void match(@NonNull MvcResult result) throws Exception {
+                JsonNode root = OBJECT_MAPPER.readTree(result.getResponse().getContentAsString());
+                String timestamp = root.path("timestamp").asText();
+                if (!pattern.matcher(timestamp).matches()) {
+                    throw new AssertionError(
+                            "expected $.timestamp matching "
+                                    + DEFAULT_TIMESTAMP_REGEX
+                                    + " but was: "
+                                    + timestamp);
+                }
+            }
+        };
     }
 }
-

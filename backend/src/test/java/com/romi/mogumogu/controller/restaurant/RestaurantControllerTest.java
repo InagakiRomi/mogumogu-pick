@@ -9,10 +9,14 @@ import com.romi.mogumogu.dto.GetRestaurantQuery;
 import com.romi.mogumogu.dto.UpdateRestaurantDto;
 import com.romi.mogumogu.enums.RestaurantSort;
 import com.romi.mogumogu.service.restaurant.RestaurantService;
+import com.romi.mogumogu.testsupport.TestSecurityConfig;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.context.annotation.Import;
 import org.springframework.http.HttpStatus;
+import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
@@ -41,7 +45,10 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-@WebMvcTest(RestaurantController.class)
+@WebMvcTest(controllers = RestaurantController.class)
+@ActiveProfiles("test")
+@AutoConfigureMockMvc(addFilters = false)
+@Import(TestSecurityConfig.class)
 class RestaurantControllerTest {
         @Autowired
         private MockMvc mockMvc;
