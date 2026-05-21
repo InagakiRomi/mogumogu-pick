@@ -42,6 +42,11 @@ public class UserEntity {
     @Column(nullable = false)
     private Integer displayOrderId;
 
+    @Enumerated(EnumType.ORDINAL)
+    @Comment("使用者角色（0=系統管理員、1=群組管理員、2=一般使用者）")
+    @Column(nullable = false)
+    private UserRole roles;
+
     @Comment("使用者名稱")
     @Column(length = 64, nullable = false)
     private String username;
@@ -54,11 +59,6 @@ public class UserEntity {
     @Comment("使用者密碼")
     @Column(name = "user_password", length = 255, nullable = false)
     private String userPassword;
-
-    @Enumerated(EnumType.ORDINAL)
-    @Comment("使用者角色（0=系統管理員、1=群組管理員、2=一般使用者）")
-    @Column(nullable = false)
-    private UserRole roles;
 
     @Comment("帳號建立時間")
     private Date createdAt;

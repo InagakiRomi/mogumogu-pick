@@ -51,7 +51,7 @@ INSERT INTO restaurant
 (43, 1, 2, 43, 4, '吃完不後悔', '打卡專用', 'https://cdn.pixabay.com/photo/2020/02/22/08/55/the-cake-4869920_1280.jpg', 0, '2025-05-20 16:45:33', '2025-05-20 16:45:33', '2025-05-20 16:45:33');
 
 INSERT INTO `user`
-(user_id, group_id, display_order_id, username, email, user_password, roles, created_at, updated_at) VALUES
-(1, 1, 1, 'Super', 'super@test.com', '$2a$10$FUJ8U5tUUcso8KXDFqcNSufkPq/XeHah8N9mUmyJMLKiODmQOZbaS', 0, '2026-05-13 00:06:53', '2026-05-13 00:06:53'),
-(2, 1, 2, 'GroupAdmin', 'groupadmin@test.com', '$2a$10$FUJ8U5tUUcso8KXDFqcNSufkPq/XeHah8N9mUmyJMLKiODmQOZbaS', 1, '2026-05-13 00:06:53', '2026-05-13 00:06:53'),
-(3, 1, 3, 'user', 'user@test.com', '$2a$10$FUJ8U5tUUcso8KXDFqcNSufkPq/XeHah8N9mUmyJMLKiODmQOZbaS', 2, '2026-05-13 00:06:53', '2026-05-13 00:06:53');
+(user_id, group_id, display_order_id, roles, username, email, user_password, created_at, updated_at) VALUES
+(1, 1, 1, 0, 'Super', 'super@test.com', '$2a$10$FUJ8U5tUUcso8KXDFqcNSufkPq/XeHah8N9mUmyJMLKiODmQOZbaS', '2026-05-13 00:06:53', '2026-05-13 00:06:53'),
+(2, 1, 2, 1, 'GroupAdmin', 'groupadmin@test.com', '$2a$10$FUJ8U5tUUcso8KXDFqcNSufkPq/XeHah8N9mUmyJMLKiODmQOZbaS', '2026-05-13 00:06:53', '2026-05-13 00:06:53'),
+(3, 1, 3, 2, 'user', 'user@test.com', '$2a$10$FUJ8U5tUUcso8KXDFqcNSufkPq/XeHah8N9mUmyJMLKiODmQOZbaS', '2026-05-13 00:06:53', '2026-05-13 00:06:53');

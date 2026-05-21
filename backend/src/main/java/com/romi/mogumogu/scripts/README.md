@@ -6,7 +6,7 @@
 | `mvn exec:java` | 依 profile 重建資料庫後啟動 Spring Boot（`ResetDb` + 主程式） |
 | `mvn exec:java@import-generated-sql` | 清空資料表（保留 `flyway_schema_history`）後匯入 `sql/generated/*.sql` |
 
-**Excel 轉 SQL：** 第 2 列為欄名、第 3 列起為資料。
+**Excel 轉 SQL：** 第 2 列為欄名、第 3 列起為資料。`user.xlsx` 第 2 列須含全部欄位（順序不拘），產生器會依 Flyway 順序輸出：`user_id, group_id, display_order_id, roles, username, email, user_password, created_at, updated_at`。
 
 **匯入目標：** `SPRING_PROFILES_ACTIVE` 須含 `mysql` 或 `h2`，對應匯入 MySQL 或 H2；其他值會報錯。
 

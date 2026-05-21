@@ -34,9 +34,9 @@ class JwtAuthenticationFilterTest {
     void validBearerToken_setsAuthentication() throws Exception {
         UserEntity user = UserEntity.builder()
                 .userId(5)
-                .email("filter@example.com")
                 .groupId(1)
                 .roles(UserRole.GROUP_ADMIN)
+                .email("filter@example.com")
                 .build();
         String token = jwtTokenProvider.generateAccessToken(user);
 

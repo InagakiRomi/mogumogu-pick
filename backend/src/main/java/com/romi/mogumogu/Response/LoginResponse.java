@@ -14,14 +14,14 @@ public class LoginResponse {
     /** 所屬群組 ID */
     private Integer groupId;
 
-    /** 電子郵件 */
-    private String email;
+    /** 角色 */
+    private Integer role;
 
     /** 使用者名稱 */
     private String username;
 
-    /** 角色 */
-    private Integer role;
+    /** 電子郵件 */
+    private String email;
 
     /** 帳號建立時間 */
     private Date createdAt;

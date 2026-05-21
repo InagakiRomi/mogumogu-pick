@@ -50,9 +50,9 @@ class JwtTokenProviderTest {
             Integer userId, String email, Integer groupId, UserRole role) {
         return UserEntity.builder()
                 .userId(userId)
-                .email(email)
                 .groupId(groupId)
                 .roles(role)
+                .email(email)
                 .build();
     }
 

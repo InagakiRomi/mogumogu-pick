@@ -55,7 +55,20 @@ public class ExcelToSql {
     /** 與 Flyway 既有資料表一致；外鍵被參考者在前 */
     private static final List<String> TABLE_ORDER = List.of(
             "restaurant_category",
-            "restaurant");
+            "restaurant",
+            "user");
+
+    /** 與 Flyway V5 後的 {@code user} 欄位順序一致；Excel 第 2 列欄名可任意排列 */
+    private static final List<String> USER_COLUMN_ORDER = List.of(
+            "user_id",
+            "group_id",
+            "display_order_id",
+            "roles",
+            "username",
+            "email",
+            "user_password",
+            "created_at",
+            "updated_at");
 
     /** SQL 方言 */
     private enum SqlDialect {
@@ -216,7 +229,7 @@ public class ExcelToSql {
             throw new IllegalStateException("第 2 列不存在（表：" + tableName + "）");
         }
 
-        ColumnLayout layout = parseColumnLayout(headerRow, tableName);
+        ColumnLayout layout = applyTableColumnOrder(parseColumnLayout(headerRow, tableName), tableName);
         List<String> valueTuples = collectValueTuples(
                 sheet,
                 tableName,
@@ -268,6 +281,33 @@ public class ExcelToSql {
             throw new IllegalStateException("沒有欄名（表：" + tableName + "）");
         }
         return new ColumnLayout(columnIndexes, columns);
+    }
+
+    /** {@code user} 表依 Flyway 欄位順序輸出 INSERT 欄名與值 */
+    private static ColumnLayout applyTableColumnOrder(ColumnLayout layout, String tableName) {
+        if (!"user".equalsIgnoreCase(tableName)) {
+            return layout;
+        }
+        List<Integer> columnIndexes = new ArrayList<>();
+        List<String> columnNames = new ArrayList<>();
+        for (String columnName : USER_COLUMN_ORDER) {
+            int index = indexOfColumnIgnoreCase(layout.columnNames(), columnName);
+            if (index < 0) {
+                throw new IllegalStateException("user 表缺少欄位：" + columnName);
+            }
+            columnIndexes.add(layout.columnIndexes().get(index));
+            columnNames.add(layout.columnNames().get(index));
+        }
+        return new ColumnLayout(columnIndexes, columnNames);
+    }
+
+    private static int indexOfColumnIgnoreCase(List<String> columnNames, String target) {
+        for (int i = 0; i < columnNames.size(); i++) {
+            if (target.equalsIgnoreCase(columnNames.get(i))) {
+                return i;
+            }
+        }
+        return -1;
     }
 
     /** 收集每列資料成 SQL tuple，空白列會跳過 */

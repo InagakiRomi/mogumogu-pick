@@ -11,6 +11,9 @@ import lombok.Setter;
 @Setter
 public class RegisterRequest {
 
+    @Schema(description = "使用者角色", example = "2")
+    private Integer role;
+
     @Schema(description = "使用者名稱", example = "test")
     @NotBlank
     @Size(max = 64)
@@ -25,7 +28,4 @@ public class RegisterRequest {
     @NotBlank
     @Size(max = 128)
     private String password;
-
-    @Schema(description = "使用者角色", example = "2")
-    private Integer role;
 }

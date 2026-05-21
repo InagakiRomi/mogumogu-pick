@@ -55,9 +55,9 @@ class ApiSecurityIntegrationTest {
     private String bearerToken(UserRole role) {
         UserEntity user = UserEntity.builder()
                 .userId(99)
-                .email("security-it@example.com")
                 .groupId(1)
                 .roles(role)
+                .email("security-it@example.com")
                 .build();
         return "Bearer " + jwtTokenProvider.generateAccessToken(user);
     }
@@ -103,7 +103,7 @@ class ApiSecurityIntegrationTest {
     @Test
     void getRestaurants_withMalformedAuthorization_returns401() throws Exception {
         mockMvc.perform(get("/restaurants").header(HttpHeaders.AUTHORIZATION, jwtTokenProvider.generateAccessToken(
-                        UserEntity.builder().userId(1).email("x@y.z").groupId(1).roles(UserRole.USER).build())))
+                        UserEntity.builder().userId(1).groupId(1).roles(UserRole.USER).email("x@y.z").build())))
                 .andExpect(status().isUnauthorized());
     }
 
