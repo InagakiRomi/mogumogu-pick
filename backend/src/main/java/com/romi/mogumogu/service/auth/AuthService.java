@@ -57,7 +57,7 @@ public class AuthService {
                 .groupId(user.getGroupId())
                 .email(user.getEmail())
                 .username(user.getUsername())
-                .role(user.getRoles())
+                .role(user.getRoles().ordinal())
                 .createdAt(user.getCreatedAt())
                 .updatedAt(user.getUpdatedAt())
                 .token(accessToken)
@@ -76,6 +76,23 @@ public class AuthService {
         // 使用者名稱去掉空白字元
         String username = request.getUsername().trim();
 
+        // 檢查角色是否有效
+        UserRole requestedRole;
+        if (request.getRole() == null) {
+            requestedRole = UserRole.USER;
+        } else {
+            Optional<UserRole> roleOpt = UserRole.fromCode(request.getRole());
+            if (roleOpt.isEmpty()) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid role");
+            }
+            requestedRole = roleOpt.get();
+        }
+
+        // 如果系統管理員存在，則不能註冊為系統管理員
+        if (requestedRole == UserRole.SYSTEM_ADMIN && userRepository.existsByRole(UserRole.SYSTEM_ADMIN)) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "SYSTEM_ADMIN already exists");
+        }
+
         // 建立新使用者
         Date now = new Date();
         UserEntity newUser = UserEntity.builder()
@@ -84,7 +101,7 @@ public class AuthService {
                 .username(username)
                 .email(email)
                 .userPassword(passwordEncoder.encode(request.getPassword()))
-                .roles(UserRole.USER)
+                .roles(requestedRole)
                 .createdAt(now)
                 .updatedAt(now)
                 .build();
@@ -97,7 +114,7 @@ public class AuthService {
                 .groupId(saved.getGroupId())
                 .email(saved.getEmail())
                 .username(saved.getUsername())
-                .role(saved.getRoles())
+                .role(saved.getRoles().ordinal())
                 .createdAt(saved.getCreatedAt())
                 .updatedAt(saved.getUpdatedAt())
                 .build();

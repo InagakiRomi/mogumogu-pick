@@ -21,8 +21,11 @@ public class RegisterRequest {
     @Email
     private String email;
 
-    @Schema(description = "密碼（至少 8 字元）", example = "123")
+    @Schema(description = "密碼", example = "123")
     @NotBlank
-    @Size(min = 8, max = 128)
+    @Size(max = 128)
     private String password;
+
+    @Schema(description = "使用者角色", example = "2")
+    private Integer role;
 }

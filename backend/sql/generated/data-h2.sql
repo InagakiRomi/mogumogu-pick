@@ -52,6 +52,6 @@ INSERT INTO restaurant
 
 INSERT INTO "user"
 (user_id, group_id, display_order_id, username, email, user_password, roles, created_at, updated_at) VALUES
-(1, 1, 1, 'Super', 'super@test.com', '$2a$10$FUJ8U5tUUcso8KXDFqcNSufkPq/XeHah8N9mUmyJMLKiODmQOZbaS', 1, '2026-05-13 00:06:53', '2026-05-13 00:06:53'),
-(2, 1, 2, 'GroupAdmin', 'groupadmin@test.com', '$2a$10$FUJ8U5tUUcso8KXDFqcNSufkPq/XeHah8N9mUmyJMLKiODmQOZbaS', 2, '2026-05-13 00:06:53', '2026-05-13 00:06:53'),
-(3, 1, 3, 'user', 'user@test.com', '$2a$10$FUJ8U5tUUcso8KXDFqcNSufkPq/XeHah8N9mUmyJMLKiODmQOZbaS', 3, '2026-05-13 00:06:53', '2026-05-13 00:06:53');
+(1, 1, 1, 'Super', 'super@test.com', '$2a$10$FUJ8U5tUUcso8KXDFqcNSufkPq/XeHah8N9mUmyJMLKiODmQOZbaS', 0, '2026-05-13 00:06:53', '2026-05-13 00:06:53'),
+(2, 1, 2, 'GroupAdmin', 'groupadmin@test.com', '$2a$10$FUJ8U5tUUcso8KXDFqcNSufkPq/XeHah8N9mUmyJMLKiODmQOZbaS', 1, '2026-05-13 00:06:53', '2026-05-13 00:06:53'),
+(3, 1, 3, 'user', 'user@test.com', '$2a$10$FUJ8U5tUUcso8KXDFqcNSufkPq/XeHah8N9mUmyJMLKiODmQOZbaS', 2, '2026-05-13 00:06:53', '2026-05-13 00:06:53');

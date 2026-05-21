@@ -26,4 +26,20 @@ public enum UserRole {
             return Optional.empty();
         }
     }
+
+    /** 從 DB 數字代碼回傳 UserRole */
+    public static Optional<UserRole> fromCode(Integer code) {
+        // 檢查 code 是否為空
+        if (code == null) {
+            return Optional.empty();
+        }
+
+        // 檢查 code 是否在範圍內
+        UserRole[] values = values();
+        if (code < 0 || code >= values.length) {
+            return Optional.empty();
+        }
+
+        return Optional.of(values[code]);
+    }
 }

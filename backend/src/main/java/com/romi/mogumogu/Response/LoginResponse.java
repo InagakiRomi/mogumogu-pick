@@ -2,8 +2,6 @@ package com.romi.mogumogu.Response;
 
 import java.util.Date;
 
-import com.romi.mogumogu.enums.UserRole;
-
 import lombok.Builder;
 import lombok.Getter;
 
@@ -23,7 +21,7 @@ public class LoginResponse {
     private String username;
 
     /** 角色 */
-    private UserRole role;
+    private Integer role;
 
     /** 帳號建立時間 */
     private Date createdAt;

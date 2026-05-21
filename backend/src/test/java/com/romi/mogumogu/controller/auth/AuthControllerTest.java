@@ -79,7 +79,7 @@ class AuthControllerTest {
                 .groupId(1)
                 .email("new@example.com")
                 .username("新使用者")
-                .role(UserRole.USER)
+                .role(UserRole.USER.ordinal())
                 .createdAt(created)
                 .updatedAt(modified)
                 .build());
@@ -90,7 +90,7 @@ class AuthControllerTest {
                 .andExpect(jsonPath("$.groupId").value(1))
                 .andExpect(jsonPath("$.email").value("new@example.com"))
                 .andExpect(jsonPath("$.username").value("新使用者"))
-                .andExpect(jsonPath("$.role").value("USER"))
+                .andExpect(jsonPath("$.role").value(UserRole.USER.ordinal()))
                 .andExpect(jsonPath("$.createdAt").exists())
                 .andExpect(jsonPath("$.updatedAt").exists())
                 .andReturn()
@@ -256,7 +256,7 @@ class AuthControllerTest {
                 .groupId(42)
                 .email("demo@example.com")
                 .username("demo")
-                .role(UserRole.USER)
+                .role(UserRole.USER.ordinal())
                 .createdAt(created)
                 .updatedAt(modified)
                 .token("stub-access-token")
@@ -268,7 +268,7 @@ class AuthControllerTest {
                 .andExpect(jsonPath("$.groupId").value(42))
                 .andExpect(jsonPath("$.email").value("demo@example.com"))
                 .andExpect(jsonPath("$.username").value("demo"))
-                .andExpect(jsonPath("$.role").value("USER"))
+                .andExpect(jsonPath("$.role").value(UserRole.USER.ordinal()))
                 .andExpect(jsonPath("$.createdAt").exists())
                 .andExpect(jsonPath("$.updatedAt").exists())
                 .andExpect(jsonPath("$.token").value("stub-access-token"));
@@ -287,13 +287,13 @@ class AuthControllerTest {
                 .groupId(1)
                 .email("admin@example.com")
                 .username("admin")
-                .role(role)
+                .role(role.ordinal())
                 .token("stub-token")
                 .build());
 
         performLogin(body)
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.role").value(role.name()))
+                .andExpect(jsonPath("$.role").value(role.ordinal()))
                 .andExpect(jsonPath("$.token").value("stub-token"));
 
         verifyLoginInvokedOnce();
