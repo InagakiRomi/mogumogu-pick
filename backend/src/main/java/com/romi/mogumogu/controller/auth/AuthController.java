@@ -7,6 +7,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.romi.mogumogu.Response.LoginResponse;
 import com.romi.mogumogu.dto.LoginRequest;
+import com.romi.mogumogu.dto.LoginRequestBodyDoc;
 import com.romi.mogumogu.dto.RegisterRequest;
 import com.romi.mogumogu.service.auth.AuthService;
 
@@ -35,6 +36,7 @@ public class AuthController {
 
     @PostMapping("/login")
     @Operation(summary = "登入")
+    @LoginRequestBodyDoc
     @SecurityRequirements
     public LoginResponse login(@Valid @RequestBody LoginRequest request) {
         return authService.login(request);
