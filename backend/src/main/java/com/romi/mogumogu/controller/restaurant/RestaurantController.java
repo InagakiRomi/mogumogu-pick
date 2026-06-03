@@ -34,10 +34,17 @@ public class RestaurantController {
     }
 
     @GetMapping("")
-    @Operation(summary = "取得餐廳清單")
+    @Operation(summary = "取得所有餐廳清單")
     public RestaurantListResponse getRestaurants(
             @Valid @ModelAttribute @ParameterObject GetRestaurantQuery queryParams) {
         return restaurantService.getRestaurants(queryParams);
+    }
+
+    @GetMapping("/my")
+    @Operation(summary = "取得自己所屬群組的餐廳清單")
+    public RestaurantListResponse getMyGroupRestaurants(
+            @Valid @ModelAttribute @ParameterObject GetRestaurantQuery queryParams) {
+        return restaurantService.getMyGroupRestaurants(queryParams);
     }
 
     @PostMapping("")

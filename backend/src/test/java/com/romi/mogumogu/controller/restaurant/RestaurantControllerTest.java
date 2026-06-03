@@ -350,6 +350,31 @@ class RestaurantControllerTest {
         }
 
         @Test
+        void testGetMyGroupRestaurants_success_returnsRestaurantList() throws Exception {
+                RestaurantResponse first = buildRestaurantResponse(1, 1, 10, "拉麵店");
+                when(restaurantService.getMyGroupRestaurants(argThat(RestaurantControllerTest::matchesDefaultListQuery)))
+                                .thenReturn(buildRestaurantListResponse(List.of(first), 1, 20, 1L));
+
+                performGetMyGroupRestaurants()
+                                .andExpect(status().isOk())
+                                .andExpect(jsonPath("$.data.length()").value(1))
+                                .andExpect(jsonPath("$.data[0].restaurantName").value("拉麵店"));
+
+                verify(restaurantService).getMyGroupRestaurants(argThat(RestaurantControllerTest::matchesDefaultListQuery));
+        }
+
+        @Test
+        void testGetMyGroupRestaurants_notInGroup_returns400() throws Exception {
+                when(restaurantService.getMyGroupRestaurants(any(GetRestaurantQuery.class)))
+                                .thenThrow(new ResponseStatusException(HttpStatus.BAD_REQUEST, "該帳號未加入群組"));
+
+                assertErrorResponse(performGetMyGroupRestaurants(),
+                                HttpStatus.BAD_REQUEST, "/restaurants/my", "該帳號未加入群組");
+
+                verify(restaurantService).getMyGroupRestaurants(any(GetRestaurantQuery.class));
+        }
+
+        @Test
         void testUpdateRestaurant_success_returns200WithUpdatedRestaurant() throws Exception {
                 UpdateRestaurantDto request = buildUpdateRequest("新餐廳名稱", 20, 5);
                 RestaurantResponse updated = buildRestaurantResponse(5, 1, 2, "新餐廳名稱");
@@ -543,6 +568,10 @@ class RestaurantControllerTest {
                 var requestBuilder = get("/restaurants");
                 queryParams.forEach(requestBuilder::param);
                 return mockMvc.perform(requestBuilder);
+        }
+
+        private ResultActions performGetMyGroupRestaurants() throws Exception {
+                return mockMvc.perform(get("/restaurants/my"));
         }
 
         private void assertMessageContains(String responseJson, String messagePart) throws Exception {

@@ -7,9 +7,12 @@ import com.romi.mogumogu.dto.GetRestaurantQuery;
 import com.romi.mogumogu.dto.UpdateRestaurantDto;
 import com.romi.mogumogu.entity.restaurant.RestaurantCategoryEntity;
 import com.romi.mogumogu.entity.restaurant.RestaurantEntity;
+import com.romi.mogumogu.entity.user.UserEntity;
 import com.romi.mogumogu.enums.RestaurantSort;
 import com.romi.mogumogu.repository.restaurant.RestaurantCategoryRepository;
 import com.romi.mogumogu.repository.restaurant.RestaurantRepository;
+import com.romi.mogumogu.repository.user.UserRepository;
+import com.romi.mogumogu.security.SecurityUtils;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.data.jpa.domain.Specification;
@@ -32,12 +35,15 @@ import java.util.Locale;
 public class RestaurantService {
     private final RestaurantRepository restaurantRepository;
     private final RestaurantCategoryRepository restaurantCategoryRepository;
+    private final UserRepository userRepository;
 
     public RestaurantService(
             RestaurantRepository restaurantRepository,
-            RestaurantCategoryRepository restaurantCategoryRepository) {
+            RestaurantCategoryRepository restaurantCategoryRepository,
+            UserRepository userRepository) {
         this.restaurantRepository = restaurantRepository;
         this.restaurantCategoryRepository = restaurantCategoryRepository;
+        this.userRepository = userRepository;
     }
 
     /** 取得所有餐廳 */
@@ -127,6 +133,13 @@ public class RestaurantService {
                 .build();
     }
 
+    /** 取得目前登入使用者所屬群組的餐廳清單 */
+    public RestaurantListResponse getMyGroupRestaurants(GetRestaurantQuery queryParams) {
+        Integer groupId = resolveCurrentUserGroupId();
+        queryParams.setGroupId(groupId);
+        return getRestaurants(queryParams);
+    }
+
     /** 新增餐廳 */
     public RestaurantResponse createRestaurant(CreateRestaurantDto request) {
         // 取得群組 ID
@@ -196,7 +209,8 @@ public class RestaurantService {
             // 檢查顯示順序是否已存在
             if (restaurantRepository.existsByGroupIdAndDisplayOrderIdAndRestaurantIdNot(
                     restaurant.getGroupId(), displayOrderId, restaurant.getRestaurantId())) {
-                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "displayOrderId already exists in this group");
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                        "displayOrderId already exists in this group");
             }
 
             restaurant.setDisplayOrderId(displayOrderId);
@@ -260,6 +274,23 @@ public class RestaurantService {
         return restaurantCategoryRepository
                 .findByCategoryIdAndGroupId(categoryId, groupId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "Category not found"));
+    }
+
+    /** 取得目前登入使用者的群組 ID */
+    private Integer resolveCurrentUserGroupId() {
+        // 取得目前登入使用者的 ID
+        Integer userId = Objects.requireNonNull(SecurityUtils.getCurrentUserId());
+        Optional<UserEntity> userOpt = userRepository.findById(userId);
+        if (userOpt.isEmpty()) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "User not found");
+        }
+        UserEntity user = userOpt.get();
+
+        // 檢查使用者是否屬於群組
+        if (user.getGroupId() == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "該帳號未加入群組");
+        }
+        return user.getGroupId();
     }
 
 }

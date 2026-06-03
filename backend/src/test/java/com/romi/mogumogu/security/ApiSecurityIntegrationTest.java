@@ -95,6 +95,19 @@ class ApiSecurityIntegrationTest {
     }
 
     @Test
+    void getMyGroupRestaurants_withoutToken_returns401() throws Exception {
+        mockMvc.perform(get("/restaurants/my"))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.code").value("UNAUTHORIZED"));
+    }
+
+    @Test
+    void getMyGroupRestaurants_asUser_returns401WhenUserNotInDatabase() throws Exception {
+        mockMvc.perform(get("/restaurants/my").header(HttpHeaders.AUTHORIZATION, bearerToken(UserRole.USER)))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
     void getRestaurants_withInvalidToken_returns401() throws Exception {
         mockMvc.perform(get("/restaurants").header(HttpHeaders.AUTHORIZATION, "Bearer not-a-valid-jwt"))
                 .andExpect(status().isUnauthorized());
