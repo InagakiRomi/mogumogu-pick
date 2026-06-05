@@ -60,146 +60,6 @@ class RestaurantControllerTest {
         private RestaurantService restaurantService;
 
         @Test
-        void testCreateRestaurant_success_returns201AndCreatedRestaurant() throws Exception {
-                CreateRestaurantDto request = buildCreateRequest(1, 2, "和食天國");
-                RestaurantResponse response = buildRestaurantResponse(100, 1, 2, "和食天國");
-
-                when(restaurantService.createRestaurant(any(CreateRestaurantDto.class))).thenReturn(response);
-
-                performPostRestaurants(request)
-                                .andExpect(status().isCreated())
-                                .andExpect(jsonPath("$.restaurantId").value(100))
-                                .andExpect(jsonPath("$.groupId").value(1))
-                                .andExpect(jsonPath("$.categoryId").value(2))
-                                .andExpect(jsonPath("$.restaurantName").value("和食天國"))
-                                .andExpect(jsonPath("$.isArchived").value(false));
-
-                verify(restaurantService).createRestaurant(any(CreateRestaurantDto.class));
-        }
-
-        @Test
-        void testCreateRestaurant_validationFailed_returns400AndMessage() throws Exception {
-                CreateRestaurantDto invalidRequest = CreateRestaurantDto.builder()
-                                .groupId(-1)
-                                .restaurantName("")
-                                .build();
-
-                String responseJson = performPostRestaurants(invalidRequest)
-                                .andExpect(status().isBadRequest())
-                                .andExpect(jsonPath("$.result").value("error"))
-                                .andExpect(jsonPath("$.statusCode").value(400))
-                                .andExpect(jsonPath("$.code").value("BAD_REQUEST"))
-                                .andExpect(jsonPath("$.path").value("/restaurants"))
-                                .andReturn()
-                                .getResponse()
-                                .getContentAsString();
-                assertMessageContains(responseJson,
-                                "groupId must be greater than or equal to the minimum value");
-                assertMessageContains(responseJson, "categoryId is required");
-                assertMessageContains(responseJson, "restaurantName is required");
-
-                verifyNoInteractions(restaurantService);
-        }
-
-        @Test
-        void testCreateRestaurant_serviceThrowsBadRequest_returns400ErrorPayload() throws Exception {
-                CreateRestaurantDto request = buildCreateRequest(1, 999, "不存在分類");
-                when(restaurantService.createRestaurant(any(CreateRestaurantDto.class)))
-                                .thenThrow(new ResponseStatusException(HttpStatus.BAD_REQUEST, "Category not found"));
-
-                assertErrorResponse(performPostRestaurants(request), HttpStatus.BAD_REQUEST, "/restaurants",
-                                "Category not found");
-
-                verify(restaurantService).createRestaurant(any(CreateRestaurantDto.class));
-        }
-
-        @Test
-        void testCreateRestaurant_serviceThrowsUnexpectedException_returns500ErrorPayload() throws Exception {
-                CreateRestaurantDto request = buildCreateRequest(1, 2, "系統錯誤餐廳");
-                when(restaurantService.createRestaurant(any(CreateRestaurantDto.class)))
-                                .thenThrow(new RuntimeException("Create failed unexpectedly"));
-
-                assertErrorResponse(performPostRestaurants(request),
-                                HttpStatus.INTERNAL_SERVER_ERROR, "/restaurants", "Create failed unexpectedly");
-
-                verify(restaurantService).createRestaurant(any(CreateRestaurantDto.class));
-        }
-
-        @Test
-        void testCreateRestaurant_missingBody_returns400AndSkipsServiceCall() throws Exception {
-                assertErrorResponseContains(performPostRestaurantsWithoutBody(),
-                                500, "INTERNAL_SERVER_ERROR", "/restaurants", "Required request body is missing");
-
-                verifyNoInteractions(restaurantService);
-        }
-
-        @Test
-        void testCreateRestaurant_invalidJson_returns400AndSkipsServiceCall() throws Exception {
-                String invalidJson = "{\"groupId\":1,\"categoryId\":2,\"restaurantName\":\"abc\"";
-
-                assertErrorResponseContains(performPostRestaurantsRaw(invalidJson),
-                                500, "INTERNAL_SERVER_ERROR", "/restaurants", "JSON parse error");
-
-                verifyNoInteractions(restaurantService);
-        }
-
-        @Test
-        void testDeleteRestaurant_success_returns200AndArchivedRestaurant() throws Exception {
-                RestaurantResponse deleted = buildRestaurantResponse(10, 1, 2, "刪除前餐廳");
-                deleted.setIsArchived(true);
-                when(restaurantService.deleteRestaurant(10)).thenReturn(deleted);
-
-                performDeleteRestaurant(10)
-                                .andExpect(status().isOk())
-                                .andExpect(jsonPath("$.restaurantId").value(10))
-                                .andExpect(jsonPath("$.isArchived").value(true));
-
-                verify(restaurantService).deleteRestaurant(10);
-        }
-
-        @Test
-        void testDeleteRestaurant_notFound_returns404() throws Exception {
-                when(restaurantService.deleteRestaurant(999))
-                                .thenThrow(new ResponseStatusException(HttpStatus.NOT_FOUND, "Restaurant not found"));
-
-                assertErrorResponse(performDeleteRestaurant(999),
-                                HttpStatus.NOT_FOUND, "/restaurants/999", "Restaurant not found");
-
-                verify(restaurantService).deleteRestaurant(999);
-        }
-
-        @Test
-        void testDeleteRestaurant_serviceThrowsBadRequest_returns400() throws Exception {
-                when(restaurantService.deleteRestaurant(77))
-                                .thenThrow(new ResponseStatusException(HttpStatus.BAD_REQUEST,
-                                                "Invalid restaurant state"));
-
-                assertErrorResponse(performDeleteRestaurant(77),
-                                HttpStatus.BAD_REQUEST, "/restaurants/77", "Invalid restaurant state");
-
-                verify(restaurantService).deleteRestaurant(77);
-        }
-
-        @Test
-        void testDeleteRestaurant_serviceThrowsUnexpectedException_returns500() throws Exception {
-                when(restaurantService.deleteRestaurant(88))
-                                .thenThrow(new RuntimeException("Delete failed unexpectedly"));
-
-                assertErrorResponse(performDeleteRestaurant(88),
-                                HttpStatus.INTERNAL_SERVER_ERROR, "/restaurants/88", "Delete failed unexpectedly");
-
-                verify(restaurantService).deleteRestaurant(88);
-        }
-
-        @Test
-        void testDeleteRestaurant_invalidPathVariable_returns400AndSkipsServiceCall() throws Exception {
-                assertErrorResponseContains(mockMvc.perform(delete("/restaurants/{id}", "abc")),
-                                500, "INTERNAL_SERVER_ERROR", "/restaurants/abc", "Failed to convert value of type");
-
-                verifyNoInteractions(restaurantService);
-        }
-
-        @Test
         void testGetRestaurants_success_returnsRestaurantList() throws Exception {
                 RestaurantResponse first = buildRestaurantResponse(1, 1, 10, "拉麵店");
                 RestaurantResponse second = buildRestaurantResponse(2, 1, 11, "壽司店");
@@ -375,6 +235,164 @@ class RestaurantControllerTest {
         }
 
         @Test
+        void testGetRandomMyGroupRestaurant_success_returnsRestaurant() throws Exception {
+                RestaurantResponse randomRestaurant = buildRestaurantResponse(7, 1, 10, "隨機拉麵店");
+                when(restaurantService.getRandomMyGroupRestaurant(null)).thenReturn(randomRestaurant);
+
+                performGetRandomMyGroupRestaurant()
+                                .andExpect(status().isOk())
+                                .andExpect(jsonPath("$.restaurantId").value(7))
+                                .andExpect(jsonPath("$.groupId").value(1))
+                                .andExpect(jsonPath("$.restaurantName").value("隨機拉麵店"));
+
+                verify(restaurantService).getRandomMyGroupRestaurant(null);
+        }
+
+        @Test
+        void testGetRandomMyGroupRestaurant_withCategory_passesCategoryToService() throws Exception {
+                RestaurantResponse randomRestaurant = buildRestaurantResponse(8, 1, 10, "分類隨機拉麵店");
+                when(restaurantService.getRandomMyGroupRestaurant(10)).thenReturn(randomRestaurant);
+
+                performGetRandomMyGroupRestaurant(Map.of("categoryId", "10"))
+                                .andExpect(status().isOk())
+                                .andExpect(jsonPath("$.restaurantId").value(8))
+                                .andExpect(jsonPath("$.restaurantName").value("分類隨機拉麵店"));
+
+                verify(restaurantService).getRandomMyGroupRestaurant(10);
+        }
+
+        @Test
+        void testGetRandomMyGroupRestaurant_noRestaurant_returns404() throws Exception {
+                when(restaurantService.getRandomMyGroupRestaurant(null))
+                                .thenThrow(new ResponseStatusException(
+                                                HttpStatus.NOT_FOUND, "No available restaurants found for this filter"));
+
+                assertErrorResponse(performGetRandomMyGroupRestaurant(),
+                                HttpStatus.NOT_FOUND, "/restaurants/my/random",
+                                "No available restaurants found for this filter");
+
+                verify(restaurantService).getRandomMyGroupRestaurant(null);
+        }
+
+        @Test
+        void testChooseMyGroupRestaurant_success_returns200WithUpdatedRestaurant() throws Exception {
+                RestaurantResponse chosen = buildRestaurantResponse(7, 1, 10, "確認拉麵店");
+                chosen.setSelectedCount(1);
+                when(restaurantService.chooseMyGroupRestaurant(7)).thenReturn(chosen);
+
+                performChooseMyGroupRestaurant(7)
+                                .andExpect(status().isOk())
+                                .andExpect(jsonPath("$.restaurantId").value(7))
+                                .andExpect(jsonPath("$.selectedCount").value(1))
+                                .andExpect(jsonPath("$.restaurantName").value("確認拉麵店"));
+
+                verify(restaurantService).chooseMyGroupRestaurant(7);
+        }
+
+        @Test
+        void testChooseMyGroupRestaurant_notFound_returns404() throws Exception {
+                when(restaurantService.chooseMyGroupRestaurant(999))
+                                .thenThrow(new ResponseStatusException(HttpStatus.NOT_FOUND, "Restaurant not found"));
+
+                assertErrorResponse(performChooseMyGroupRestaurant(999),
+                                HttpStatus.NOT_FOUND, "/restaurants/my/choose/999", "Restaurant not found");
+
+                verify(restaurantService).chooseMyGroupRestaurant(999);
+        }
+
+        @Test
+        void testClearMyGroupRandomPool_success_returns204() throws Exception {
+                performClearMyGroupRandomPool()
+                                .andExpect(status().isNoContent());
+
+                verify(restaurantService).clearMyGroupRandomPool();
+        }
+
+        @Test
+        void testCreateRestaurant_success_returns201AndCreatedRestaurant() throws Exception {
+                CreateRestaurantDto request = buildCreateRequest(1, 2, "和食天國");
+                RestaurantResponse response = buildRestaurantResponse(100, 1, 2, "和食天國");
+
+                when(restaurantService.createRestaurant(any(CreateRestaurantDto.class))).thenReturn(response);
+
+                performPostRestaurants(request)
+                                .andExpect(status().isCreated())
+                                .andExpect(jsonPath("$.restaurantId").value(100))
+                                .andExpect(jsonPath("$.groupId").value(1))
+                                .andExpect(jsonPath("$.categoryId").value(2))
+                                .andExpect(jsonPath("$.restaurantName").value("和食天國"))
+                                .andExpect(jsonPath("$.isArchived").value(false));
+
+                verify(restaurantService).createRestaurant(any(CreateRestaurantDto.class));
+        }
+
+        @Test
+        void testCreateRestaurant_validationFailed_returns400AndMessage() throws Exception {
+                CreateRestaurantDto invalidRequest = CreateRestaurantDto.builder()
+                                .groupId(-1)
+                                .restaurantName("")
+                                .build();
+
+                String responseJson = performPostRestaurants(invalidRequest)
+                                .andExpect(status().isBadRequest())
+                                .andExpect(jsonPath("$.result").value("error"))
+                                .andExpect(jsonPath("$.statusCode").value(400))
+                                .andExpect(jsonPath("$.code").value("BAD_REQUEST"))
+                                .andExpect(jsonPath("$.path").value("/restaurants"))
+                                .andReturn()
+                                .getResponse()
+                                .getContentAsString();
+                assertMessageContains(responseJson,
+                                "groupId must be greater than or equal to the minimum value");
+                assertMessageContains(responseJson, "categoryId is required");
+                assertMessageContains(responseJson, "restaurantName is required");
+
+                verifyNoInteractions(restaurantService);
+        }
+
+        @Test
+        void testCreateRestaurant_serviceThrowsBadRequest_returns400ErrorPayload() throws Exception {
+                CreateRestaurantDto request = buildCreateRequest(1, 999, "不存在分類");
+                when(restaurantService.createRestaurant(any(CreateRestaurantDto.class)))
+                                .thenThrow(new ResponseStatusException(HttpStatus.BAD_REQUEST, "Category not found"));
+
+                assertErrorResponse(performPostRestaurants(request), HttpStatus.BAD_REQUEST, "/restaurants",
+                                "Category not found");
+
+                verify(restaurantService).createRestaurant(any(CreateRestaurantDto.class));
+        }
+
+        @Test
+        void testCreateRestaurant_serviceThrowsUnexpectedException_returns500ErrorPayload() throws Exception {
+                CreateRestaurantDto request = buildCreateRequest(1, 2, "系統錯誤餐廳");
+                when(restaurantService.createRestaurant(any(CreateRestaurantDto.class)))
+                                .thenThrow(new RuntimeException("Create failed unexpectedly"));
+
+                assertErrorResponse(performPostRestaurants(request),
+                                HttpStatus.INTERNAL_SERVER_ERROR, "/restaurants", "Create failed unexpectedly");
+
+                verify(restaurantService).createRestaurant(any(CreateRestaurantDto.class));
+        }
+
+        @Test
+        void testCreateRestaurant_missingBody_returns400AndSkipsServiceCall() throws Exception {
+                assertErrorResponseContains(performPostRestaurantsWithoutBody(),
+                                500, "INTERNAL_SERVER_ERROR", "/restaurants", "Required request body is missing");
+
+                verifyNoInteractions(restaurantService);
+        }
+
+        @Test
+        void testCreateRestaurant_invalidJson_returns400AndSkipsServiceCall() throws Exception {
+                String invalidJson = "{\"groupId\":1,\"categoryId\":2,\"restaurantName\":\"abc\"";
+
+                assertErrorResponseContains(performPostRestaurantsRaw(invalidJson),
+                                500, "INTERNAL_SERVER_ERROR", "/restaurants", "JSON parse error");
+
+                verifyNoInteractions(restaurantService);
+        }
+
+        @Test
         void testUpdateRestaurant_success_returns200WithUpdatedRestaurant() throws Exception {
                 UpdateRestaurantDto request = buildUpdateRequest("新餐廳名稱", 20, 5);
                 RestaurantResponse updated = buildRestaurantResponse(5, 1, 2, "新餐廳名稱");
@@ -485,6 +503,62 @@ class RestaurantControllerTest {
                 verifyNoInteractions(restaurantService);
         }
 
+        @Test
+        void testDeleteRestaurant_success_returns200AndArchivedRestaurant() throws Exception {
+                RestaurantResponse deleted = buildRestaurantResponse(10, 1, 2, "刪除前餐廳");
+                deleted.setIsArchived(true);
+                when(restaurantService.deleteRestaurant(10)).thenReturn(deleted);
+
+                performDeleteRestaurant(10)
+                                .andExpect(status().isOk())
+                                .andExpect(jsonPath("$.restaurantId").value(10))
+                                .andExpect(jsonPath("$.isArchived").value(true));
+
+                verify(restaurantService).deleteRestaurant(10);
+        }
+
+        @Test
+        void testDeleteRestaurant_notFound_returns404() throws Exception {
+                when(restaurantService.deleteRestaurant(999))
+                                .thenThrow(new ResponseStatusException(HttpStatus.NOT_FOUND, "Restaurant not found"));
+
+                assertErrorResponse(performDeleteRestaurant(999),
+                                HttpStatus.NOT_FOUND, "/restaurants/999", "Restaurant not found");
+
+                verify(restaurantService).deleteRestaurant(999);
+        }
+
+        @Test
+        void testDeleteRestaurant_serviceThrowsBadRequest_returns400() throws Exception {
+                when(restaurantService.deleteRestaurant(77))
+                                .thenThrow(new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                                                "Invalid restaurant state"));
+
+                assertErrorResponse(performDeleteRestaurant(77),
+                                HttpStatus.BAD_REQUEST, "/restaurants/77", "Invalid restaurant state");
+
+                verify(restaurantService).deleteRestaurant(77);
+        }
+
+        @Test
+        void testDeleteRestaurant_serviceThrowsUnexpectedException_returns500() throws Exception {
+                when(restaurantService.deleteRestaurant(88))
+                                .thenThrow(new RuntimeException("Delete failed unexpectedly"));
+
+                assertErrorResponse(performDeleteRestaurant(88),
+                                HttpStatus.INTERNAL_SERVER_ERROR, "/restaurants/88", "Delete failed unexpectedly");
+
+                verify(restaurantService).deleteRestaurant(88);
+        }
+
+        @Test
+        void testDeleteRestaurant_invalidPathVariable_returns400AndSkipsServiceCall() throws Exception {
+                assertErrorResponseContains(mockMvc.perform(delete("/restaurants/{id}", "abc")),
+                                500, "INTERNAL_SERVER_ERROR", "/restaurants/abc", "Failed to convert value of type");
+
+                verifyNoInteractions(restaurantService);
+        }
+
         private RestaurantResponse buildRestaurantResponse(Integer restaurantId, Integer groupId, Integer categoryId,
                         String name) {
                 Date now = new Date();
@@ -572,6 +646,24 @@ class RestaurantControllerTest {
 
         private ResultActions performGetMyGroupRestaurants() throws Exception {
                 return mockMvc.perform(get("/restaurants/my"));
+        }
+
+        private ResultActions performGetRandomMyGroupRestaurant() throws Exception {
+                return mockMvc.perform(get("/restaurants/my/random"));
+        }
+
+        private ResultActions performGetRandomMyGroupRestaurant(Map<String, String> queryParams) throws Exception {
+                var requestBuilder = get("/restaurants/my/random");
+                queryParams.forEach(requestBuilder::param);
+                return mockMvc.perform(requestBuilder);
+        }
+
+        private ResultActions performChooseMyGroupRestaurant(Integer id) throws Exception {
+                return mockMvc.perform(patch("/restaurants/my/choose/{id}", id));
+        }
+
+        private ResultActions performClearMyGroupRandomPool() throws Exception {
+                return mockMvc.perform(post("/restaurants/my/random/clear"));
         }
 
         private void assertMessageContains(String responseJson, String messagePart) throws Exception {

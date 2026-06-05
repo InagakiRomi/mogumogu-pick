@@ -15,6 +15,7 @@ public class JulLoggerFactory {
     // 指定用途的 logger 名稱
     public static final String MAIN = "Main";
     public static final String TOOL = "Tool";
+    public static final String RENDER = "Render";
 
     /** 印出主用途的 logger */
     public Logger printMainLog() {
@@ -24,6 +25,11 @@ public class JulLoggerFactory {
     /** 印出工具用途的 logger */
     public Logger printToolLog() {
         return getConfiguredLogger(TOOL);
+    }
+
+    /** 印出 Render 用途的 logger */
+    public Logger printRenderLog() {
+        return getConfiguredLogger(RENDER);
     }
 
     /** 回傳指定名稱的 JUL logger */

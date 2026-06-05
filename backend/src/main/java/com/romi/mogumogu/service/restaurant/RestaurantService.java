@@ -12,6 +12,7 @@ import com.romi.mogumogu.enums.RestaurantSort;
 import com.romi.mogumogu.repository.restaurant.RestaurantCategoryRepository;
 import com.romi.mogumogu.repository.restaurant.RestaurantRepository;
 import com.romi.mogumogu.repository.user.UserRepository;
+import com.romi.mogumogu.logging.JulLoggerFactory;
 import com.romi.mogumogu.security.SecurityUtils;
 
 import org.springframework.http.HttpStatus;
@@ -21,6 +22,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 import jakarta.persistence.criteria.Predicate;
@@ -30,12 +32,23 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Locale;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ThreadLocalRandom;
+import java.util.logging.Logger;
 
 @Service
 public class RestaurantService {
+    private static final Logger renderLog = new JulLoggerFactory().printRenderLog();
+
     private final RestaurantRepository restaurantRepository;
     private final RestaurantCategoryRepository restaurantCategoryRepository;
     private final UserRepository userRepository;
+
+    // 群組抽籤池
+    private final Map<String, List<Integer>> randomPoolByGroup = new ConcurrentHashMap<>();
+    private final Map<String, Integer> randomPoolTotalByGroup = new ConcurrentHashMap<>();
+    private final Map<Integer, String> lastRandomPoolKeyByGroup = new ConcurrentHashMap<>();
 
     public RestaurantService(
             RestaurantRepository restaurantRepository,
@@ -140,6 +153,111 @@ public class RestaurantService {
         return getRestaurants(queryParams);
     }
 
+    /** 抽取目前登入使用者所屬群組的一間餐廳 */
+    public RestaurantResponse getRandomMyGroupRestaurant(Integer categoryId) {
+        // 取得目前登入使用者的群組 ID
+        Integer groupId = resolveCurrentUserGroupId();
+
+        // 建立抽籤池 key
+        String poolKey = groupId + ":";
+        if (categoryId != null) {
+            poolKey += categoryId;
+        } else {
+            poolKey += "ALL";
+        }
+
+        // 切換分類時重置抽籤池
+        String lastPoolKey = lastRandomPoolKeyByGroup.get(groupId);
+        if (!Objects.equals(lastPoolKey, poolKey)) {
+            clearMyGroupRandomPool();
+            lastRandomPoolKeyByGroup.put(groupId, poolKey);
+        }
+
+        // 先從抽籤池取得餐廳 ID 清單，沒有資料才重新查詢
+        List<Integer> pool = randomPoolByGroup.get(poolKey);
+        if (pool == null || pool.isEmpty()) {
+            List<RestaurantEntity> restaurants;
+            if (categoryId == null) {
+                restaurants = restaurantRepository.findByGroupIdAndIsArchivedFalse(groupId);
+            } else {
+                restaurants = restaurantRepository.findByGroupIdAndCategoryId_CategoryIdAndIsArchivedFalse(groupId,
+                        categoryId);
+            }
+
+            // 檢查餐廳列表是否為空
+            if (restaurants.isEmpty()) {
+                throw new ResponseStatusException(HttpStatus.NOT_FOUND,
+                        "No available restaurants found for this filter");
+            }
+
+            // 將餐廳 ID 放進抽籤池
+            pool = new ArrayList<>();
+            for (RestaurantEntity restaurant : restaurants) {
+                pool.add(restaurant.getRestaurantId());
+            }
+            randomPoolByGroup.put(poolKey, pool);
+
+            // 記錄餐廳總數量
+            randomPoolTotalByGroup.put(poolKey, pool.size());
+        }
+
+        // 取得餐廨總數量
+        int totalCount = randomPoolTotalByGroup.getOrDefault(poolKey, pool.size());
+
+        // 隨機取得一筆餐廨 ID
+        int randomIndex = ThreadLocalRandom.current().nextInt(pool.size());
+        Integer restaurantId = pool.remove(randomIndex);
+        int drawnCount = totalCount - pool.size();
+
+        // 檢查抽籤池是否為空，為空則重置抽籤池
+        if (pool.isEmpty()) {
+            clearMyGroupRandomPool();
+        }
+
+        // 取得選中的餐廨
+        RestaurantEntity selectedRestaurant = findRestaurantOrThrow(restaurantId);
+
+        // 記錄抽籤結果
+        renderLog.info(String.format(
+                "Restaurant pool total: %d, drawn so far: %d", totalCount, drawnCount));
+        return RestaurantResponse.restaurantResponse(selectedRestaurant);
+    }
+
+    /** 確認選擇餐廳，更新選取紀錄並重置抽籤池 */
+    @Transactional
+    public RestaurantResponse chooseMyGroupRestaurant(Integer restaurantId) {
+        // 取得目前登入使用者的群組 ID
+        Integer groupId = resolveCurrentUserGroupId();
+
+        // 檢查餐廨 ID 是否存在、屬於指定群組且未被封存
+        RestaurantEntity restaurant = findActiveRestaurantOrThrow(restaurantId, groupId);
+
+        // 重置目前群組的抽籤池
+        clearMyGroupRandomPool();
+
+        // 更新選取紀錄
+        Date now = new Date();
+        restaurant.setSelectedCount(restaurant.getSelectedCount() + 1);
+        restaurant.setLastSelectedAt(now);
+        restaurant.setUpdatedAt(now);
+
+        RestaurantEntity savedRestaurant = restaurantRepository.save(restaurant);
+        return RestaurantResponse.restaurantResponse(savedRestaurant);
+    }
+
+    /** 重置目前群組的抽籤池 */
+    public void clearMyGroupRandomPool() {
+        // 取得目前登入使用者的群組 ID
+        Integer groupId = resolveCurrentUserGroupId();
+
+        // 移除目前登入使用者的群組 ID 的抽籤池
+        String keyPrefix = groupId + ":";
+        randomPoolByGroup.keySet().removeIf(key -> key.startsWith(keyPrefix));
+        randomPoolTotalByGroup.keySet().removeIf(key -> key.startsWith(keyPrefix));
+
+        renderLog.info("Restaurant pool has been reset");
+    }
+
     /** 新增餐廳 */
     public RestaurantResponse createRestaurant(CreateRestaurantDto request) {
         // 取得群組 ID
@@ -183,16 +301,8 @@ public class RestaurantService {
 
     /** 修改餐廳 */
     public RestaurantResponse updateRestaurant(Integer restaurantId, UpdateRestaurantDto request) {
-        // 檢查餐廳是否存在
-        if (restaurantId == null) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "restaurantId must not be null");
-        }
-
-        // 取得餐廳
-        RestaurantEntity restaurant = restaurantRepository.findById(restaurantId).orElse(null);
-        if (restaurant == null) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Restaurant not found");
-        }
+        // 檢查餐廨 ID 是否存在
+        RestaurantEntity restaurant = findRestaurantOrThrow(restaurantId);
 
         // 修改分類
         if (request.getCategoryId() != null) {
@@ -252,28 +362,13 @@ public class RestaurantService {
 
     /** 軟刪除餐廳 */
     public RestaurantResponse deleteRestaurant(Integer restaurantId) {
-        // 檢查餐廳是否存在
-        if (restaurantId == null) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "restaurantId must not be null");
-        }
-
-        // 取得餐廳
-        RestaurantEntity restaurant = restaurantRepository.findById(restaurantId).orElse(null);
-        if (restaurant == null) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Restaurant not found");
-        }
+        // 檢查餐廨 ID 是否存在
+        RestaurantEntity restaurant = findRestaurantOrThrow(restaurantId);
 
         restaurant.setIsArchived(true);
         restaurant.setUpdatedAt(new Date());
         RestaurantEntity deletedEntity = restaurantRepository.save(restaurant);
         return RestaurantResponse.restaurantResponse(deletedEntity);
-    }
-
-    /** 檢查分類是否存在 */
-    private RestaurantCategoryEntity findCategoryOrThrow(Integer categoryId, Integer groupId) {
-        return restaurantCategoryRepository
-                .findByCategoryIdAndGroupId(categoryId, groupId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "Category not found"));
     }
 
     /** 取得目前登入使用者的群組 ID */
@@ -291,6 +386,46 @@ public class RestaurantService {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "該帳號未加入群組");
         }
         return user.getGroupId();
+    }
+
+    /** 檢查餐廳是否存在、屬於指定群組且未被封存 */
+    private RestaurantEntity findActiveRestaurantOrThrow(Integer restaurantId, Integer groupId) {
+        // 檢查餐廨 ID 是否存在
+        RestaurantEntity restaurant = findRestaurantOrThrow(restaurantId);
+
+        // 檢查餐廳是否屬於該帳號所屬群組
+        if (!Objects.equals(restaurant.getGroupId(), groupId)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Restaurant belongs to another group");
+        }
+
+        // 檢查餐廳是否被封存
+        if (Boolean.TRUE.equals(restaurant.getIsArchived())) {
+            throw new ResponseStatusException(HttpStatus.GONE, "Restaurant is archived");
+        }
+        return restaurant;
+    }
+
+    /** 檢查餐廳 ID 參數並取得餐廳實體 */
+    private RestaurantEntity findRestaurantOrThrow(Integer restaurantId) {
+        // 檢查餐廳 ID 是否為 null
+        if (restaurantId == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "restaurantId must not be null");
+        }
+
+        // 取得餐廳
+        RestaurantEntity restaurant = restaurantRepository.findById(restaurantId).orElse(null);
+        if (restaurant == null) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Restaurant not found");
+        }
+
+        return restaurant;
+    }
+
+    /** 檢查分類是否存在 */
+    private RestaurantCategoryEntity findCategoryOrThrow(Integer categoryId, Integer groupId) {
+        return restaurantCategoryRepository
+                .findByCategoryIdAndGroupId(categoryId, groupId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "Category not found"));
     }
 
 }

@@ -17,6 +17,7 @@ import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseStatus;
@@ -45,6 +46,25 @@ public class RestaurantController {
     public RestaurantListResponse getMyGroupRestaurants(
             @Valid @ModelAttribute @ParameterObject GetRestaurantQuery queryParams) {
         return restaurantService.getMyGroupRestaurants(queryParams);
+    }
+
+    @GetMapping("/my/random")
+    @Operation(summary = "抽取自己所屬群組的一間餐廳")
+    public RestaurantResponse getRandomMyGroupRestaurant(@RequestParam(required = false) Integer categoryId) {
+        return restaurantService.getRandomMyGroupRestaurant(categoryId);
+    }
+
+    @PatchMapping("/my/choose/{id}")
+    @Operation(summary = "確認選擇餐廳並重置抽籤池")
+    public RestaurantResponse chooseMyGroupRestaurant(@PathVariable("id") Integer restaurantId) {
+        return restaurantService.chooseMyGroupRestaurant(restaurantId);
+    }
+
+    @PostMapping("/my/random/clear")
+    @Operation(summary = "重置抽籤池")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void clearMyGroupRandomPool() {
+        restaurantService.clearMyGroupRandomPool();
     }
 
     @PostMapping("")
