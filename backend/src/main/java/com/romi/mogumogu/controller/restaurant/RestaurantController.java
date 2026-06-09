@@ -1,9 +1,11 @@
 package com.romi.mogumogu.controller.restaurant;
 
-import com.romi.mogumogu.Response.RestaurantResponse;
 import com.romi.mogumogu.Response.RestaurantListResponse;
+import com.romi.mogumogu.Response.RestaurantResponse;
+import com.romi.mogumogu.Response.SelectionHistoryResponse;
 import com.romi.mogumogu.dto.CreateRestaurantDto;
 import com.romi.mogumogu.dto.GetRestaurantQuery;
+import com.romi.mogumogu.dto.GetSelectionHistoryQuery;
 import com.romi.mogumogu.dto.UpdateRestaurantDto;
 import com.romi.mogumogu.service.restaurant.RestaurantService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -36,14 +38,14 @@ public class RestaurantController {
 
     @GetMapping("")
     @Operation(summary = "取得所有餐廳清單")
-    public RestaurantListResponse getRestaurants(
+    public RestaurantListResponse<RestaurantResponse> getRestaurants(
             @Valid @ModelAttribute @ParameterObject GetRestaurantQuery queryParams) {
         return restaurantService.getRestaurants(queryParams);
     }
 
     @GetMapping("/my")
     @Operation(summary = "取得自己所屬群組的餐廳清單")
-    public RestaurantListResponse getMyGroupRestaurants(
+    public RestaurantListResponse<RestaurantResponse> getMyGroupRestaurants(
             @Valid @ModelAttribute @ParameterObject GetRestaurantQuery queryParams) {
         return restaurantService.getMyGroupRestaurants(queryParams);
     }
@@ -65,6 +67,13 @@ public class RestaurantController {
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void clearMyGroupRandomPool() {
         restaurantService.clearMyGroupRandomPool();
+    }
+
+    @GetMapping("/my/selection-history")
+    @Operation(summary = "查詢自己所屬群組的餐廳選擇歷史")
+    public RestaurantListResponse<SelectionHistoryResponse> getMyGroupSelectionHistory(
+            @Valid @ModelAttribute @ParameterObject GetSelectionHistoryQuery queryParams) {
+        return restaurantService.getMyGroupSelectionHistory(queryParams);
     }
 
     @GetMapping("/{id}")

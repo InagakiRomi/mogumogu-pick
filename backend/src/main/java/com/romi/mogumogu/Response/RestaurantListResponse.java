@@ -11,13 +11,25 @@ import java.util.List;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class RestaurantListResponse {
-    /** 餐廳列表 */
-    private List<RestaurantResponse> data;
-    /** 頁數 */
+public class RestaurantListResponse<T> {
+    /** 資料列表 */
+    private List<T> data;
+
+    /** 頁碼 */
     private Integer page;
+
     /** 每頁筆數 */
     private Integer limit;
+
     /** 總筆數 */
     private Long total;
+
+    public static <T> RestaurantListResponse<T> of(List<T> data, int page, int limit, long total) {
+        return RestaurantListResponse.<T>builder()
+                .data(data)
+                .page(page)
+                .limit(limit)
+                .total(total)
+                .build();
+    }
 }

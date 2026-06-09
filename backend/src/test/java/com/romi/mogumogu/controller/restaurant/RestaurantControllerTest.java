@@ -4,8 +4,10 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.romi.mogumogu.Response.RestaurantListResponse;
 import com.romi.mogumogu.Response.RestaurantResponse;
+import com.romi.mogumogu.Response.SelectionHistoryResponse;
 import com.romi.mogumogu.dto.CreateRestaurantDto;
 import com.romi.mogumogu.dto.GetRestaurantQuery;
+import com.romi.mogumogu.dto.GetSelectionHistoryQuery;
 import com.romi.mogumogu.dto.UpdateRestaurantDto;
 import com.romi.mogumogu.enums.RestaurantSort;
 import com.romi.mogumogu.exception.GlobalExceptionHandler;
@@ -58,6 +60,7 @@ class RestaurantControllerTest {
     private static final String RESTAURANTS_MY_PATH = "/restaurants/my";
     private static final String RESTAURANTS_MY_RANDOM_PATH = "/restaurants/my/random";
     private static final String RESTAURANTS_MY_RANDOM_CLEAR_PATH = "/restaurants/my/random/clear";
+    private static final String RESTAURANTS_MY_SELECTION_HISTORY_PATH = "/restaurants/my/selection-history";
     private static final String CONTENT_TYPE_JSON = "application/json";
     private static final int HTTP_INTERNAL_SERVER_ERROR = 500;
     private static final String CODE_INTERNAL_SERVER_ERROR = "INTERNAL_SERVER_ERROR";
@@ -474,6 +477,86 @@ class RestaurantControllerTest {
     }
 
     @Nested
+    class GetMyGroupSelectionHistory {
+
+        @Test
+        void success_returnsSelectionHistoryList() throws Exception {
+            Date now = new Date();
+            SelectionHistoryResponse history = SelectionHistoryResponse.builder()
+                    .historyId(1)
+                    .restaurantId(22)
+                    .restaurantName("乾乾拌拌")
+                    .category("主食")
+                    .selectedAt(now)
+                    .build();
+            stubGetMyGroupSelectionHistory(matchesDefaultHistoryQuery(),
+                    buildSelectionHistoryListResponse(List.of(history), 1, 10, 35L));
+
+            performGetMyGroupSelectionHistory()
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.page").value(1))
+                    .andExpect(jsonPath("$.limit").value(10))
+                    .andExpect(jsonPath("$.total").value(35))
+                    .andExpect(jsonPath("$.data.length()").value(1))
+                    .andExpect(jsonPath("$.data[0].historyId").value(1))
+                    .andExpect(jsonPath("$.data[0].restaurantName").value("乾乾拌拌"))
+                    .andExpect(jsonPath("$.data[0].category").value("主食"));
+
+            verifyGetMyGroupSelectionHistoryCalled(matchesDefaultHistoryQuery());
+        }
+
+        @Test
+        void withPageAndLimit_passesQueryParamsToService() throws Exception {
+            SelectionHistoryResponse paged = SelectionHistoryResponse.builder()
+                    .historyId(2)
+                    .restaurantId(8)
+                    .restaurantName("壽司店")
+                    .category("主食")
+                    .selectedAt(new Date())
+                    .build();
+            stubGetMyGroupSelectionHistory(matchesPagedHistoryQuery(),
+                    buildSelectionHistoryListResponse(List.of(paged), 2, 10, 35L));
+
+            performGetMyGroupSelectionHistory(Map.of("page", "2", "limit", "10"))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.page").value(2))
+                    .andExpect(jsonPath("$.limit").value(10))
+                    .andExpect(jsonPath("$.data.length()").value(1));
+
+            verifyGetMyGroupSelectionHistoryCalled(matchesPagedHistoryQuery());
+        }
+
+        @Test
+        void notInGroup_returns400() throws Exception {
+            when(restaurantService.getMyGroupSelectionHistory(any(GetSelectionHistoryQuery.class)))
+                    .thenThrow(new ResponseStatusException(HttpStatus.BAD_REQUEST, "該帳號未加入群組"));
+
+            assertErrorResponse(performGetMyGroupSelectionHistory(),
+                    HttpStatus.BAD_REQUEST, RESTAURANTS_MY_SELECTION_HISTORY_PATH, "該帳號未加入群組");
+
+            verify(restaurantService).getMyGroupSelectionHistory(any(GetSelectionHistoryQuery.class));
+        }
+
+        @Test
+        void invalidPage_returns400AndSkipsServiceCall() throws Exception {
+            assertErrorResponseContains(performGetMyGroupSelectionHistory(Map.of("page", "0")),
+                    400, CODE_BAD_REQUEST, RESTAURANTS_MY_SELECTION_HISTORY_PATH,
+                    "page must be greater than or equal to the minimum value");
+
+            verifyNoInteractions(restaurantService);
+        }
+
+        @Test
+        void invalidLimit_returns400AndSkipsServiceCall() throws Exception {
+            assertErrorResponseContains(performGetMyGroupSelectionHistory(Map.of("limit", "0")),
+                    400, CODE_BAD_REQUEST, RESTAURANTS_MY_SELECTION_HISTORY_PATH,
+                    "limit must be greater than or equal to the minimum value");
+
+            verifyNoInteractions(restaurantService);
+        }
+    }
+
+    @Nested
     class ClearMyGroupRandomPool {
 
         @Test
@@ -829,7 +912,7 @@ class RestaurantControllerTest {
 
     private void stubGetRestaurants(
             java.util.function.Predicate<GetRestaurantQuery> matcher,
-            RestaurantListResponse response) {
+            RestaurantListResponse<RestaurantResponse> response) {
         when(restaurantService.getRestaurants(argThat(matcher::test))).thenReturn(response);
     }
 
@@ -841,7 +924,7 @@ class RestaurantControllerTest {
 
     private void stubGetMyGroupRestaurants(
             java.util.function.Predicate<GetRestaurantQuery> matcher,
-            RestaurantListResponse response) {
+            RestaurantListResponse<RestaurantResponse> response) {
         when(restaurantService.getMyGroupRestaurants(argThat(matcher::test))).thenReturn(response);
     }
 
@@ -939,14 +1022,9 @@ class RestaurantControllerTest {
                 .build();
     }
 
-    private RestaurantListResponse buildRestaurantListResponse(List<RestaurantResponse> data, Integer page,
-            Integer limit, Long total) {
-        return RestaurantListResponse.builder()
-                .data(data)
-                .page(page)
-                .limit(limit)
-                .total(total)
-                .build();
+    private RestaurantListResponse<RestaurantResponse> buildRestaurantListResponse(List<RestaurantResponse> data,
+            Integer page, Integer limit, Long total) {
+        return RestaurantListResponse.of(data, page, limit, total);
     }
 
     private ResultActions performPostRestaurants(Object request) throws Exception {
@@ -1007,6 +1085,40 @@ class RestaurantControllerTest {
 
     private ResultActions performClearMyGroupRandomPool() throws Exception {
         return mockMvc.perform(post(RESTAURANTS_MY_RANDOM_CLEAR_PATH));
+    }
+
+    private ResultActions performGetMyGroupSelectionHistory() throws Exception {
+        return mockMvc.perform(get(RESTAURANTS_MY_SELECTION_HISTORY_PATH));
+    }
+
+    private ResultActions performGetMyGroupSelectionHistory(Map<String, String> queryParams) throws Exception {
+        var requestBuilder = get(RESTAURANTS_MY_SELECTION_HISTORY_PATH);
+        queryParams.forEach(requestBuilder::param);
+        return mockMvc.perform(requestBuilder);
+    }
+
+    private void stubGetMyGroupSelectionHistory(
+            java.util.function.Predicate<GetSelectionHistoryQuery> matcher,
+            RestaurantListResponse<SelectionHistoryResponse> response) {
+        when(restaurantService.getMyGroupSelectionHistory(argThat(matcher::test))).thenReturn(response);
+    }
+
+    private void verifyGetMyGroupSelectionHistoryCalled(
+            java.util.function.Predicate<GetSelectionHistoryQuery> matcher) {
+        verify(restaurantService).getMyGroupSelectionHistory(argThat(matcher::test));
+    }
+
+    private RestaurantListResponse<SelectionHistoryResponse> buildSelectionHistoryListResponse(
+            List<SelectionHistoryResponse> data, Integer page, Integer limit, Long total) {
+        return RestaurantListResponse.of(data, page, limit, total);
+    }
+
+    private static java.util.function.Predicate<GetSelectionHistoryQuery> matchesDefaultHistoryQuery() {
+        return p -> Objects.equals(p.getPage(), 1) && Objects.equals(p.getLimit(), 10);
+    }
+
+    private static java.util.function.Predicate<GetSelectionHistoryQuery> matchesPagedHistoryQuery() {
+        return p -> Objects.equals(p.getPage(), 2) && Objects.equals(p.getLimit(), 10);
     }
 
     private void assertMessageContains(String responseJson, String messagePart) throws Exception {

@@ -1,10 +1,13 @@
 package com.romi.mogumogu.service.restaurant;
 
-import com.romi.mogumogu.Response.RestaurantResponse;
 import com.romi.mogumogu.Response.RestaurantListResponse;
+import com.romi.mogumogu.Response.RestaurantResponse;
+import com.romi.mogumogu.Response.SelectionHistoryResponse;
 import com.romi.mogumogu.dto.CreateRestaurantDto;
 import com.romi.mogumogu.dto.GetRestaurantQuery;
+import com.romi.mogumogu.dto.GetSelectionHistoryQuery;
 import com.romi.mogumogu.dto.UpdateRestaurantDto;
+import com.romi.mogumogu.service.history.RestaurantSelectionHistoryService;
 import com.romi.mogumogu.entity.restaurant.RestaurantCategoryEntity;
 import com.romi.mogumogu.entity.restaurant.RestaurantEntity;
 import com.romi.mogumogu.entity.user.UserEntity;
@@ -44,6 +47,7 @@ public class RestaurantService {
     private final RestaurantRepository restaurantRepository;
     private final RestaurantCategoryRepository restaurantCategoryRepository;
     private final UserRepository userRepository;
+    private final RestaurantSelectionHistoryService selectionHistoryService;
 
     private final Map<Integer, RandomPool> randomPoolByUser = new ConcurrentHashMap<>();
 
@@ -53,14 +57,16 @@ public class RestaurantService {
     public RestaurantService(
             RestaurantRepository restaurantRepository,
             RestaurantCategoryRepository restaurantCategoryRepository,
-            UserRepository userRepository) {
+            UserRepository userRepository,
+            RestaurantSelectionHistoryService selectionHistoryService) {
         this.restaurantRepository = restaurantRepository;
         this.restaurantCategoryRepository = restaurantCategoryRepository;
         this.userRepository = userRepository;
+        this.selectionHistoryService = selectionHistoryService;
     }
 
     /** 取得所有餐廳 */
-    public RestaurantListResponse getRestaurants(GetRestaurantQuery queryParams) {
+    public RestaurantListResponse<RestaurantResponse> getRestaurants(GetRestaurantQuery queryParams) {
         Integer groupId = queryParams.getGroupId();
         Integer categoryId = queryParams.getCategoryId();
         Boolean isArchived = queryParams.getIsArchived();
@@ -138,12 +144,7 @@ public class RestaurantService {
                 .map(RestaurantResponse::restaurantResponse)
                 .toList();
 
-        return RestaurantListResponse.builder()
-                .data(restaurantResponses)
-                .page(page)
-                .limit(limit)
-                .total(pageResult.getTotalElements())
-                .build();
+        return RestaurantListResponse.of(restaurantResponses, page, limit, pageResult.getTotalElements());
     }
 
     /** 依餐廳 ID 取得目前登入使用者所屬群組的單筆餐廳資訊 */
@@ -154,7 +155,7 @@ public class RestaurantService {
     }
 
     /** 取得目前登入使用者所屬群組的餐廳清單 */
-    public RestaurantListResponse getMyGroupRestaurants(GetRestaurantQuery queryParams) {
+    public RestaurantListResponse<RestaurantResponse> getMyGroupRestaurants(GetRestaurantQuery queryParams) {
         Integer groupId = resolveCurrentUserGroupId();
         queryParams.setGroupId(groupId);
         return getRestaurants(queryParams);
@@ -222,6 +223,12 @@ public class RestaurantService {
         return RestaurantResponse.restaurantResponse(selectedRestaurant);
     }
 
+    /** 取得自己所屬群組的餐廳抽選歷史紀錄 */
+    public RestaurantListResponse<SelectionHistoryResponse> getMyGroupSelectionHistory(
+            GetSelectionHistoryQuery queryParams) {
+        return selectionHistoryService.getMyGroupSelectionHistory(queryParams);
+    }
+
     /** 確認選擇餐廳，更新選取紀錄並重置抽籤池 */
     @Transactional
     public RestaurantResponse chooseMyGroupRestaurant(Integer restaurantId) {
@@ -241,6 +248,8 @@ public class RestaurantService {
         restaurant.setUpdatedAt(now);
 
         RestaurantEntity savedRestaurant = restaurantRepository.save(restaurant);
+        selectionHistoryService.recordSelection(groupId, savedRestaurant, now);
+
         return RestaurantResponse.restaurantResponse(savedRestaurant);
     }
 
