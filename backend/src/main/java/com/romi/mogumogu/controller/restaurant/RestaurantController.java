@@ -67,6 +67,12 @@ public class RestaurantController {
         restaurantService.clearMyGroupRandomPool();
     }
 
+    @GetMapping("/{id}")
+    @Operation(summary = "依餐廳 ID 取得自己所屬群組的單筆餐廳資訊")
+    public RestaurantResponse getRestaurant(@PathVariable("id") Integer restaurantId) {
+        return restaurantService.getRestaurant(restaurantId);
+    }
+
     @PostMapping("")
     @Operation(summary = "新增餐廳")
     @ResponseStatus(HttpStatus.CREATED)

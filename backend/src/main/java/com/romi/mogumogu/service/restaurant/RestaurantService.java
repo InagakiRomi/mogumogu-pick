@@ -146,6 +146,13 @@ public class RestaurantService {
                 .build();
     }
 
+    /** 依餐廳 ID 取得目前登入使用者所屬群組的單筆餐廳資訊 */
+    public RestaurantResponse getRestaurant(Integer restaurantId) {
+        Integer groupId = resolveCurrentUserGroupId();
+        RestaurantEntity restaurant = findRestaurantInGroupOrThrow(restaurantId, groupId);
+        return RestaurantResponse.restaurantResponse(restaurant);
+    }
+
     /** 取得目前登入使用者所屬群組的餐廳清單 */
     public RestaurantListResponse getMyGroupRestaurants(GetRestaurantQuery queryParams) {
         Integer groupId = resolveCurrentUserGroupId();
@@ -375,17 +382,20 @@ public class RestaurantService {
         return user.getGroupId();
     }
 
-    /** 檢查餐廳是否存在、屬於指定群組且未被封存 */
-    private RestaurantEntity findActiveRestaurantOrThrow(Integer restaurantId, Integer groupId) {
-        // 檢查餐廳 ID 是否存在
+    /** 檢查餐廳是否存在且屬於指定群組 */
+    private RestaurantEntity findRestaurantInGroupOrThrow(Integer restaurantId, Integer groupId) {
         RestaurantEntity restaurant = findRestaurantOrThrow(restaurantId);
 
-        // 檢查餐廳是否屬於該帳號所屬群組
         if (!Objects.equals(restaurant.getGroupId(), groupId)) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Restaurant belongs to another group");
         }
+        return restaurant;
+    }
 
-        // 檢查餐廳是否被封存
+    /** 檢查餐廳是否存在、屬於指定群組且未被封存 */
+    private RestaurantEntity findActiveRestaurantOrThrow(Integer restaurantId, Integer groupId) {
+        RestaurantEntity restaurant = findRestaurantInGroupOrThrow(restaurantId, groupId);
+
         if (Boolean.TRUE.equals(restaurant.getIsArchived())) {
             throw new ResponseStatusException(HttpStatus.GONE, "Restaurant is archived");
         }

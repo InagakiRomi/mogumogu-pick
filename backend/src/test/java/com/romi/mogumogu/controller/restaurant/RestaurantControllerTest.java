@@ -62,6 +62,10 @@ class RestaurantControllerTest {
     private static final int HTTP_INTERNAL_SERVER_ERROR = 500;
     private static final String CODE_INTERNAL_SERVER_ERROR = "INTERNAL_SERVER_ERROR";
     private static final String CODE_BAD_REQUEST = "BAD_REQUEST";
+    private static final String TRUNCATED_CREATE_RESTAURANT_JSON =
+            "\u007b\"groupId\":1,\"categoryId\":2,\"restaurantName\":\"abc\"";
+    private static final String TRUNCATED_UPDATE_RESTAURANT_JSON =
+            "\u007b\"restaurantName\":\"abc\"";
 
     @Autowired
     private MockMvc mockMvc;
@@ -493,6 +497,78 @@ class RestaurantControllerTest {
     }
 
     @Nested
+    class SingleRestaurantLookup {
+
+        @Test
+        void success_returnsRestaurant() throws Exception {
+            RestaurantResponse restaurant = buildRestaurantResponse(5, 1, 2, "單筆查詢餐廳");
+            when(restaurantService.getRestaurant(5)).thenReturn(restaurant);
+
+            mockMvc.perform(get("/restaurants/{id}", 5))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.restaurantId").value(5))
+                    .andExpect(jsonPath("$.groupId").value(1))
+                    .andExpect(jsonPath("$.categoryId").value(2))
+                    .andExpect(jsonPath("$.restaurantName").value("單筆查詢餐廳"));
+
+            verify(restaurantService).getRestaurant(5);
+        }
+
+        @Test
+        void notFound_returns404() throws Exception {
+            when(restaurantService.getRestaurant(999))
+                    .thenThrow(new ResponseStatusException(HttpStatus.NOT_FOUND, "Restaurant not found"));
+
+            assertErrorResponse(mockMvc.perform(get("/restaurants/{id}", 999)),
+                    HttpStatus.NOT_FOUND, "/restaurants/999", "Restaurant not found");
+
+            verify(restaurantService).getRestaurant(999);
+        }
+
+        @Test
+        void notInGroup_returns400() throws Exception {
+            when(restaurantService.getRestaurant(5))
+                    .thenThrow(new ResponseStatusException(HttpStatus.BAD_REQUEST, "該帳號未加入群組"));
+
+            assertErrorResponse(mockMvc.perform(get("/restaurants/{id}", 5)),
+                    HttpStatus.BAD_REQUEST, "/restaurants/5", "該帳號未加入群組");
+
+            verify(restaurantService).getRestaurant(5);
+        }
+
+        @Test
+        void forbidden_returns403() throws Exception {
+            when(restaurantService.getRestaurant(5))
+                    .thenThrow(new ResponseStatusException(HttpStatus.FORBIDDEN, "Restaurant belongs to another group"));
+
+            assertErrorResponse(mockMvc.perform(get("/restaurants/{id}", 5)),
+                    HttpStatus.FORBIDDEN, "/restaurants/5", "Restaurant belongs to another group");
+
+            verify(restaurantService).getRestaurant(5);
+        }
+
+        @Test
+        void serviceThrowsUnexpectedException_returns500() throws Exception {
+            when(restaurantService.getRestaurant(7))
+                    .thenThrow(new RuntimeException("Get restaurant failed"));
+
+            assertErrorResponse(mockMvc.perform(get("/restaurants/{id}", 7)),
+                    HttpStatus.INTERNAL_SERVER_ERROR, "/restaurants/7", "Get restaurant failed");
+
+            verify(restaurantService).getRestaurant(7);
+        }
+
+        @Test
+        void invalidPathVariable_returns500AndSkipsServiceCall() throws Exception {
+            assertErrorResponseContains(mockMvc.perform(get("/restaurants/{id}", "bad-id")),
+                    HTTP_INTERNAL_SERVER_ERROR, CODE_INTERNAL_SERVER_ERROR, "/restaurants/bad-id",
+                    "Failed to convert value of type");
+
+            verifyNoInteractions(restaurantService);
+        }
+    }
+
+    @Nested
     class CreateRestaurant {
 
         @Test
@@ -580,7 +656,7 @@ class RestaurantControllerTest {
         @Test
         void invalidJson_returns500AndSkipsServiceCall() throws Exception {
             assertJsonParseError(RESTAURANTS_PATH,
-                    performPostRestaurantsRaw("{\"groupId\":1,\"categoryId\":2,\"restaurantName\":\"abc\""));
+                    performPostRestaurantsRaw(TRUNCATED_CREATE_RESTAURANT_JSON));
         }
     }
 
@@ -684,7 +760,7 @@ class RestaurantControllerTest {
         void invalidJson_returns500AndSkipsServiceCall() throws Exception {
             assertErrorResponseContains(mockMvc.perform(patch("/restaurants/{id}", 1)
                             .contentType(CONTENT_TYPE_JSON)
-                            .content("{\"restaurantName\":\"abc\"")),
+                            .content(TRUNCATED_UPDATE_RESTAURANT_JSON)),
                     HTTP_INTERNAL_SERVER_ERROR, CODE_INTERNAL_SERVER_ERROR, "/restaurants/1", "JSON parse error");
 
             verifyNoInteractions(restaurantService);
