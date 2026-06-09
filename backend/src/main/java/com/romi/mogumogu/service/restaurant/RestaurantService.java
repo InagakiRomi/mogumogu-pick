@@ -45,10 +45,10 @@ public class RestaurantService {
     private final RestaurantCategoryRepository restaurantCategoryRepository;
     private final UserRepository userRepository;
 
-    // 群組抽籤池
-    private final Map<String, List<Integer>> randomPoolByGroup = new ConcurrentHashMap<>();
-    private final Map<String, Integer> randomPoolTotalByGroup = new ConcurrentHashMap<>();
-    private final Map<Integer, String> lastRandomPoolKeyByGroup = new ConcurrentHashMap<>();
+    private final Map<Integer, RandomPool> randomPoolByUser = new ConcurrentHashMap<>();
+
+    private record RandomPool(Integer categoryId, List<Integer> restaurantIds, int totalCount) {
+    }
 
     public RestaurantService(
             RestaurantRepository restaurantRepository,
@@ -155,27 +155,17 @@ public class RestaurantService {
 
     /** 抽取目前登入使用者所屬群組的一間餐廳 */
     public RestaurantResponse getRandomMyGroupRestaurant(Integer categoryId) {
+        // 取得目前登入使用者的 ID
+        Integer userId = Objects.requireNonNull(SecurityUtils.getCurrentUserId());
+
         // 取得目前登入使用者的群組 ID
         Integer groupId = resolveCurrentUserGroupId();
 
-        // 建立抽籤池 key
-        String poolKey = groupId + ":";
-        if (categoryId != null) {
-            poolKey += categoryId;
-        } else {
-            poolKey += "ALL";
-        }
-
-        // 切換分類時重置抽籤池
-        String lastPoolKey = lastRandomPoolKeyByGroup.get(groupId);
-        if (!Objects.equals(lastPoolKey, poolKey)) {
-            clearMyGroupRandomPool();
-            lastRandomPoolKeyByGroup.put(groupId, poolKey);
-        }
-
-        // 先從抽籤池取得餐廳 ID 清單，沒有資料才重新查詢
-        List<Integer> pool = randomPoolByGroup.get(poolKey);
-        if (pool == null || pool.isEmpty()) {
+        // 先從抽籤池取得餐廳 ID 清單，沒有資料或切換分類才重新查詢
+        RandomPool randomPool = randomPoolByUser.get(userId);
+        if (randomPool == null
+                || !Objects.equals(randomPool.categoryId(), categoryId)
+                || randomPool.restaurantIds().isEmpty()) {
             List<RestaurantEntity> restaurants;
             if (categoryId == null) {
                 restaurants = restaurantRepository.findByGroupIdAndIsArchivedFalse(groupId);
@@ -191,35 +181,37 @@ public class RestaurantService {
             }
 
             // 將餐廳 ID 放進抽籤池
-            pool = new ArrayList<>();
+            List<Integer> restaurantIds = new ArrayList<>();
             for (RestaurantEntity restaurant : restaurants) {
-                pool.add(restaurant.getRestaurantId());
+                restaurantIds.add(restaurant.getRestaurantId());
             }
-            randomPoolByGroup.put(poolKey, pool);
-
-            // 記錄餐廳總數量
-            randomPoolTotalByGroup.put(poolKey, pool.size());
+            randomPool = new RandomPool(categoryId, restaurantIds, restaurantIds.size());
+            randomPoolByUser.put(userId, randomPool);
         }
 
-        // 取得餐廨總數量
-        int totalCount = randomPoolTotalByGroup.getOrDefault(poolKey, pool.size());
+        // 取得抽籤池中的餐廨 ID 清單
+        List<Integer> pool = randomPool.restaurantIds();
+
+        // 取得抽籤池中的餐廨總數量
+        int totalCount = randomPool.totalCount();
 
         // 隨機取得一筆餐廨 ID
         int randomIndex = ThreadLocalRandom.current().nextInt(pool.size());
         Integer restaurantId = pool.remove(randomIndex);
         int drawnCount = totalCount - pool.size();
 
-        // 檢查抽籤池是否為空，為空則重置抽籤池
+        // 檢查抽籤池是否為空，為空則移除抽籤池
         if (pool.isEmpty()) {
             clearMyGroupRandomPool();
         }
 
-        // 取得選中的餐廨
+        // 取得選中的餐廳
         RestaurantEntity selectedRestaurant = findRestaurantOrThrow(restaurantId);
 
         // 記錄抽籤結果
         renderLog.info(String.format(
-                "Restaurant pool total: %d, drawn so far: %d", totalCount, drawnCount));
+                "Restaurant pool total: %d, drawn so far: %d",
+                totalCount, drawnCount));
         return RestaurantResponse.restaurantResponse(selectedRestaurant);
     }
 
@@ -229,10 +221,10 @@ public class RestaurantService {
         // 取得目前登入使用者的群組 ID
         Integer groupId = resolveCurrentUserGroupId();
 
-        // 檢查餐廨 ID 是否存在、屬於指定群組且未被封存
+        // 檢查餐廳 ID 是否存在、屬於指定群組且未被封存
         RestaurantEntity restaurant = findActiveRestaurantOrThrow(restaurantId, groupId);
 
-        // 重置目前群組的抽籤池
+        // 重置目前使用者的抽籤池
         clearMyGroupRandomPool();
 
         // 更新選取紀錄
@@ -245,17 +237,12 @@ public class RestaurantService {
         return RestaurantResponse.restaurantResponse(savedRestaurant);
     }
 
-    /** 重置目前群組的抽籤池 */
+    /** 重置目前登入使用者的抽籤池 */
     public void clearMyGroupRandomPool() {
-        // 取得目前登入使用者的群組 ID
-        Integer groupId = resolveCurrentUserGroupId();
-
-        // 移除目前登入使用者的群組 ID 的抽籤池
-        String keyPrefix = groupId + ":";
-        randomPoolByGroup.keySet().removeIf(key -> key.startsWith(keyPrefix));
-        randomPoolTotalByGroup.keySet().removeIf(key -> key.startsWith(keyPrefix));
-
-        renderLog.info("Restaurant pool has been reset");
+        Integer userId = Objects.requireNonNull(SecurityUtils.getCurrentUserId());
+        if (randomPoolByUser.remove(userId) != null) {
+            renderLog.info("Restaurant pool has been reset");
+        }
     }
 
     /** 新增餐廳 */
@@ -301,7 +288,7 @@ public class RestaurantService {
 
     /** 修改餐廳 */
     public RestaurantResponse updateRestaurant(Integer restaurantId, UpdateRestaurantDto request) {
-        // 檢查餐廨 ID 是否存在
+        // 檢查餐廳 ID 是否存在
         RestaurantEntity restaurant = findRestaurantOrThrow(restaurantId);
 
         // 修改分類
@@ -362,7 +349,7 @@ public class RestaurantService {
 
     /** 軟刪除餐廳 */
     public RestaurantResponse deleteRestaurant(Integer restaurantId) {
-        // 檢查餐廨 ID 是否存在
+        // 檢查餐廳 ID 是否存在
         RestaurantEntity restaurant = findRestaurantOrThrow(restaurantId);
 
         restaurant.setIsArchived(true);
@@ -390,7 +377,7 @@ public class RestaurantService {
 
     /** 檢查餐廳是否存在、屬於指定群組且未被封存 */
     private RestaurantEntity findActiveRestaurantOrThrow(Integer restaurantId, Integer groupId) {
-        // 檢查餐廨 ID 是否存在
+        // 檢查餐廳 ID 是否存在
         RestaurantEntity restaurant = findRestaurantOrThrow(restaurantId);
 
         // 檢查餐廳是否屬於該帳號所屬群組
