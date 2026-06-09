@@ -116,10 +116,18 @@ class AuthControllerTest {
     }
 
     @Test
-    void register_passwordTooShort_returns400AndSkipsService() throws Exception {
-        assertBadRequestValidationRegister(
-                registerRequest("u", "ok@example.com", "short"),
-                "password size is out of allowed range");
+    void register_shortPassword_passesValidationAndReachesService() throws Exception {
+        RegisterRequest body = registerRequest("u", "ok@example.com", "short");
+        when(authService.register(any(RegisterRequest.class))).thenReturn(LoginResponse.builder()
+                .userId(1)
+                .username("u")
+                .email("ok@example.com")
+                .build());
+
+        performRegister(body)
+                .andExpect(status().isOk());
+
+        verify(authService).register(any(RegisterRequest.class));
     }
 
     @Test

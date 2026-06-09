@@ -264,6 +264,22 @@ class RestaurantControllerTest {
         }
 
         @Test
+        void withOrderByAndSort_passesQueryParamsToService() throws Exception {
+            RestaurantResponse sorted = buildRestaurantResponse(8, 1, 2, "燒肉店");
+            stubGetMyGroupRestaurants(matchesSortedListQuery(),
+                    buildRestaurantListResponse(List.of(sorted), 1, 20, 1L));
+
+            performGetMyGroupRestaurants(Map.of(
+                            "orderBy", "SELECTED_COUNT",
+                            "sort", "DESC"))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.data.length()").value(1))
+                    .andExpect(jsonPath("$.data[0].restaurantName").value("燒肉店"));
+
+            verifyGetMyGroupRestaurantsCalled(matchesSortedListQuery());
+        }
+
+        @Test
         void withPageAndLimit_passesQueryParamsToService() throws Exception {
             RestaurantResponse paged = buildRestaurantResponse(9, 1, 2, "火鍋店");
             stubGetMyGroupRestaurants(matchesPagedListQuery(),
@@ -301,6 +317,17 @@ class RestaurantControllerTest {
         }
 
         @Test
+        void serviceThrowsResponseStatusException_returns503() throws Exception {
+            stubGetMyGroupRestaurantsThrows(matchesDefaultListQuery(),
+                    new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE, "Service temporarily unavailable"));
+
+            assertErrorResponse(performGetMyGroupRestaurants(),
+                    HttpStatus.SERVICE_UNAVAILABLE, RESTAURANTS_MY_PATH, "Service temporarily unavailable");
+
+            verifyGetMyGroupRestaurantsCalled(matchesDefaultListQuery());
+        }
+
+        @Test
         void invalidPage_returns400AndSkipsServiceCall() throws Exception {
             assertErrorResponseContains(performGetMyGroupRestaurants(Map.of("page", "0")),
                     400, CODE_BAD_REQUEST, RESTAURANTS_MY_PATH,
@@ -313,6 +340,23 @@ class RestaurantControllerTest {
         void invalidOrderBy_returns400AndSkipsServiceCall() throws Exception {
             assertErrorResponseContains(performGetMyGroupRestaurants(Map.of("orderBy", "INVALID_SORT_BY")),
                     400, CODE_BAD_REQUEST, RESTAURANTS_MY_PATH, "orderBy is invalid");
+
+            verifyNoInteractions(restaurantService);
+        }
+
+        @Test
+        void invalidSort_returns400AndSkipsServiceCall() throws Exception {
+            assertErrorResponseContains(performGetMyGroupRestaurants(Map.of("sort", "INVALID_SORT_ORDER")),
+                    400, CODE_BAD_REQUEST, RESTAURANTS_MY_PATH, "sort is invalid");
+
+            verifyNoInteractions(restaurantService);
+        }
+
+        @Test
+        void invalidLimit_returns400AndSkipsServiceCall() throws Exception {
+            assertErrorResponseContains(performGetMyGroupRestaurants(Map.of("limit", "0")),
+                    400, CODE_BAD_REQUEST, RESTAURANTS_MY_PATH,
+                    "limit must be greater than or equal to the minimum value");
 
             verifyNoInteractions(restaurantService);
         }
@@ -527,6 +571,21 @@ class RestaurantControllerTest {
         }
 
         @Test
+        void success_returnsEmptyList() throws Exception {
+            stubGetMyGroupSelectionHistory(matchesDefaultHistoryQuery(),
+                    buildSelectionHistoryListResponse(List.of(), 1, 10, 0L));
+
+            performGetMyGroupSelectionHistory()
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.page").value(1))
+                    .andExpect(jsonPath("$.limit").value(10))
+                    .andExpect(jsonPath("$.total").value(0))
+                    .andExpect(jsonPath("$.data.length()").value(0));
+
+            verifyGetMyGroupSelectionHistoryCalled(matchesDefaultHistoryQuery());
+        }
+
+        @Test
         void notInGroup_returns400() throws Exception {
             when(restaurantService.getMyGroupSelectionHistory(any(GetSelectionHistoryQuery.class)))
                     .thenThrow(new ResponseStatusException(HttpStatus.BAD_REQUEST, "該帳號未加入群組"));
@@ -553,6 +612,18 @@ class RestaurantControllerTest {
                     "limit must be greater than or equal to the minimum value");
 
             verifyNoInteractions(restaurantService);
+        }
+
+        @Test
+        void serviceThrowsUnexpectedException_returns500() throws Exception {
+            when(restaurantService.getMyGroupSelectionHistory(any(GetSelectionHistoryQuery.class)))
+                    .thenThrow(new RuntimeException("Selection history query failed"));
+
+            assertErrorResponse(performGetMyGroupSelectionHistory(),
+                    HttpStatus.INTERNAL_SERVER_ERROR, RESTAURANTS_MY_SELECTION_HISTORY_PATH,
+                    "Selection history query failed");
+
+            verify(restaurantService).getMyGroupSelectionHistory(any(GetSelectionHistoryQuery.class));
         }
     }
 
@@ -708,6 +779,40 @@ class RestaurantControllerTest {
         }
 
         @Test
+        void imageUrlTooLong_returns400AndSkipsServiceCall() throws Exception {
+            CreateRestaurantDto request = buildCreateRequest(1, 2, "和食天國");
+            request.setImageUrl("u".repeat(513));
+
+            assertBadRequestValidation(performPostRestaurants(request),
+                    "imageUrl size is out of allowed range");
+
+            verifyNoInteractions(restaurantService);
+        }
+
+        @Test
+        void nullFieldsViaRawJson_returns400AndSkipsServiceCall() throws Exception {
+            assertBadRequestValidation(performPostRestaurantsRaw(
+                            "{\"groupId\":null,\"categoryId\":null,\"restaurantName\":null}"),
+                    "groupId is required",
+                    "categoryId is required",
+                    "restaurantName is required");
+
+            verifyNoInteractions(restaurantService);
+        }
+
+        @Test
+        void serviceThrowsGroupNotFound_returns400() throws Exception {
+            CreateRestaurantDto request = buildCreateRequest(999, 2, "群組不存在");
+            when(restaurantService.createRestaurant(any(CreateRestaurantDto.class)))
+                    .thenThrow(new ResponseStatusException(HttpStatus.BAD_REQUEST, "Group not found"));
+
+            assertErrorResponse(performPostRestaurants(request), HttpStatus.BAD_REQUEST, RESTAURANTS_PATH,
+                    "Group not found");
+
+            verify(restaurantService).createRestaurant(any(CreateRestaurantDto.class));
+        }
+
+        @Test
         void serviceThrowsBadRequest_returns400ErrorPayload() throws Exception {
             CreateRestaurantDto request = buildCreateRequest(1, 999, "不存在分類");
             when(restaurantService.createRestaurant(any(CreateRestaurantDto.class)))
@@ -827,6 +932,66 @@ class RestaurantControllerTest {
                     "restaurantName size is out of allowed range");
 
             verify(restaurantService, never()).updateRestaurant(eq(7), any(UpdateRestaurantDto.class));
+        }
+
+        @Test
+        void noteTooLong_returns400AndSkipsServiceCall() throws Exception {
+            UpdateRestaurantDto request = UpdateRestaurantDto.builder()
+                    .note("n".repeat(513))
+                    .build();
+
+            assertBadRequestValidation(performPatchRestaurant(7, request),
+                    "note size is out of allowed range");
+
+            verify(restaurantService, never()).updateRestaurant(eq(7), any(UpdateRestaurantDto.class));
+        }
+
+        @Test
+        void imageUrlTooLong_returns400AndSkipsServiceCall() throws Exception {
+            UpdateRestaurantDto request = UpdateRestaurantDto.builder()
+                    .imageUrl("u".repeat(513))
+                    .build();
+
+            assertBadRequestValidation(performPatchRestaurant(7, request),
+                    "imageUrl size is out of allowed range");
+
+            verify(restaurantService, never()).updateRestaurant(eq(7), any(UpdateRestaurantDto.class));
+        }
+
+        @Test
+        void negativeSelectedCount_returns400AndSkipsServiceCall() throws Exception {
+            UpdateRestaurantDto request = UpdateRestaurantDto.builder()
+                    .selectedCount(-1)
+                    .build();
+
+            assertBadRequestValidation(performPatchRestaurant(7, request),
+                    "selectedCount must be greater than or equal to the minimum value");
+
+            verify(restaurantService, never()).updateRestaurant(eq(7), any(UpdateRestaurantDto.class));
+        }
+
+        @Test
+        void negativeCategoryId_returns400AndSkipsServiceCall() throws Exception {
+            UpdateRestaurantDto request = UpdateRestaurantDto.builder()
+                    .categoryId(-1)
+                    .build();
+
+            assertBadRequestValidation(performPatchRestaurant(7, request),
+                    "categoryId must be greater than or equal to the minimum value");
+
+            verify(restaurantService, never()).updateRestaurant(eq(7), any(UpdateRestaurantDto.class));
+        }
+
+        @Test
+        void serviceThrowsCategoryNotFound_returns400() throws Exception {
+            UpdateRestaurantDto request = UpdateRestaurantDto.builder().categoryId(999).build();
+            when(restaurantService.updateRestaurant(eq(12), any(UpdateRestaurantDto.class)))
+                    .thenThrow(new ResponseStatusException(HttpStatus.BAD_REQUEST, "Category not found"));
+
+            assertErrorResponse(performPatchRestaurant(12, request),
+                    HttpStatus.BAD_REQUEST, "/restaurants/12", "Category not found");
+
+            verify(restaurantService).updateRestaurant(eq(12), any(UpdateRestaurantDto.class));
         }
 
         @Test
