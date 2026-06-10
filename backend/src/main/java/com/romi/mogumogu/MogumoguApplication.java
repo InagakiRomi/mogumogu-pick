@@ -7,11 +7,12 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.ConfigurableApplicationContext;
 
+import com.romi.mogumogu.config.CorsProperties;
 import com.romi.mogumogu.config.JwtTokenProvider;
 import com.romi.mogumogu.logging.JulLoggerFactory;
 
 @SpringBootApplication
-@EnableConfigurationProperties(JwtTokenProvider.class)
+@EnableConfigurationProperties({ JwtTokenProvider.class, CorsProperties.class })
 public class MogumoguApplication {
 
 	private static final Logger log = new JulLoggerFactory().printMainLog();

@@ -4,6 +4,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Profile;
 import org.springframework.http.HttpMethod;
+import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
@@ -36,6 +37,8 @@ public class SecurityConfig {
                 // 從 Authorization header 解析 JWT，寫入 SecurityContext
                 JwtAuthenticationFilter jwtFilter = new JwtAuthenticationFilter(jwtTokenProvider);
                 http
+                                // 允許前端開發伺服器跨域呼叫 API
+                                .cors(Customizer.withDefaults())
                                 // 關閉 CSRF：REST API 以 Bearer token 驗證，不用表單與 Session
                                 .csrf(AbstractHttpConfigurer::disable)
                                 // 不建立 Session；身分只靠每次請求帶來的 JWT

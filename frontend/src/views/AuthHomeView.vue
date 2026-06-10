@@ -1,0 +1,251 @@
+<script setup lang="ts">
+import { ref } from 'vue'
+import client from '@/api/client'
+import AuthFeedback from '@/components/auth/AuthFeedback.vue'
+import AuthPageButton from '@/components/auth/AuthPageButton.vue'
+import AuthPageCard from '@/components/auth/AuthPageCard.vue'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+
+type AuthTab = 'login' | 'register'
+
+const activeTab = ref<AuthTab>('login')
+const isLoading = ref(false)
+const feedback = ref('')
+const feedbackType = ref<'error' | 'success'>('error')
+
+const loginForm = ref({
+  email: '',
+  password: '',
+})
+
+const registerForm = ref({
+  username: '',
+  email: '',
+  password: '',
+  role: '2',
+})
+
+function setFeedback(message: string, type: 'error' | 'success' = 'error') {
+  feedback.value = message
+  feedbackType.value = type
+}
+
+function clearFeedback() {
+  feedback.value = ''
+}
+
+function getErrorMessage(error: unknown, fallback: string) {
+  if (typeof error === 'string') {
+    return error
+  }
+
+  if (error && typeof error === 'object') {
+    const maybeError = error as {
+      message?: string
+      error?: { message?: string }
+    }
+    return maybeError.error?.message ?? maybeError.message ?? fallback
+  }
+
+  return fallback
+}
+
+async function handleLogin() {
+  clearFeedback()
+  isLoading.value = true
+
+  try {
+    const { data, error } = await client.POST('/auth/login', {
+      body: {
+        email: loginForm.value.email.trim(),
+        password: loginForm.value.password,
+      },
+    })
+
+    if (error) {
+      throw error
+    }
+
+    if (data?.token) {
+      localStorage.setItem('authToken', data.token)
+    }
+
+    setFeedback('登入成功', 'success')
+  } catch (error) {
+    setFeedback(getErrorMessage(error, '登入失敗，請確認帳號密碼'))
+  } finally {
+    isLoading.value = false
+  }
+}
+
+const authLabelClass = 'font-bold text-muted-foreground'
+
+const authFieldClass =
+  'h-[42px] rounded-md border-border bg-muted/90 px-2.5 py-0 text-base text-popover-foreground shadow-[inset_0_1px_2px_rgba(121,73,52,0.12)] placeholder:text-[rgba(118,78,60,0.72)] focus-visible:border-[rgba(168,98,68,0.75)] focus-visible:bg-[rgba(255,239,227,0.95)] focus-visible:shadow-[0_0_0_3px_rgba(238,175,143,0.26),inset_0_1px_3px_rgba(121,73,52,0.14)]'
+
+const authTabsTriggerClass =
+  'h-auto min-h-0 cursor-pointer select-none px-3 py-2 text-sm font-semibold text-[rgba(118,78,60,0.58)] hover:text-[rgba(95,57,41,0.78)] data-active:rounded-md data-active:border data-active:border-[rgba(186,118,88,0.55)] data-active:bg-linear-to-br data-active:from-white data-active:to-[rgba(255,225,205,0.98)] data-active:text-[rgba(78,42,28,0.95)] data-active:shadow-[0_2px_10px_rgba(95,57,41,0.22)]'
+
+async function handleRegister() {
+  clearFeedback()
+  isLoading.value = true
+
+  try {
+    const { data, error } = await client.POST('/auth/register', {
+      body: {
+        username: registerForm.value.username.trim(),
+        email: registerForm.value.email.trim(),
+        password: registerForm.value.password,
+        role: Number(registerForm.value.role),
+      },
+    })
+
+    if (error) {
+      throw error
+    }
+
+    if (data?.token) {
+      localStorage.setItem('authToken', data.token)
+    }
+
+    setFeedback('註冊成功，請使用新帳號登入', 'success')
+    activeTab.value = 'login'
+  } catch (error) {
+    setFeedback(getErrorMessage(error, '註冊失敗，請稍後再試'))
+  } finally {
+    isLoading.value = false
+  }
+}
+</script>
+
+<template>
+  <main
+    class="min-h-screen bg-[linear-gradient(rgba(255,255,255,0.24),rgba(255,255,255,0.24)),url('/images/homeBg.jpg')] bg-cover bg-center bg-no-repeat px-4 pt-5 pb-10 max-md:bg-top max-md:pt-3"
+  >
+    <div class="mx-auto w-fit text-center max-md:w-[calc(100%-24px)]">
+      <img
+        class="mx-auto block h-[146px] w-[480px] object-contain max-lg:h-auto max-lg:w-[min(420px,88vw)] max-md:h-auto max-md:w-[min(340px,100%)]"
+        src="/images/logo.png"
+        alt="MoguMogu"
+      />
+    </div>
+
+    <AuthPageCard>
+      <Tabs v-model="activeTab" class="w-full" default-value="login">
+        <TabsList
+          class="grid h-auto w-full grid-cols-2 gap-1 rounded-lg border border-[rgba(198,134,105,0.35)] bg-[rgba(255,245,236,0.75)] p-1 group-data-horizontal/tabs:h-auto"
+        >
+          <TabsTrigger value="login" :class="authTabsTriggerClass"> 會員登入 </TabsTrigger>
+          <TabsTrigger value="register" :class="authTabsTriggerClass"> 建立帳號 </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="login" class="mt-5">
+          <form class="space-y-4" @submit.prevent="handleLogin">
+            <div class="space-y-2">
+              <Label for="login-email" :class="authLabelClass"> 電子郵件 </Label>
+              <Input
+                id="login-email"
+                v-model="loginForm.email"
+                :class="authFieldClass"
+                type="email"
+                autocomplete="email"
+                placeholder="you@test.com"
+                required
+              />
+            </div>
+
+            <div class="space-y-2">
+              <Label for="login-password" :class="authLabelClass"> 密碼 </Label>
+              <Input
+                id="login-password"
+                v-model="loginForm.password"
+                :class="authFieldClass"
+                type="password"
+                autocomplete="current-password"
+                placeholder="請輸入密碼"
+                required
+              />
+            </div>
+
+            <AuthPageButton type="submit" :disabled="isLoading">
+              {{ isLoading ? '登入中...' : '登入' }}
+            </AuthPageButton>
+          </form>
+        </TabsContent>
+
+        <TabsContent value="register" class="mt-5">
+          <form class="space-y-4" @submit.prevent="handleRegister">
+            <div class="space-y-2">
+              <Label for="register-username" :class="authLabelClass"> 使用者名稱 </Label>
+              <Input
+                id="register-username"
+                v-model="registerForm.username"
+                :class="authFieldClass"
+                type="text"
+                autocomplete="username"
+                maxlength="64"
+                placeholder="請輸入名稱"
+                required
+              />
+            </div>
+
+            <div class="space-y-2">
+              <Label for="register-email" :class="authLabelClass"> 電子郵件 </Label>
+              <Input
+                id="register-email"
+                v-model="registerForm.email"
+                :class="authFieldClass"
+                type="email"
+                autocomplete="email"
+                placeholder="you@test.com"
+                required
+              />
+            </div>
+
+            <div class="space-y-2">
+              <Label for="register-password" :class="authLabelClass"> 密碼 </Label>
+              <Input
+                id="register-password"
+                v-model="registerForm.password"
+                :class="authFieldClass"
+                type="password"
+                autocomplete="new-password"
+                maxlength="128"
+                placeholder="請輸入密碼"
+                required
+              />
+            </div>
+
+            <div class="space-y-2">
+              <Label :class="authLabelClass"> 帳號類型 </Label>
+              <Select v-model="registerForm.role">
+                <SelectTrigger :class="[authFieldClass, 'w-full data-[size=default]:h-[42px]']">
+                  <SelectValue placeholder="選擇帳號類型" />
+                </SelectTrigger>
+                <SelectContent class="border-border bg-card text-popover-foreground">
+                  <SelectItem value="2"> 一般使用者 </SelectItem>
+                  <SelectItem value="1"> 群組管理者 </SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <AuthPageButton type="submit" :disabled="isLoading">
+              {{ isLoading ? '註冊中...' : '註冊' }}
+            </AuthPageButton>
+          </form>
+        </TabsContent>
+      </Tabs>
+
+      <AuthFeedback v-if="feedback" :type="feedbackType" :message="feedback" />
+    </AuthPageCard>
+  </main>
+</template>

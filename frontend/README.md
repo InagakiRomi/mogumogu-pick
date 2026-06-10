@@ -27,4 +27,11 @@ import client from '@/api/client'
 const { data, error } = await client.GET('/restaurants')
 ```
 
-API 位址可於 `.env` 設定 `VITE_API_BASE_URL`（預設 `http://localhost:8080`）。
+## 環境與 API 位址
+
+| 指令 | 設定檔 | 連線方式 |
+|------|--------|----------|
+| `npm run dev` | `.env.development` | `VITE_API_BASE_URL=/backend`，經 proxy 轉至本機 `8080` |
+| `npm run build` | `.env.production` | 直連 `VITE_API_BASE_URL` 設定的正式伺服器 |
+
+請在 `.env.production` 填入實際 API 網址。
