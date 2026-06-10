@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import client from '@/api/client'
+import { getApiErrorMessage } from '@/lib/apiErrorMessage'
+import { AUTH_FEEDBACK_MESSAGES } from '@/lib/authErrorMessages'
 import AuthFeedback from '@/components/auth/AuthFeedback.vue'
 import AuthPageButton from '@/components/auth/AuthPageButton.vue'
 import AuthPageCard from '@/components/auth/AuthPageCard.vue'
@@ -43,22 +45,6 @@ function clearFeedback() {
   feedback.value = ''
 }
 
-function getErrorMessage(error: unknown, fallback: string) {
-  if (typeof error === 'string') {
-    return error
-  }
-
-  if (error && typeof error === 'object') {
-    const maybeError = error as {
-      message?: string
-      error?: { message?: string }
-    }
-    return maybeError.error?.message ?? maybeError.message ?? fallback
-  }
-
-  return fallback
-}
-
 async function handleLogin() {
   clearFeedback()
   isLoading.value = true
@@ -79,9 +65,9 @@ async function handleLogin() {
       localStorage.setItem('authToken', data.token)
     }
 
-    setFeedback('登入成功', 'success')
+    setFeedback(AUTH_FEEDBACK_MESSAGES.login.success, 'success')
   } catch (error) {
-    setFeedback(getErrorMessage(error, '登入失敗，請確認帳號密碼'))
+    setFeedback(getApiErrorMessage(error, AUTH_FEEDBACK_MESSAGES.login.fallback))
   } finally {
     isLoading.value = false
   }
@@ -117,10 +103,10 @@ async function handleRegister() {
       localStorage.setItem('authToken', data.token)
     }
 
-    setFeedback('註冊成功，請使用新帳號登入', 'success')
+    setFeedback(AUTH_FEEDBACK_MESSAGES.register.success, 'success')
     activeTab.value = 'login'
   } catch (error) {
-    setFeedback(getErrorMessage(error, '註冊失敗，請稍後再試'))
+    setFeedback(getApiErrorMessage(error, AUTH_FEEDBACK_MESSAGES.register.fallback))
   } finally {
     isLoading.value = false
   }
@@ -192,7 +178,6 @@ async function handleRegister() {
                 :class="authFieldClass"
                 type="text"
                 autocomplete="username"
-                maxlength="64"
                 placeholder="請輸入名稱"
                 required
               />
@@ -219,7 +204,6 @@ async function handleRegister() {
                 :class="authFieldClass"
                 type="password"
                 autocomplete="new-password"
-                maxlength="128"
                 placeholder="請輸入密碼"
                 required
               />
@@ -228,7 +212,7 @@ async function handleRegister() {
             <div class="space-y-2">
               <Label :class="authLabelClass"> 帳號類型 </Label>
               <Select v-model="registerForm.role">
-                <SelectTrigger :class="[authFieldClass, 'w-full data-[size=default]:h-[42px]']">
+                <SelectTrigger :class="[authFieldClass, 'h-auto min-h-[42px] w-full whitespace-normal data-[size=default]:h-auto']">
                   <SelectValue placeholder="選擇帳號類型" />
                 </SelectTrigger>
                 <SelectContent class="border-border bg-card text-popover-foreground">
