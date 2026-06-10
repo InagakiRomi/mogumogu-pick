@@ -1,19 +1,11 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
+import type { components } from '@/api/schema'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Separator } from '@/components/ui/separator'
 
-type RestaurantResult = {
-  restaurantId?: number
-  restaurantName?: string
-  categoryId?: number
-  selectedCount?: number
-  note?: string
-  imageUrl?: string
-  lastSelectedAt?: string
-  updatedAt?: string
-}
+type RestaurantResult = components['schemas']['RestaurantResponse']
 
 const START_IMAGE = '/images/start.jpg'
 const DEFAULT_RESTAURANT_IMAGE = '/images/defaultRestaurant.jpg'

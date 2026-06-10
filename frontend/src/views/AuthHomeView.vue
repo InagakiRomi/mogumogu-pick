@@ -2,8 +2,7 @@
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import client from '@/api/client'
-import { getApiErrorMessage } from '@/lib/apiErrorMessage'
-import { AUTH_FEEDBACK_MESSAGES } from '@/lib/authErrorMessages'
+import { AUTH_FEEDBACK_MESSAGES, getApiErrorMessage } from '@/lib/apiErrorMessage'
 import { authToken } from '@/lib/authToken'
 import AuthFeedback from '@/components/auth/AuthFeedback.vue'
 import AuthPageButton from '@/components/auth/AuthPageButton.vue'
@@ -130,7 +129,7 @@ async function handleRegister() {
     </div>
 
     <AuthPageCard>
-      <Tabs v-model="activeTab" class="w-full" default-value="login">
+      <Tabs v-model="activeTab" class="w-full">
         <TabsList
           class="grid h-auto w-full grid-cols-2 gap-1 rounded-lg border border-[rgba(198,134,105,0.35)] bg-[rgba(255,245,236,0.75)] p-1 group-data-horizontal/tabs:h-auto"
         >

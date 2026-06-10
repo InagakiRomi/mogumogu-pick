@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
+import type { components } from '@/api/schema'
 import client from '@/api/client'
 import AuthFeedback from '@/components/auth/AuthFeedback.vue'
 import RandomRestaurantResultCard from '@/components/restaurant/RandomRestaurantResultCard.vue'
@@ -13,13 +14,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { getApiErrorMessage } from '@/lib/apiErrorMessage'
-import { RESTAURANT_FEEDBACK_MESSAGES } from '@/lib/restaurantErrorMessages'
+import { getApiErrorMessage, RESTAURANT_FEEDBACK_MESSAGES } from '@/lib/apiErrorMessage'
 
 type CategoryOption = {
   label: string
   value: string
 }
+
+type RestaurantResult = components['schemas']['RestaurantResponse']
 
 const ALL_CATEGORIES_VALUE = 'all'
 
@@ -31,16 +33,7 @@ const categoryOptions: CategoryOption[] = [
 ]
 
 const selectedCategory = ref(ALL_CATEGORIES_VALUE)
-const currentRestaurant = ref<{
-  restaurantId?: number
-  restaurantName?: string
-  categoryId?: number
-  selectedCount?: number
-  note?: string
-  imageUrl?: string
-  lastSelectedAt?: string
-  updatedAt?: string
-} | null>(null)
+const currentRestaurant = ref<RestaurantResult | null>(null)
 const isRandomLoading = ref(false)
 const isChooseLoading = ref(false)
 const feedback = ref('')
