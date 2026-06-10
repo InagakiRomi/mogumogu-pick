@@ -15,19 +15,28 @@ import com.romi.mogumogu.Response.LoginResponse;
 import com.romi.mogumogu.config.JwtTokenProvider;
 import com.romi.mogumogu.dto.LoginRequest;
 import com.romi.mogumogu.dto.RegisterRequest;
+import com.romi.mogumogu.entity.group.GroupEntity;
 import com.romi.mogumogu.entity.user.UserEntity;
 import com.romi.mogumogu.enums.UserRole;
+import com.romi.mogumogu.repository.group.GroupRepository;
 import com.romi.mogumogu.repository.user.UserRepository;
 
 @Service
 public class AuthService {
 
+    private static final String DEFAULT_GROUP_NAME = "Group";
+
     private final UserRepository userRepository;
+    private final GroupRepository groupRepository;
     private final JwtTokenProvider jwtTokenProvider;
     private final BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
 
-    public AuthService(UserRepository userRepository, JwtTokenProvider jwtTokenProvider) {
+    public AuthService(
+            UserRepository userRepository,
+            GroupRepository groupRepository,
+            JwtTokenProvider jwtTokenProvider) {
         this.userRepository = userRepository;
+        this.groupRepository = groupRepository;
         this.jwtTokenProvider = jwtTokenProvider;
     }
 
@@ -109,6 +118,11 @@ public class AuthService {
         UserEntity saved = Objects.requireNonNull(
                 userRepository.save(Objects.requireNonNull(newUser)));
 
+        // 如果使用者是群組管理員，則建立群組
+        if (requestedRole == UserRole.GROUP_ADMIN) {
+            saved = createGroupForAdmin(saved, now);
+        }
+
         return LoginResponse.builder()
                 .userId(saved.getUserId())
                 .groupId(saved.getGroupId())
@@ -118,5 +132,26 @@ public class AuthService {
                 .createdAt(saved.getCreatedAt())
                 .updatedAt(saved.getUpdatedAt())
                 .build();
+    }
+
+    /** 建立群組 */
+    private UserEntity createGroupForAdmin(UserEntity admin, Date now) {
+        // 建立新群組
+        int newGroupId = Optional.ofNullable(groupRepository.findMaxGroupId()).orElse(0) + 1;
+        GroupEntity newGroup = GroupEntity.builder()
+                .groupId(newGroupId)
+                .groupName(DEFAULT_GROUP_NAME)
+                .createdAt(now)
+                .updatedAt(now)
+                .build();
+        GroupEntity savedGroup = Objects.requireNonNull(groupRepository.save(Objects.requireNonNull(newGroup)));
+
+        // 設定使用者所屬群組
+        admin.setGroupId(savedGroup.getGroupId());
+        admin.setDisplayOrderId(1);
+        admin.setUpdatedAt(now);
+
+        // 儲存使用者
+        return Objects.requireNonNull(userRepository.save(admin));
     }
 }

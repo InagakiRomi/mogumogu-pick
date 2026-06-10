@@ -1,5 +1,6 @@
 package com.romi.mogumogu.controller.restaurant;
 
+import com.romi.mogumogu.Response.DishListResponse;
 import com.romi.mogumogu.Response.RestaurantListResponse;
 import com.romi.mogumogu.Response.RestaurantResponse;
 import com.romi.mogumogu.Response.SelectionHistoryResponse;
@@ -80,6 +81,12 @@ public class RestaurantController {
     @Operation(summary = "依餐廳 ID 取得自己所屬群組的單筆餐廳資訊")
     public RestaurantResponse getRestaurant(@PathVariable("id") Integer restaurantId) {
         return restaurantService.getRestaurant(restaurantId);
+    }
+
+    @GetMapping("/{restaurantId}/dishes")
+    @Operation(summary = "查詢該餐廳對應的所有餐點")
+    public DishListResponse getRestaurantDishes(@PathVariable Integer restaurantId) {
+        return restaurantService.getRestaurantDishes(restaurantId);
     }
 
     @PostMapping("")

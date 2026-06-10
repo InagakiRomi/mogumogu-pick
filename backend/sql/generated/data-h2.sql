@@ -385,3 +385,7 @@ INSERT INTO dish
 (325, 43, 6, 30, '叉燒包  '),
 (326, 43, 7, 25, '芋泥流沙包  '),
 (327, 43, 8, 22, '紅豆豆沙包');
+
+INSERT INTO user_group
+(group_id, group_name, created_at, updated_at) VALUES
+(1, 'Test Team', '2025-07-20 00:47:56', '2025-07-20 00:47:56');

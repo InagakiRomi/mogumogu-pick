@@ -1,5 +1,6 @@
 package com.romi.mogumogu.service.restaurant;
 
+import com.romi.mogumogu.Response.DishListResponse;
 import com.romi.mogumogu.Response.RestaurantListResponse;
 import com.romi.mogumogu.Response.RestaurantResponse;
 import com.romi.mogumogu.Response.SelectionHistoryResponse;
@@ -7,6 +8,7 @@ import com.romi.mogumogu.dto.CreateRestaurantDto;
 import com.romi.mogumogu.dto.GetRestaurantQuery;
 import com.romi.mogumogu.dto.GetSelectionHistoryQuery;
 import com.romi.mogumogu.dto.UpdateRestaurantDto;
+import com.romi.mogumogu.service.dish.DishService;
 import com.romi.mogumogu.service.history.RestaurantSelectionHistoryService;
 import com.romi.mogumogu.entity.restaurant.RestaurantCategoryEntity;
 import com.romi.mogumogu.entity.restaurant.RestaurantEntity;
@@ -48,7 +50,7 @@ public class RestaurantService {
     private final RestaurantCategoryRepository restaurantCategoryRepository;
     private final UserRepository userRepository;
     private final RestaurantSelectionHistoryService selectionHistoryService;
-
+    private final DishService dishService;
     private final Map<Integer, RandomPool> randomPoolByUser = new ConcurrentHashMap<>();
 
     private record RandomPool(Integer categoryId, List<Integer> restaurantIds, int totalCount) {
@@ -58,11 +60,13 @@ public class RestaurantService {
             RestaurantRepository restaurantRepository,
             RestaurantCategoryRepository restaurantCategoryRepository,
             UserRepository userRepository,
-            RestaurantSelectionHistoryService selectionHistoryService) {
+            RestaurantSelectionHistoryService restaurantSelectionHistoryService,
+            DishService dishService) {
         this.restaurantRepository = restaurantRepository;
         this.restaurantCategoryRepository = restaurantCategoryRepository;
         this.userRepository = userRepository;
-        this.selectionHistoryService = selectionHistoryService;
+        this.selectionHistoryService = restaurantSelectionHistoryService;
+        this.dishService = dishService;
     }
 
     /** 取得所有餐廳 */
@@ -152,6 +156,13 @@ public class RestaurantService {
         Integer groupId = resolveCurrentUserGroupId();
         RestaurantEntity restaurant = findRestaurantInGroupOrThrow(restaurantId, groupId);
         return RestaurantResponse.restaurantResponse(restaurant);
+    }
+
+    /** 查詢目前登入使用者所屬群組內指定餐廳的所有餐點 */
+    public DishListResponse getRestaurantDishes(Integer restaurantId) {
+        Integer groupId = resolveCurrentUserGroupId();
+        findRestaurantInGroupOrThrow(restaurantId, groupId);
+        return dishService.getRestaurantDishes(restaurantId);
     }
 
     /** 取得目前登入使用者所屬群組的餐廳清單 */

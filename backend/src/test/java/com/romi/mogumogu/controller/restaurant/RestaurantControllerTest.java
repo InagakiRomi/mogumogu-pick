@@ -2,6 +2,8 @@ package com.romi.mogumogu.controller.restaurant;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.romi.mogumogu.Response.DishListResponse;
+import com.romi.mogumogu.Response.DishResponse;
 import com.romi.mogumogu.Response.RestaurantListResponse;
 import com.romi.mogumogu.Response.RestaurantResponse;
 import com.romi.mogumogu.Response.SelectionHistoryResponse;
@@ -723,6 +725,75 @@ class RestaurantControllerTest {
     }
 
     @Nested
+    class GetRestaurantDishes {
+        @Test
+        void success_returnsDishList() throws Exception {
+            DishResponse first = buildDishResponse(1, 100, 1, 120, "豚骨拉麵");
+            DishResponse second = buildDishResponse(2, 100, 2, 90, "炸蝦天婦羅");
+            when(restaurantService.getRestaurantDishes(100))
+                    .thenReturn(DishListResponse.builder()
+                            .data(List.of(first, second))
+                            .total(2)
+                            .build());
+
+            performGetRestaurantDishes(100)
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.total").value(2))
+                    .andExpect(jsonPath("$.data.length()").value(2))
+                    .andExpect(jsonPath("$.data[0].dishId").value(1))
+                    .andExpect(jsonPath("$.data[1].dishName").value("炸蝦天婦羅"));
+
+            verify(restaurantService).getRestaurantDishes(100);
+        }
+
+        @Test
+        void success_returnsEmptyList() throws Exception {
+            when(restaurantService.getRestaurantDishes(100))
+                    .thenReturn(DishListResponse.builder()
+                            .data(List.of())
+                            .total(0)
+                            .build());
+
+            performGetRestaurantDishes(100)
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.total").value(0))
+                    .andExpect(jsonPath("$.data.length()").value(0));
+
+            verify(restaurantService).getRestaurantDishes(100);
+        }
+
+        @Test
+        void restaurantNotFound_returns404() throws Exception {
+            when(restaurantService.getRestaurantDishes(999))
+                    .thenThrow(new ResponseStatusException(HttpStatus.NOT_FOUND, "Restaurant not found"));
+
+            assertErrorResponse(performGetRestaurantDishes(999),
+                    HttpStatus.NOT_FOUND, "/restaurants/999/dishes", "Restaurant not found");
+
+            verify(restaurantService).getRestaurantDishes(999);
+        }
+
+        @Test
+        void invalidPathVariable_returns500AndSkipsServiceCall() throws Exception {
+            assertErrorResponseContains(mockMvc.perform(get("/restaurants/{restaurantId}/dishes", "bad-id")),
+                    HTTP_INTERNAL_SERVER_ERROR, CODE_INTERNAL_SERVER_ERROR, "/restaurants/bad-id/dishes",
+                    "Failed to convert value of type");
+            verifyNoInteractions(restaurantService);
+        }
+
+        @Test
+        void serviceThrowsUnexpectedException_returns500() throws Exception {
+            when(restaurantService.getRestaurantDishes(100))
+                    .thenThrow(new RuntimeException("Get dishes failed"));
+
+            assertErrorResponse(performGetRestaurantDishes(100),
+                    HttpStatus.INTERNAL_SERVER_ERROR, "/restaurants/100/dishes", "Get dishes failed");
+
+            verify(restaurantService).getRestaurantDishes(100);
+        }
+    }
+
+    @Nested
     class CreateRestaurant {
 
         @Test
@@ -1357,6 +1428,21 @@ class RestaurantControllerTest {
                 RestaurantSort.SortOrder.ASC,
                 2,
                 5);
+    }
+
+    private ResultActions performGetRestaurantDishes(Integer restaurantId) throws Exception {
+        return mockMvc.perform(get("/restaurants/{restaurantId}/dishes", restaurantId));
+    }
+
+    private DishResponse buildDishResponse(Integer dishId, Integer restaurantId, Integer displayOrderId,
+            Integer price, String dishName) {
+        return DishResponse.builder()
+                .dishId(dishId)
+                .restaurantId(restaurantId)
+                .displayOrderId(displayOrderId)
+                .price(price)
+                .dishName(dishName)
+                .build();
     }
 
     private static boolean matchesListQuery(
