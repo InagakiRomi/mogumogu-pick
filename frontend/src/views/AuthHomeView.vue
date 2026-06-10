@@ -1,8 +1,10 @@
 <script setup lang="ts">
 import { ref } from 'vue'
+import { useRouter } from 'vue-router'
 import client from '@/api/client'
 import { getApiErrorMessage } from '@/lib/apiErrorMessage'
 import { AUTH_FEEDBACK_MESSAGES } from '@/lib/authErrorMessages'
+import { authToken } from '@/lib/authToken'
 import AuthFeedback from '@/components/auth/AuthFeedback.vue'
 import AuthPageButton from '@/components/auth/AuthPageButton.vue'
 import AuthPageCard from '@/components/auth/AuthPageCard.vue'
@@ -19,6 +21,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 
 type AuthTab = 'login' | 'register'
 
+const router = useRouter()
 const activeTab = ref<AuthTab>('login')
 const isLoading = ref(false)
 const feedback = ref('')
@@ -61,11 +64,16 @@ async function handleLogin() {
       throw error
     }
 
-    if (data?.token) {
-      localStorage.setItem('authToken', data.token)
+    const token = data?.token?.trim()
+    if (!token) {
+      setFeedback(AUTH_FEEDBACK_MESSAGES.login.missingToken)
+      return
     }
 
+    authToken.value = token
+
     setFeedback(AUTH_FEEDBACK_MESSAGES.login.success, 'success')
+    await router.push({ name: 'random-restaurant' })
   } catch (error) {
     setFeedback(getApiErrorMessage(error, AUTH_FEEDBACK_MESSAGES.login.fallback))
   } finally {
@@ -86,7 +94,7 @@ async function handleRegister() {
   isLoading.value = true
 
   try {
-    const { data, error } = await client.POST('/auth/register', {
+    const { error } = await client.POST('/auth/register', {
       body: {
         username: registerForm.value.username.trim(),
         email: registerForm.value.email.trim(),
@@ -97,10 +105,6 @@ async function handleRegister() {
 
     if (error) {
       throw error
-    }
-
-    if (data?.token) {
-      localStorage.setItem('authToken', data.token)
     }
 
     setFeedback(AUTH_FEEDBACK_MESSAGES.register.success, 'success')
@@ -212,7 +216,12 @@ async function handleRegister() {
             <div class="space-y-2">
               <Label :class="authLabelClass"> 帳號類型 </Label>
               <Select v-model="registerForm.role">
-                <SelectTrigger :class="[authFieldClass, 'h-auto min-h-[42px] w-full whitespace-normal data-[size=default]:h-auto']">
+                <SelectTrigger
+                  :class="[
+                    authFieldClass,
+                    'h-auto min-h-[42px] w-full whitespace-normal data-[size=default]:h-auto',
+                  ]"
+                >
                   <SelectValue placeholder="選擇帳號類型" />
                 </SelectTrigger>
                 <SelectContent class="border-border bg-card text-popover-foreground">

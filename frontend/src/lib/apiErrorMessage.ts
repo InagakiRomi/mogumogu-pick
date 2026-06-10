@@ -1,7 +1,14 @@
-import {
-  AUTH_API_ERROR_MESSAGES,
-  AUTH_API_ERROR_PATTERNS,
-} from '@/lib/authErrorMessages'
+import { AUTH_API_ERROR_MESSAGES, AUTH_API_ERROR_PATTERNS } from '@/lib/authErrorMessages'
+import { RESTAURANT_API_ERROR_MESSAGES } from '@/lib/restaurantErrorMessages'
+
+const API_ERROR_MESSAGES: Record<string, string> = {
+  ...AUTH_API_ERROR_MESSAGES,
+  ...RESTAURANT_API_ERROR_MESSAGES,
+}
+
+const API_ERROR_PATTERNS: Array<{ pattern: RegExp; message: string }> = [
+  ...AUTH_API_ERROR_PATTERNS,
+]
 
 function translateErrorPart(part: string): string {
   const trimmed = part.trim()
@@ -9,12 +16,12 @@ function translateErrorPart(part: string): string {
     return trimmed
   }
 
-  const exact = AUTH_API_ERROR_MESSAGES[trimmed]
+  const exact = API_ERROR_MESSAGES[trimmed]
   if (exact) {
     return exact
   }
 
-  for (const { pattern, message } of AUTH_API_ERROR_PATTERNS) {
+  for (const { pattern, message } of API_ERROR_PATTERNS) {
     if (pattern.test(trimmed)) {
       return message
     }
