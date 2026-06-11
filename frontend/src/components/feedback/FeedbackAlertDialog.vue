@@ -10,7 +10,7 @@ import {
 import { useFeedbackDialog } from '@/composables/useFeedbackDialog'
 import { cn } from '@/lib/utils'
 
-const ALERT_BG_IMAGE = '/images/Alert.png'
+const ALERT_BG_IMAGE = `${import.meta.env.BASE_URL}images/Alert.png`
 
 const { open, message, type, onOpenChange } = useFeedbackDialog()
 

@@ -6,6 +6,7 @@ import AuthHomeView from '@/views/AuthHomeView.vue'
 import NoGroupView from '@/views/NoGroupView.vue'
 import PlaceholderView from '@/views/PlaceholderView.vue'
 import RandomRestaurantView from '@/views/RandomRestaurantView.vue'
+import RestaurantListView from '@/views/RestaurantListView.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -34,8 +35,8 @@ const router = createRouter({
         {
           path: 'restaurants/list',
           name: 'list-restaurant',
-          component: PlaceholderView,
-          meta: { requiresAuth: true, requiresGroup: true, pageTitle: '餐廳一覽' },
+          component: RestaurantListView,
+          meta: { requiresAuth: true, requiresGroup: true },
         },
         {
           path: 'restaurants/history',

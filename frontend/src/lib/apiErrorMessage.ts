@@ -36,6 +36,9 @@ export const RESTAURANT_FEEDBACK_MESSAGES = {
   random: {
     fallback: '取得抽選餐廳失敗',
   },
+  list: {
+    fallback: '取得餐廳清單失敗',
+  },
   choose: {
     success: '選擇成功！今天就吃這間。',
     fallback: '選擇餐廳失敗',
