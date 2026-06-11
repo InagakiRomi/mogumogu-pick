@@ -1,9 +1,16 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
+import { useRouter } from 'vue-router'
 import type { components } from '@/api/schema'
 import client from '@/api/client'
+import WarmAlertDialogShell from '@/components/feedback/WarmAlertDialogShell.vue'
 import WarmButton from '@/components/warm/WarmButton.vue'
 import WarmInfoCard from '@/components/warm/WarmInfoCard.vue'
+import {
+  AlertDialog,
+  AlertDialogDescription,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
 import { useFeedbackDialog } from '@/composables/useFeedbackDialog'
 import WarmPanel from '@/components/warm/WarmPanel.vue'
 import WarmSelectTrigger from '@/components/warm/WarmSelectTrigger.vue'
@@ -26,10 +33,15 @@ const categoryOptions: CategoryOption[] = [
   { label: '飲料', value: '3' },
 ]
 
+const router = useRouter()
+
 const selectedCategory = ref(ALL_CATEGORIES_VALUE)
 const currentRestaurant = ref<RestaurantResult | null>(null)
 const isRandomLoading = ref(false)
 const isChooseLoading = ref(false)
+const isPostChooseDialogOpen = ref(false)
+const chosenRestaurantId = ref<number | null>(null)
+const chosenRestaurantName = ref('')
 const { showFeedback, clearFeedback } = useFeedbackDialog()
 
 const selectedCategoryLabel = computed(() => {
@@ -38,6 +50,23 @@ const selectedCategoryLabel = computed(() => {
 })
 
 const canChooseRestaurant = computed(() => !!currentRestaurant.value?.restaurantId && !isChooseLoading.value)
+
+function handleClosePostChooseDialog() {
+  isPostChooseDialogOpen.value = false
+}
+
+function handleViewChosenRestaurantDetail() {
+  const restaurantId = chosenRestaurantId.value
+  if (restaurantId == null) {
+    return
+  }
+
+  isPostChooseDialogOpen.value = false
+  void router.push({
+    name: 'restaurant-detail',
+    params: { id: restaurantId },
+  })
+}
 
 async function resetRandomPool() {
   const { error } = await client.POST('/restaurants/my/random/clear')
@@ -49,6 +78,9 @@ async function resetRandomPool() {
 async function handleCategoryChange(value: unknown) {
   selectedCategory.value = typeof value === 'string' ? value : ALL_CATEGORIES_VALUE
   currentRestaurant.value = null
+  isPostChooseDialogOpen.value = false
+  chosenRestaurantId.value = null
+  chosenRestaurantName.value = ''
   clearFeedback()
 
   try {
@@ -109,8 +141,10 @@ async function handleChooseRestaurant() {
     }
 
     const chosenName = currentRestaurant.value.restaurantName ?? '這間'
+    chosenRestaurantId.value = currentRestaurant.value.restaurantId
+    chosenRestaurantName.value = chosenName
     currentRestaurant.value = null
-    showFeedback(RESTAURANT_FEEDBACK_MESSAGES.choose.success(chosenName), 'success')
+    isPostChooseDialogOpen.value = true
   } catch (error) {
     showFeedback(getApiErrorMessage(error, RESTAURANT_FEEDBACK_MESSAGES.choose.fallback))
   } finally {
@@ -163,5 +197,26 @@ async function handleChooseRestaurant() {
         </div>
       </div>
     </WarmPanel>
+
+    <AlertDialog :open="isPostChooseDialogOpen" @update:open="isPostChooseDialogOpen = $event">
+      <WarmAlertDialogShell>
+        <AlertDialogTitle class="w-full text-center text-2xl font-bold text-[#5e3a28]">
+          選擇成功！
+        </AlertDialogTitle>
+        <AlertDialogDescription
+          class="w-full text-center text-xl font-semibold tracking-wide text-[#5e3a28]/90"
+        >
+          {{ RESTAURANT_FEEDBACK_MESSAGES.choose.success(chosenRestaurantName) }}
+        </AlertDialogDescription>
+        <div class="flex flex-wrap items-center justify-center gap-3">
+          <WarmButton class="min-w-[120px]" variant="outline-standard" @click="handleClosePostChooseDialog">
+            關閉
+          </WarmButton>
+          <WarmButton class="min-w-[120px]" @click="handleViewChosenRestaurantDetail">
+            查看詳細
+          </WarmButton>
+        </div>
+      </WarmAlertDialogShell>
+    </AlertDialog>
   </main>
 </template>
