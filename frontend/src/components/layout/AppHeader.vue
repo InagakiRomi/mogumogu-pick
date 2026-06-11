@@ -75,34 +75,34 @@ onMounted(() => {
     :tile-size="64"
     :content-inset="headerContentInset"
     root-class="shadow-[0_4px_14px_rgba(95,57,41,0.18)]"
-    class="flex flex-wrap items-center justify-between gap-2 text-[#4a2c2a] md:gap-3"
+    class="flex flex-wrap items-center justify-between gap-2 text-[#4a2c2a] md:flex-col md:items-center md:gap-3 lg:flex-row lg:items-center lg:justify-between"
   >
-    <div class="flex w-full flex-col gap-0 md:w-auto">
+    <div class="flex w-full flex-col gap-0 md:w-full md:items-center lg:w-auto lg:items-start">
       <p
-        class="text-center text-[1.25rem] font-bold tracking-wide text-[#4a2c2a] [text-shadow:0_1px_1px_rgba(255,255,255,0.4)] md:text-left md:text-[1.8rem]"
+        class="text-center text-[1.25rem] font-bold tracking-wide text-[#4a2c2a] [text-shadow:0_1px_1px_rgba(255,255,255,0.4)] md:text-[1.8rem] lg:text-left"
       >
         Hello！{{ username }}
       </p>
       <p
         v-if="groupName"
-        class="text-center text-[0.95rem] font-semibold md:text-left md:text-[1.1rem]"
+        class="text-center text-[0.95rem] font-semibold md:text-[1.1rem] lg:text-left"
       >
         團隊：{{ groupName }}
       </p>
-      <p class="text-center text-[0.95rem] font-semibold md:text-left md:text-[1.1rem]">
+      <p class="text-center text-[0.95rem] font-semibold md:text-[1.1rem] lg:text-left">
         帳號權限：{{ roleLabel }}
       </p>
       <p
         v-if="showUserHint"
-        class="text-center text-[0.85rem] font-medium md:text-left md:text-[0.95rem]"
+        class="text-center text-[0.85rem] font-medium md:text-[0.95rem] lg:text-left"
       >
         （提示：一般使用者無法刪除餐廳與餐點）
       </p>
     </div>
 
-    <nav class="w-full md:w-auto">
+    <nav class="w-full lg:w-auto">
       <ul
-        class="flex flex-col gap-2 md:flex-row md:flex-wrap md:items-center md:justify-end md:gap-4"
+        class="flex flex-col gap-2 md:flex-row md:flex-wrap md:items-center md:justify-center md:gap-4 lg:justify-end"
       >
         <li v-for="item in navItems" :key="item.name" class="w-full md:w-auto">
           <RouterLink v-slot="{ isActive, href, navigate }" :to="{ name: item.name }" custom>

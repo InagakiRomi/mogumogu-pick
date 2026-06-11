@@ -6,6 +6,7 @@ import AuthHomeView from '@/views/AuthHomeView.vue'
 import NoGroupView from '@/views/NoGroupView.vue'
 import PlaceholderView from '@/views/PlaceholderView.vue'
 import RandomRestaurantView from '@/views/RandomRestaurantView.vue'
+import RestaurantDetailView from '@/views/RestaurantDetailView.vue'
 import RestaurantListView from '@/views/RestaurantListView.vue'
 
 const router = createRouter({
@@ -36,6 +37,12 @@ const router = createRouter({
           path: 'restaurants/list',
           name: 'list-restaurant',
           component: RestaurantListView,
+          meta: { requiresAuth: true, requiresGroup: true },
+        },
+        {
+          path: 'restaurants/list/:id',
+          name: 'restaurant-detail',
+          component: RestaurantDetailView,
           meta: { requiresAuth: true, requiresGroup: true },
         },
         {

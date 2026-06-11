@@ -151,24 +151,25 @@ public class RestaurantService {
         return RestaurantListResponse.of(restaurantResponses, page, limit, pageResult.getTotalElements());
     }
 
-    /** 依餐廳 ID 取得目前登入使用者所屬群組的單筆餐廳資訊 */
+    /** 依餐廳 ID 取得目前登入使用者所屬群組的單筆餐廳資訊（不含已封存） */
     public RestaurantResponse getRestaurant(Integer restaurantId) {
         Integer groupId = resolveCurrentUserGroupId();
-        RestaurantEntity restaurant = findRestaurantInGroupOrThrow(restaurantId, groupId);
+        RestaurantEntity restaurant = findActiveRestaurantOrThrow(restaurantId, groupId);
         return RestaurantResponse.restaurantResponse(restaurant);
     }
 
-    /** 查詢目前登入使用者所屬群組內指定餐廳的所有餐點 */
+    /** 查詢目前登入使用者所屬群組內指定餐廳的所有餐點（不含已封存） */
     public DishListResponse getRestaurantDishes(Integer restaurantId) {
         Integer groupId = resolveCurrentUserGroupId();
-        findRestaurantInGroupOrThrow(restaurantId, groupId);
+        findActiveRestaurantOrThrow(restaurantId, groupId);
         return dishService.getRestaurantDishes(restaurantId);
     }
 
-    /** 取得目前登入使用者所屬群組的餐廳清單 */
+    /** 取得目前登入使用者所屬群組的餐廳清單（不含已封存） */
     public RestaurantListResponse<RestaurantResponse> getMyGroupRestaurants(GetRestaurantQuery queryParams) {
         Integer groupId = resolveCurrentUserGroupId();
         queryParams.setGroupId(groupId);
+        queryParams.setIsArchived(false);
         return getRestaurants(queryParams);
     }
 

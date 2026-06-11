@@ -10,5 +10,9 @@ public interface DishRepository extends JpaRepository<DishEntity, Integer> {
     DishEntity findTopByRestaurantId_RestaurantIdOrderByDisplayOrderIdDesc(Integer restaurantId);
 
     /** 取得餐廳內所有餐點 */
-    List<DishEntity> findByRestaurantId_RestaurantId(Integer restaurantId);
+    List<DishEntity> findByRestaurantId_RestaurantIdOrderByDisplayOrderIdAsc(Integer restaurantId);
+
+    /** 檢查同一餐廳內是否已有其他餐點使用此 displayOrderId */
+    boolean existsByRestaurantId_RestaurantIdAndDisplayOrderIdAndDishIdNot(
+            Integer restaurantId, Integer displayOrderId, Integer dishId);
 }

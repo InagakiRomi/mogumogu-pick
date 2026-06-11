@@ -196,23 +196,6 @@ export interface paths {
         patch: operations["updateMyGroupName"];
         trace?: never;
     };
-    "/dishes/{id}/name": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        /** 修改餐點名稱 */
-        patch: operations["updateDishName"];
-        trace?: never;
-    };
     "/restaurants/{restaurantId}/dishes": {
         parameters: {
             query?: never;
@@ -312,7 +295,8 @@ export interface paths {
         delete: operations["deleteDish"];
         options?: never;
         head?: never;
-        patch?: never;
+        /** 修改餐點 */
+        patch: operations["updateDish"];
         trace?: never;
     };
 }
@@ -603,12 +587,24 @@ export interface components {
             groupId?: number;
             groupName?: string;
         };
-        UpdateDishNameDto: {
+        UpdateDishDto: {
+            /**
+             * Format: int32
+             * @description 餐廳群組內順序 ID
+             * @example 1
+             */
+            displayOrderId: number;
             /**
              * @description 餐點名稱
              * @example 雙倍叉燒拉麵
              */
             dishName: string;
+            /**
+             * Format: int32
+             * @description 餐點價格
+             * @example 180
+             */
+            price: number;
         };
         RestaurantListResponseRestaurantResponse: {
             data?: components["schemas"]["RestaurantResponse"][];
@@ -1025,7 +1021,7 @@ export interface operations {
             };
         };
     };
-    updateDishName: {
+    updateDish: {
         parameters: {
             query?: never;
             header?: never;
@@ -1036,7 +1032,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["UpdateDishNameDto"];
+                "application/json": components["schemas"]["UpdateDishDto"];
             };
         };
         responses: {

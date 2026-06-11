@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue'
+import { useRouter } from 'vue-router'
 import type { components, operations } from '@/api/schema'
 import client from '@/api/client'
 import WarmButton from '@/components/warm/WarmButton.vue'
@@ -85,6 +86,7 @@ const createForm = ref({
   imageUrl: '',
 })
 const { showFeedback, clearFeedback } = useFeedbackDialog()
+const router = useRouter()
 
 const totalPages = computed(() => {
   if (!total.value || !limit.value) {
@@ -179,7 +181,6 @@ function handleCreateDialogOpenChange(open: boolean) {
 }
 
 async function fetchRestaurants() {
-  clearFeedback()
   isLoading.value = true
 
   try {
@@ -189,6 +190,7 @@ async function fetchRestaurants() {
     const query: RestaurantListQuery = {
       search: searchInput.value.trim() || undefined,
       categoryId,
+      isArchived: false,
       orderBy: orderBy.value,
       sort: sort.value,
       page: page.value,
@@ -279,6 +281,19 @@ function goNextPage() {
     return
   }
   page.value += 1
+}
+
+function goRestaurantDetail(restaurantId?: number) {
+  if (restaurantId == null) {
+    return
+  }
+
+  void router.push({
+    name: 'restaurant-detail',
+    params: {
+      id: String(restaurantId),
+    },
+  })
 }
 
 watch(page, () => {
@@ -387,16 +402,17 @@ onMounted(() => {
                 <TableHead class="w-[120px] text-center">被選中的次數</TableHead>
                 <TableHead class="w-[24%] text-center">備註</TableHead>
                 <TableHead class="w-[180px] text-center">最後被選時間</TableHead>
+                <TableHead class="w-[140px] text-center">操作</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               <TableRow v-if="isLoading">
-                <TableCell colspan="7" class="py-8 text-center text-muted-foreground">
+                <TableCell colspan="8" class="py-8 text-center text-muted-foreground">
                   載入資料中...
                 </TableCell>
               </TableRow>
               <TableRow v-else-if="restaurants.length === 0">
-                <TableCell colspan="7" class="py-8 text-center text-muted-foreground">
+                <TableCell colspan="8" class="py-8 text-center text-muted-foreground">
                   找不到符合條件的餐廳
                 </TableCell>
               </TableRow>
@@ -422,6 +438,15 @@ onMounted(() => {
                 </TableCell>
                 <TableCell class="truncate text-center" :title="formatDate(restaurant.lastSelectedAt)">
                   {{ formatDate(restaurant.lastSelectedAt) }}
+                </TableCell>
+                <TableCell class="text-center">
+                  <WarmButton
+                    variant="outline-standard"
+                    class="h-9 px-3 text-sm"
+                    @click="goRestaurantDetail(restaurant.restaurantId)"
+                  >
+                    查看詳細
+                  </WarmButton>
                 </TableCell>
               </TableRow>
             </TableBody>

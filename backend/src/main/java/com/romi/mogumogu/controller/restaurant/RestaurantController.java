@@ -45,7 +45,7 @@ public class RestaurantController {
     }
 
     @GetMapping("/my")
-    @Operation(summary = "取得自己所屬群組的餐廳清單")
+    @Operation(summary = "取得自己所屬群組的餐廳清單（不含已封存）")
     public RestaurantListResponse<RestaurantResponse> getMyGroupRestaurants(
             @Valid @ModelAttribute @ParameterObject GetRestaurantQuery queryParams) {
         return restaurantService.getMyGroupRestaurants(queryParams);
@@ -78,7 +78,7 @@ public class RestaurantController {
     }
 
     @GetMapping("/{id}")
-    @Operation(summary = "依餐廳 ID 取得自己所屬群組的單筆餐廳資訊")
+    @Operation(summary = "依餐廳 ID 取得自己所屬群組的單筆餐廳資訊（不含已封存）")
     public RestaurantResponse getRestaurant(@PathVariable("id") Integer restaurantId) {
         return restaurantService.getRestaurant(restaurantId);
     }

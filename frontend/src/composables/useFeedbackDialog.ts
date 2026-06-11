@@ -8,14 +8,18 @@ const feedbackState = reactive({
   type: 'error' as FeedbackType,
 })
 
+let onCloseCallback: (() => void) | null = null
+
 export function useFeedbackDialog() {
-  function showFeedback(message: string, type: FeedbackType = 'error') {
+  function showFeedback(message: string, type: FeedbackType = 'error', onClose?: () => void) {
+    onCloseCallback = onClose ?? null
     feedbackState.message = message
     feedbackState.type = type
     feedbackState.open = true
   }
 
   function clearFeedback() {
+    onCloseCallback = null
     feedbackState.open = false
     feedbackState.message = ''
   }
@@ -24,6 +28,9 @@ export function useFeedbackDialog() {
     feedbackState.open = open
     if (!open) {
       feedbackState.message = ''
+      const callback = onCloseCallback
+      onCloseCallback = null
+      callback?.()
     }
   }
 

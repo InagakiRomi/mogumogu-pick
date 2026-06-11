@@ -4,7 +4,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.romi.mogumogu.Response.DishResponse;
 import com.romi.mogumogu.dto.CreateDishDto;
-import com.romi.mogumogu.dto.UpdateDishNameDto;
+import com.romi.mogumogu.dto.UpdateDishDto;
 import com.romi.mogumogu.exception.GlobalExceptionHandler;
 import com.romi.mogumogu.service.dish.DishService;
 import com.romi.mogumogu.testsupport.TestSecurityConfig;
@@ -54,7 +54,7 @@ class DishControllerTest {
     private static final String CODE_BAD_REQUEST = "BAD_REQUEST";
     private static final String TRUNCATED_CREATE_DISH_JSON =
             "{\"restaurantId\":1,\"price\":130,\"dishName\":\"abc\"";
-    private static final String TRUNCATED_UPDATE_DISH_NAME_JSON = "{\"dishName\":\"abc\"";
+    private static final String TRUNCATED_UPDATE_DISH_JSON = "{\"dishName\":\"abc\",\"price\":100";
 
     @Autowired
     private MockMvc mockMvc;
@@ -217,87 +217,149 @@ class DishControllerTest {
     }
 
     @Nested
-    class UpdateDishName {
+    class UpdateDish {
         @Test
-        void success_returns200WithUpdatedName() throws Exception {
-            UpdateDishNameDto request = UpdateDishNameDto.builder().dishName("雙倍叉燒拉麵").build();
-            when(dishService.updateDishName(eq(12), any(UpdateDishNameDto.class)))
+        void success_returns200WithUpdatedDish() throws Exception {
+            UpdateDishDto request = UpdateDishDto.builder()
+                    .displayOrderId(2)
+                    .dishName("雙倍叉燒拉麵")
+                    .price(180)
+                    .build();
+            when(dishService.updateDish(eq(12), any(UpdateDishDto.class)))
                     .thenReturn(buildDishResponse(12, 1, 2, 180, "雙倍叉燒拉麵"));
 
-            performUpdateDishName(12, request)
+            performUpdateDish(12, request)
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.dishId").value(12))
+                    .andExpect(jsonPath("$.price").value(180))
                     .andExpect(jsonPath("$.dishName").value("雙倍叉燒拉麵"));
 
-            verify(dishService).updateDishName(eq(12), any(UpdateDishNameDto.class));
+            verify(dishService).updateDish(eq(12), any(UpdateDishDto.class));
         }
 
         @Test
         void validationFailed_returns400AndSkipsServiceCall() throws Exception {
-            UpdateDishNameDto request = UpdateDishNameDto.builder().dishName("").build();
-            assertBadRequestValidation(performUpdateDishName(10, request),
-                    "/dishes/10/name", "dishName is required");
+            UpdateDishDto request = UpdateDishDto.builder()
+                    .displayOrderId(null)
+                    .dishName("")
+                    .price(null)
+                    .build();
+
+            assertBadRequestValidation(performUpdateDish(10, request),
+                    "/dishes/10",
+                    "displayOrderId is required",
+                    "dishName is required",
+                    "price is required");
+
+            verifyNoInteractions(dishService);
+        }
+
+        @Test
+        void negativePrice_returns400AndSkipsServiceCall() throws Exception {
+            UpdateDishDto request = UpdateDishDto.builder()
+                    .displayOrderId(1)
+                    .dishName("負價格餐點")
+                    .price(-1)
+                    .build();
+
+            assertBadRequestValidation(performUpdateDish(10, request),
+                    "/dishes/10",
+                    "price must be greater than or equal to the minimum value");
+
+            verifyNoInteractions(dishService);
+        }
+
+        @Test
+        void invalidDisplayOrderId_returns400AndSkipsServiceCall() throws Exception {
+            UpdateDishDto request = UpdateDishDto.builder()
+                    .displayOrderId(0)
+                    .dishName("排序錯誤餐點")
+                    .price(120)
+                    .build();
+
+            assertBadRequestValidation(performUpdateDish(10, request),
+                    "/dishes/10",
+                    "displayOrderId must be greater than or equal to the minimum value");
+
             verifyNoInteractions(dishService);
         }
 
         @Test
         void dishNameTooLong_returns400AndSkipsServiceCall() throws Exception {
-            UpdateDishNameDto request = UpdateDishNameDto.builder().dishName("x".repeat(65)).build();
-            assertBadRequestValidation(performUpdateDishName(10, request),
-                    "/dishes/10/name", "dishName size is out of allowed range");
+            UpdateDishDto request = UpdateDishDto.builder()
+                    .displayOrderId(1)
+                    .dishName("x".repeat(65))
+                    .price(120)
+                    .build();
+
+            assertBadRequestValidation(performUpdateDish(10, request),
+                    "/dishes/10", "dishName size is out of allowed range");
+
             verifyNoInteractions(dishService);
         }
 
         @Test
         void dishNotFound_returns404() throws Exception {
-            UpdateDishNameDto request = UpdateDishNameDto.builder().dishName("更新失敗").build();
-            when(dishService.updateDishName(eq(404), any(UpdateDishNameDto.class)))
+            UpdateDishDto request = UpdateDishDto.builder()
+                    .displayOrderId(1)
+                    .dishName("更新失敗")
+                    .price(120)
+                    .build();
+            when(dishService.updateDish(eq(404), any(UpdateDishDto.class)))
                     .thenThrow(new ResponseStatusException(HttpStatus.NOT_FOUND, "Dish not found"));
 
-            assertErrorResponse(performUpdateDishName(404, request),
-                    HttpStatus.NOT_FOUND, "/dishes/404/name", "Dish not found");
+            assertErrorResponse(performUpdateDish(404, request),
+                    HttpStatus.NOT_FOUND, "/dishes/404", "Dish not found");
 
-            verify(dishService).updateDishName(eq(404), any(UpdateDishNameDto.class));
+            verify(dishService).updateDish(eq(404), any(UpdateDishDto.class));
         }
 
         @Test
         void invalidPathVariable_returns500AndSkipsServiceCall() throws Exception {
-            UpdateDishNameDto request = UpdateDishNameDto.builder().dishName("測試").build();
-            assertErrorResponseContains(mockMvc.perform(patch("/dishes/{id}/name", "bad-id")
+            UpdateDishDto request = UpdateDishDto.builder()
+                    .displayOrderId(1)
+                    .dishName("測試")
+                    .price(120)
+                    .build();
+            assertErrorResponseContains(mockMvc.perform(patch("/dishes/{id}", "bad-id")
                             .contentType(CONTENT_TYPE_JSON)
                             .content(Objects.requireNonNull(objectMapper.writeValueAsString(request)))),
-                    HTTP_INTERNAL_SERVER_ERROR, CODE_INTERNAL_SERVER_ERROR, "/dishes/bad-id/name",
+                    HTTP_INTERNAL_SERVER_ERROR, CODE_INTERNAL_SERVER_ERROR, "/dishes/bad-id",
                     "Failed to convert value of type");
             verifyNoInteractions(dishService);
         }
 
         @Test
         void serviceThrowsUnexpectedException_returns500() throws Exception {
-            UpdateDishNameDto request = UpdateDishNameDto.builder().dishName("更新爆炸").build();
-            when(dishService.updateDishName(eq(12), any(UpdateDishNameDto.class)))
-                    .thenThrow(new RuntimeException("Update dish name failed"));
+            UpdateDishDto request = UpdateDishDto.builder()
+                    .displayOrderId(1)
+                    .dishName("更新爆炸")
+                    .price(120)
+                    .build();
+            when(dishService.updateDish(eq(12), any(UpdateDishDto.class)))
+                    .thenThrow(new RuntimeException("Update dish failed"));
 
-            assertErrorResponse(performUpdateDishName(12, request),
-                    HttpStatus.INTERNAL_SERVER_ERROR, "/dishes/12/name", "Update dish name failed");
+            assertErrorResponse(performUpdateDish(12, request),
+                    HttpStatus.INTERNAL_SERVER_ERROR, "/dishes/12", "Update dish failed");
 
-            verify(dishService).updateDishName(eq(12), any(UpdateDishNameDto.class));
+            verify(dishService).updateDish(eq(12), any(UpdateDishDto.class));
         }
 
         @Test
         void missingBody_returns500AndSkipsServiceCall() throws Exception {
-            assertErrorResponseContains(mockMvc.perform(patch("/dishes/{id}/name", 1)
+            assertErrorResponseContains(mockMvc.perform(patch("/dishes/{id}", 1)
                             .contentType(CONTENT_TYPE_JSON)),
-                    HTTP_INTERNAL_SERVER_ERROR, CODE_INTERNAL_SERVER_ERROR, "/dishes/1/name",
+                    HTTP_INTERNAL_SERVER_ERROR, CODE_INTERNAL_SERVER_ERROR, "/dishes/1",
                     "Required request body is missing");
             verifyNoInteractions(dishService);
         }
 
         @Test
         void invalidJson_returns500AndSkipsServiceCall() throws Exception {
-            assertErrorResponseContains(mockMvc.perform(patch("/dishes/{id}/name", 1)
+            assertErrorResponseContains(mockMvc.perform(patch("/dishes/{id}", 1)
                             .contentType(CONTENT_TYPE_JSON)
-                            .content(TRUNCATED_UPDATE_DISH_NAME_JSON)),
-                    HTTP_INTERNAL_SERVER_ERROR, CODE_INTERNAL_SERVER_ERROR, "/dishes/1/name", "JSON parse error");
+                            .content(TRUNCATED_UPDATE_DISH_JSON)),
+                    HTTP_INTERNAL_SERVER_ERROR, CODE_INTERNAL_SERVER_ERROR, "/dishes/1", "JSON parse error");
             verifyNoInteractions(dishService);
         }
     }
@@ -409,8 +471,8 @@ class DishControllerTest {
                 .content(Objects.requireNonNull(payload)));
     }
 
-    private ResultActions performUpdateDishName(Integer dishId, Object request) throws Exception {
-        return mockMvc.perform(patch("/dishes/{id}/name", dishId)
+    private ResultActions performUpdateDish(Integer dishId, Object request) throws Exception {
+        return mockMvc.perform(patch("/dishes/{id}", dishId)
                 .contentType(CONTENT_TYPE_JSON)
                 .content(Objects.requireNonNull(objectMapper.writeValueAsString(request))));
     }

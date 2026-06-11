@@ -3,7 +3,7 @@ package com.romi.mogumogu.service.dish;
 import com.romi.mogumogu.Response.DishListResponse;
 import com.romi.mogumogu.Response.DishResponse;
 import com.romi.mogumogu.dto.CreateDishDto;
-import com.romi.mogumogu.dto.UpdateDishNameDto;
+import com.romi.mogumogu.dto.UpdateDishDto;
 import com.romi.mogumogu.entity.dish.DishEntity;
 import com.romi.mogumogu.entity.restaurant.RestaurantEntity;
 import com.romi.mogumogu.repository.dish.DishRepository;
@@ -32,7 +32,8 @@ public class DishService {
         findRestaurantOrThrow(restaurantId);
 
         // 取得餐廳對應的全部餐點
-        List<DishResponse> dishes = dishRepository.findByRestaurantId_RestaurantId(restaurantId)
+        List<DishResponse> dishes = dishRepository
+                .findByRestaurantId_RestaurantIdOrderByDisplayOrderIdAsc(restaurantId)
                 .stream()
                 .map(DishResponse::dishResponse)
                 .toList();
@@ -78,15 +79,27 @@ public class DishService {
         return DishResponse.dishResponse(savedEntity);
     }
 
-    /** 修改餐點名稱 */
-    public DishResponse updateDishName(Integer dishId, UpdateDishNameDto request) {
+    /** 修改餐點排序、名稱與價格 */
+    public DishResponse updateDish(Integer dishId, UpdateDishDto request) {
         // 檢查餐點是否存在
         DishEntity dish = findDishOrThrow(dishId);
+        // 取得修改後的 displayOrderId
+        Integer displayOrderId = Objects.requireNonNull(request.getDisplayOrderId());
+        // 取得餐廳 ID
+        Integer restaurantId = dish.getRestaurantId().getRestaurantId();
 
-        // 修改餐點名稱
+        // 檢查同一餐廳內是否已有其他餐點使用此 displayOrderId
+        if (dishRepository.existsByRestaurantId_RestaurantIdAndDisplayOrderIdAndDishIdNot(
+                restaurantId, displayOrderId, dish.getDishId())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "displayOrderId already exists in this restaurant");
+        }
+
+        // 修改餐點排序、名稱與價格
+        dish.setDisplayOrderId(displayOrderId);
         dish.setDishName(request.getDishName());
+        dish.setPrice(Objects.requireNonNull(request.getPrice()));
 
-        // 儲存餐點實體
         DishEntity savedEntity = Objects.requireNonNull(dishRepository.save(dish));
         return DishResponse.dishResponse(savedEntity);
     }

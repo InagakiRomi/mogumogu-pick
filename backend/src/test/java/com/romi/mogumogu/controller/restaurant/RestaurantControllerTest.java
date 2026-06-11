@@ -704,6 +704,17 @@ class RestaurantControllerTest {
         }
 
         @Test
+        void archived_returns410() throws Exception {
+            when(restaurantService.getRestaurant(7))
+                    .thenThrow(new ResponseStatusException(HttpStatus.GONE, "Restaurant is archived"));
+
+            assertErrorResponse(mockMvc.perform(get("/restaurants/{id}", 7)),
+                    HttpStatus.GONE, "/restaurants/7", "Restaurant is archived");
+
+            verify(restaurantService).getRestaurant(7);
+        }
+
+        @Test
         void serviceThrowsUnexpectedException_returns500() throws Exception {
             when(restaurantService.getRestaurant(7))
                     .thenThrow(new RuntimeException("Get restaurant failed"));

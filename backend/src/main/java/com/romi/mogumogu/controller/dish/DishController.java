@@ -2,7 +2,7 @@ package com.romi.mogumogu.controller.dish;
 
 import com.romi.mogumogu.Response.DishResponse;
 import com.romi.mogumogu.dto.CreateDishDto;
-import com.romi.mogumogu.dto.UpdateDishNameDto;
+import com.romi.mogumogu.dto.UpdateDishDto;
 import com.romi.mogumogu.service.dish.DishService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -35,10 +35,10 @@ public class DishController {
         return dishService.createDish(request);
     }
 
-    @PatchMapping("/{id}/name")
-    @Operation(summary = "修改餐點名稱")
-    public DishResponse updateDishName(@PathVariable("id") Integer dishId, @Valid @RequestBody UpdateDishNameDto request) {
-        return dishService.updateDishName(dishId, request);
+    @PatchMapping("/{id}")
+    @Operation(summary = "修改餐點排序、名稱與價格")
+    public DishResponse updateDish(@PathVariable("id") Integer dishId, @Valid @RequestBody UpdateDishDto request) {
+        return dishService.updateDish(dishId, request);
     }
 
     @DeleteMapping("/{id}")

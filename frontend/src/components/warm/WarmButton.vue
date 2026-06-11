@@ -35,7 +35,11 @@ const variantClass = computed(() => {
         'mt-7.5 block h-[54px] w-full border border-[rgba(146,80,58,0.28)] px-6 py-0 text-[1.1rem] font-semibold',
       )
     case 'compact':
-      return cn(buttonVariants({ size: 'lg' }), baseClass, 'h-11 min-w-[120px] px-8')
+      return cn(
+        buttonVariants({ size: 'lg' }),
+        baseClass,
+        'h-11 min-w-[120px] px-8 text-base font-semibold',
+      )
     case 'nav':
       return cn(
         buttonVariants({ variant: 'outline', size: 'lg' }),

@@ -15,3 +15,7 @@ export function getRoleLabel(role?: number | null) {
 export function isRegularUser(role?: number | null) {
   return role === 2
 }
+
+export function isGroupAdmin(role?: number | null) {
+  return role === 1
+}
