@@ -2,8 +2,8 @@ package com.romi.mogumogu.controller.restaurant;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.romi.mogumogu.Response.DishListResponse;
 import com.romi.mogumogu.Response.DishResponse;
+import com.romi.mogumogu.Response.RestaurantCategoryResponse;
 import com.romi.mogumogu.Response.RestaurantListResponse;
 import com.romi.mogumogu.Response.RestaurantResponse;
 import com.romi.mogumogu.Response.SelectionHistoryResponse;
@@ -12,9 +12,12 @@ import com.romi.mogumogu.dto.GetRestaurantQuery;
 import com.romi.mogumogu.dto.GetSelectionHistoryQuery;
 import com.romi.mogumogu.dto.UpdateRestaurantDto;
 import com.romi.mogumogu.enums.RestaurantSort;
+import com.romi.mogumogu.enums.UserRole;
 import com.romi.mogumogu.exception.GlobalExceptionHandler;
 import com.romi.mogumogu.service.restaurant.RestaurantService;
 import com.romi.mogumogu.testsupport.TestSecurityConfig;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -22,6 +25,9 @@ import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMock
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
@@ -59,10 +65,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 class RestaurantControllerTest {
 
     private static final String RESTAURANTS_PATH = "/restaurants";
-    private static final String RESTAURANTS_MY_PATH = "/restaurants/my";
-    private static final String RESTAURANTS_MY_RANDOM_PATH = "/restaurants/my/random";
-    private static final String RESTAURANTS_MY_RANDOM_CLEAR_PATH = "/restaurants/my/random/clear";
-    private static final String RESTAURANTS_MY_SELECTION_HISTORY_PATH = "/restaurants/my/selection-history";
+    private static final String RESTAURANTS_RANDOM_PATH = "/restaurants/random";
+    private static final String RESTAURANTS_RANDOM_CLEAR_PATH = "/restaurants/random/clear";
+    private static final String RESTAURANTS_SELECTION_HISTORY_PATH = "/restaurants/selection-history";
     private static final String CONTENT_TYPE_JSON = "application/json";
     private static final int HTTP_INTERNAL_SERVER_ERROR = 500;
     private static final String CODE_INTERNAL_SERVER_ERROR = "INTERNAL_SERVER_ERROR";
@@ -80,6 +85,32 @@ class RestaurantControllerTest {
 
     @MockitoBean
     private RestaurantService restaurantService;
+
+    @BeforeEach
+    void setUpSecurityContext() {
+        authenticateAsSystemAdmin();
+    }
+
+    @AfterEach
+    void clearSecurityContext() {
+        SecurityContextHolder.clearContext();
+    }
+
+    private void authenticateAsSystemAdmin() {
+        SecurityContextHolder.getContext().setAuthentication(
+                new UsernamePasswordAuthenticationToken(
+                        "1",
+                        null,
+                        List.of(new SimpleGrantedAuthority("ROLE_" + UserRole.SYSTEM_ADMIN.name()))));
+    }
+
+    private void authenticateAsUser() {
+        SecurityContextHolder.getContext().setAuthentication(
+                new UsernamePasswordAuthenticationToken(
+                        "1",
+                        null,
+                        List.of(new SimpleGrantedAuthority("ROLE_" + UserRole.USER.name()))));
+    }
 
     @Nested
     class GetRestaurants {
@@ -221,10 +252,15 @@ class RestaurantControllerTest {
     @Nested
     class GetMyGroupRestaurants {
 
+        @BeforeEach
+        void setUpUserContext() {
+            authenticateAsUser();
+        }
+
         @Test
         void success_returnsRestaurantList() throws Exception {
             RestaurantResponse first = buildRestaurantResponse(1, 1, 10, "拉麵店");
-            stubGetMyGroupRestaurants(matchesDefaultListQuery(),
+            stubGetRestaurants(matchesMyGroupDefaultListQuery(),
                     buildRestaurantListResponse(List.of(first), 1, 20, 1L));
 
             performGetMyGroupRestaurants()
@@ -232,12 +268,12 @@ class RestaurantControllerTest {
                     .andExpect(jsonPath("$.data.length()").value(1))
                     .andExpect(jsonPath("$.data[0].restaurantName").value("拉麵店"));
 
-            verifyGetMyGroupRestaurantsCalled(matchesDefaultListQuery());
+            verifyGetRestaurantsCalled(matchesMyGroupDefaultListQuery());
         }
 
         @Test
         void success_returnsEmptyList() throws Exception {
-            stubGetMyGroupRestaurants(matchesDefaultListQuery(),
+            stubGetRestaurants(matchesMyGroupDefaultListQuery(),
                     buildRestaurantListResponse(List.of(), 1, 20, 0L));
 
             performGetMyGroupRestaurants()
@@ -245,13 +281,13 @@ class RestaurantControllerTest {
                     .andExpect(jsonPath("$.total").value(0))
                     .andExpect(jsonPath("$.data.length()").value(0));
 
-            verifyGetMyGroupRestaurantsCalled(matchesDefaultListQuery());
+            verifyGetRestaurantsCalled(matchesMyGroupDefaultListQuery());
         }
 
         @Test
         void withFilters_passesQueryParamsToService() throws Exception {
             RestaurantResponse filtered = buildRestaurantResponse(3, 1, 21, "牛排館");
-            stubGetMyGroupRestaurants(matchesMyGroupFilteredListQuery(),
+            stubGetRestaurants(matchesMyGroupFilteredListQuery(),
                     buildRestaurantListResponse(List.of(filtered), 1, 20, 1L));
 
             performGetMyGroupRestaurants(Map.of(
@@ -262,13 +298,13 @@ class RestaurantControllerTest {
                     .andExpect(jsonPath("$.data.length()").value(1))
                     .andExpect(jsonPath("$.data[0].restaurantName").value("牛排館"));
 
-            verifyGetMyGroupRestaurantsCalled(matchesMyGroupFilteredListQuery());
+            verifyGetRestaurantsCalled(matchesMyGroupFilteredListQuery());
         }
 
         @Test
         void withOrderByAndSort_passesQueryParamsToService() throws Exception {
             RestaurantResponse sorted = buildRestaurantResponse(8, 1, 2, "燒肉店");
-            stubGetMyGroupRestaurants(matchesSortedListQuery(),
+            stubGetRestaurants(matchesMyGroupSortedListQuery(),
                     buildRestaurantListResponse(List.of(sorted), 1, 20, 1L));
 
             performGetMyGroupRestaurants(Map.of(
@@ -278,13 +314,13 @@ class RestaurantControllerTest {
                     .andExpect(jsonPath("$.data.length()").value(1))
                     .andExpect(jsonPath("$.data[0].restaurantName").value("燒肉店"));
 
-            verifyGetMyGroupRestaurantsCalled(matchesSortedListQuery());
+            verifyGetRestaurantsCalled(matchesMyGroupSortedListQuery());
         }
 
         @Test
         void withPageAndLimit_passesQueryParamsToService() throws Exception {
             RestaurantResponse paged = buildRestaurantResponse(9, 1, 2, "火鍋店");
-            stubGetMyGroupRestaurants(matchesPagedListQuery(),
+            stubGetRestaurants(matchesMyGroupPagedListQuery(),
                     buildRestaurantListResponse(List.of(paged), 2, 5, 11L));
 
             performGetMyGroupRestaurants(Map.of("page", "2", "limit", "5"))
@@ -293,46 +329,46 @@ class RestaurantControllerTest {
                     .andExpect(jsonPath("$.limit").value(5))
                     .andExpect(jsonPath("$.total").value(11));
 
-            verifyGetMyGroupRestaurantsCalled(matchesPagedListQuery());
+            verifyGetRestaurantsCalled(matchesMyGroupPagedListQuery());
         }
 
         @Test
         void notInGroup_returns400() throws Exception {
-            when(restaurantService.getMyGroupRestaurants(any(GetRestaurantQuery.class)))
+            when(restaurantService.getRestaurants(any(GetRestaurantQuery.class)))
                     .thenThrow(new ResponseStatusException(HttpStatus.BAD_REQUEST, "該帳號未加入群組"));
 
             assertErrorResponse(performGetMyGroupRestaurants(),
-                    HttpStatus.BAD_REQUEST, RESTAURANTS_MY_PATH, "該帳號未加入群組");
+                    HttpStatus.BAD_REQUEST, RESTAURANTS_PATH, "該帳號未加入群組");
 
-            verify(restaurantService).getMyGroupRestaurants(any(GetRestaurantQuery.class));
+            verify(restaurantService).getRestaurants(any(GetRestaurantQuery.class));
         }
 
         @Test
         void serviceThrowsUnexpectedException_returns500() throws Exception {
-            stubGetMyGroupRestaurantsThrows(matchesDefaultListQuery(),
+            stubGetRestaurantsThrows(matchesMyGroupDefaultListQuery(),
                     new RuntimeException("My group query failed"));
 
             assertErrorResponse(performGetMyGroupRestaurants(),
-                    HttpStatus.INTERNAL_SERVER_ERROR, RESTAURANTS_MY_PATH, "My group query failed");
+                    HttpStatus.INTERNAL_SERVER_ERROR, RESTAURANTS_PATH, "My group query failed");
 
-            verifyGetMyGroupRestaurantsCalled(matchesDefaultListQuery());
+            verifyGetRestaurantsCalled(matchesMyGroupDefaultListQuery());
         }
 
         @Test
         void serviceThrowsResponseStatusException_returns503() throws Exception {
-            stubGetMyGroupRestaurantsThrows(matchesDefaultListQuery(),
+            stubGetRestaurantsThrows(matchesMyGroupDefaultListQuery(),
                     new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE, "Service temporarily unavailable"));
 
             assertErrorResponse(performGetMyGroupRestaurants(),
-                    HttpStatus.SERVICE_UNAVAILABLE, RESTAURANTS_MY_PATH, "Service temporarily unavailable");
+                    HttpStatus.SERVICE_UNAVAILABLE, RESTAURANTS_PATH, "Service temporarily unavailable");
 
-            verifyGetMyGroupRestaurantsCalled(matchesDefaultListQuery());
+            verifyGetRestaurantsCalled(matchesMyGroupDefaultListQuery());
         }
 
         @Test
         void invalidPage_returns400AndSkipsServiceCall() throws Exception {
             assertErrorResponseContains(performGetMyGroupRestaurants(Map.of("page", "0")),
-                    400, CODE_BAD_REQUEST, RESTAURANTS_MY_PATH,
+                    400, CODE_BAD_REQUEST, RESTAURANTS_PATH,
                     "page must be greater than or equal to the minimum value");
 
             verifyNoInteractions(restaurantService);
@@ -341,7 +377,7 @@ class RestaurantControllerTest {
         @Test
         void invalidOrderBy_returns400AndSkipsServiceCall() throws Exception {
             assertErrorResponseContains(performGetMyGroupRestaurants(Map.of("orderBy", "INVALID_SORT_BY")),
-                    400, CODE_BAD_REQUEST, RESTAURANTS_MY_PATH, "orderBy is invalid");
+                    400, CODE_BAD_REQUEST, RESTAURANTS_PATH, "orderBy is invalid");
 
             verifyNoInteractions(restaurantService);
         }
@@ -349,7 +385,7 @@ class RestaurantControllerTest {
         @Test
         void invalidSort_returns400AndSkipsServiceCall() throws Exception {
             assertErrorResponseContains(performGetMyGroupRestaurants(Map.of("sort", "INVALID_SORT_ORDER")),
-                    400, CODE_BAD_REQUEST, RESTAURANTS_MY_PATH, "sort is invalid");
+                    400, CODE_BAD_REQUEST, RESTAURANTS_PATH, "sort is invalid");
 
             verifyNoInteractions(restaurantService);
         }
@@ -357,10 +393,37 @@ class RestaurantControllerTest {
         @Test
         void invalidLimit_returns400AndSkipsServiceCall() throws Exception {
             assertErrorResponseContains(performGetMyGroupRestaurants(Map.of("limit", "0")),
-                    400, CODE_BAD_REQUEST, RESTAURANTS_MY_PATH,
+                    400, CODE_BAD_REQUEST, RESTAURANTS_PATH,
                     "limit must be greater than or equal to the minimum value");
 
             verifyNoInteractions(restaurantService);
+        }
+
+        @Test
+        void withIncludeCategories_returnsCategoryList() throws Exception {
+            stubGetRestaurants(
+                    matchesMyGroupCategoriesListQuery(),
+                    RestaurantListResponse.<RestaurantResponse>builder()
+                            .data(List.of())
+                            .page(1)
+                            .limit(1)
+                            .total(0L)
+                            .categories(List.of(
+                                    RestaurantCategoryResponse.builder().categoryId(1).categoryName("主食")
+                                            .displayOrderId(1).build(),
+                                    RestaurantCategoryResponse.builder().categoryId(2).categoryName("輕食")
+                                            .displayOrderId(2).build()))
+                            .build());
+
+            performGetMyGroupRestaurants(Map.of("includeCategories", "true", "limit", "1"))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.categories.length()").value(2))
+                    .andExpect(jsonPath("$.categories[0].categoryId").value(1))
+                    .andExpect(jsonPath("$.categories[0].categoryName").value("主食"))
+                    .andExpect(jsonPath("$.categories[1].categoryId").value(2))
+                    .andExpect(jsonPath("$.categories[1].categoryName").value("輕食"));
+
+            verifyGetRestaurantsCalled(matchesMyGroupCategoriesListQuery());
         }
     }
 
@@ -401,7 +464,7 @@ class RestaurantControllerTest {
                             HttpStatus.NOT_FOUND, "No available restaurants found for this filter"));
 
             assertErrorResponse(performGetRandomMyGroupRestaurant(),
-                    HttpStatus.NOT_FOUND, RESTAURANTS_MY_RANDOM_PATH,
+                    HttpStatus.NOT_FOUND, RESTAURANTS_RANDOM_PATH,
                     "No available restaurants found for this filter");
 
             verify(restaurantService).getRandomMyGroupRestaurant(null);
@@ -413,7 +476,7 @@ class RestaurantControllerTest {
                     .thenThrow(new ResponseStatusException(HttpStatus.BAD_REQUEST, "該帳號未加入群組"));
 
             assertErrorResponse(performGetRandomMyGroupRestaurant(),
-                    HttpStatus.BAD_REQUEST, RESTAURANTS_MY_RANDOM_PATH, "該帳號未加入群組");
+                    HttpStatus.BAD_REQUEST, RESTAURANTS_RANDOM_PATH, "該帳號未加入群組");
 
             verify(restaurantService).getRandomMyGroupRestaurant(null);
         }
@@ -424,7 +487,7 @@ class RestaurantControllerTest {
                     .thenThrow(new RuntimeException("Random draw failed"));
 
             assertErrorResponse(performGetRandomMyGroupRestaurant(),
-                    HttpStatus.INTERNAL_SERVER_ERROR, RESTAURANTS_MY_RANDOM_PATH, "Random draw failed");
+                    HttpStatus.INTERNAL_SERVER_ERROR, RESTAURANTS_RANDOM_PATH, "Random draw failed");
 
             verify(restaurantService).getRandomMyGroupRestaurant(null);
         }
@@ -432,7 +495,7 @@ class RestaurantControllerTest {
         @Test
         void invalidCategoryId_returns500AndSkipsServiceCall() throws Exception {
             assertErrorResponseContains(performGetRandomMyGroupRestaurant(Map.of("categoryId", "bad-id")),
-                    HTTP_INTERNAL_SERVER_ERROR, CODE_INTERNAL_SERVER_ERROR, RESTAURANTS_MY_RANDOM_PATH,
+                    HTTP_INTERNAL_SERVER_ERROR, CODE_INTERNAL_SERVER_ERROR, RESTAURANTS_RANDOM_PATH,
                     "Failed to convert value of type");
 
             verifyNoInteractions(restaurantService);
@@ -463,7 +526,7 @@ class RestaurantControllerTest {
                     .thenThrow(new ResponseStatusException(HttpStatus.NOT_FOUND, "Restaurant not found"));
 
             assertErrorResponse(performChooseMyGroupRestaurant(999),
-                    HttpStatus.NOT_FOUND, "/restaurants/my/choose/999", "Restaurant not found");
+                    HttpStatus.NOT_FOUND, "/restaurants/999/choose", "Restaurant not found");
 
             verify(restaurantService).chooseMyGroupRestaurant(999);
         }
@@ -474,7 +537,7 @@ class RestaurantControllerTest {
                     .thenThrow(new ResponseStatusException(HttpStatus.BAD_REQUEST, "該帳號未加入群組"));
 
             assertErrorResponse(performChooseMyGroupRestaurant(7),
-                    HttpStatus.BAD_REQUEST, "/restaurants/my/choose/7", "該帳號未加入群組");
+                    HttpStatus.BAD_REQUEST, "/restaurants/7/choose", "該帳號未加入群組");
 
             verify(restaurantService).chooseMyGroupRestaurant(7);
         }
@@ -485,7 +548,7 @@ class RestaurantControllerTest {
                     .thenThrow(new ResponseStatusException(HttpStatus.FORBIDDEN, "Restaurant belongs to another group"));
 
             assertErrorResponse(performChooseMyGroupRestaurant(7),
-                    HttpStatus.FORBIDDEN, "/restaurants/my/choose/7", "Restaurant belongs to another group");
+                    HttpStatus.FORBIDDEN, "/restaurants/7/choose", "Restaurant belongs to another group");
 
             verify(restaurantService).chooseMyGroupRestaurant(7);
         }
@@ -496,15 +559,15 @@ class RestaurantControllerTest {
                     .thenThrow(new ResponseStatusException(HttpStatus.GONE, "Restaurant is archived"));
 
             assertErrorResponse(performChooseMyGroupRestaurant(7),
-                    HttpStatus.GONE, "/restaurants/my/choose/7", "Restaurant is archived");
+                    HttpStatus.GONE, "/restaurants/7/choose", "Restaurant is archived");
 
             verify(restaurantService).chooseMyGroupRestaurant(7);
         }
 
         @Test
         void invalidPathVariable_returns500AndSkipsServiceCall() throws Exception {
-            assertErrorResponseContains(mockMvc.perform(patch("/restaurants/my/choose/{id}", "bad-id")),
-                    HTTP_INTERNAL_SERVER_ERROR, CODE_INTERNAL_SERVER_ERROR, "/restaurants/my/choose/bad-id",
+            assertErrorResponseContains(mockMvc.perform(patch("/restaurants/{id}/choose", "bad-id")),
+                    HTTP_INTERNAL_SERVER_ERROR, CODE_INTERNAL_SERVER_ERROR, "/restaurants/bad-id/choose",
                     "Failed to convert value of type");
 
             verifyNoInteractions(restaurantService);
@@ -516,7 +579,7 @@ class RestaurantControllerTest {
                     .thenThrow(new RuntimeException("Choose failed unexpectedly"));
 
             assertErrorResponse(performChooseMyGroupRestaurant(7),
-                    HttpStatus.INTERNAL_SERVER_ERROR, "/restaurants/my/choose/7", "Choose failed unexpectedly");
+                    HttpStatus.INTERNAL_SERVER_ERROR, "/restaurants/7/choose", "Choose failed unexpectedly");
 
             verify(restaurantService).chooseMyGroupRestaurant(7);
         }
@@ -593,7 +656,7 @@ class RestaurantControllerTest {
                     .thenThrow(new ResponseStatusException(HttpStatus.BAD_REQUEST, "該帳號未加入群組"));
 
             assertErrorResponse(performGetMyGroupSelectionHistory(),
-                    HttpStatus.BAD_REQUEST, RESTAURANTS_MY_SELECTION_HISTORY_PATH, "該帳號未加入群組");
+                    HttpStatus.BAD_REQUEST, RESTAURANTS_SELECTION_HISTORY_PATH, "該帳號未加入群組");
 
             verify(restaurantService).getMyGroupSelectionHistory(any(GetSelectionHistoryQuery.class));
         }
@@ -601,7 +664,7 @@ class RestaurantControllerTest {
         @Test
         void invalidPage_returns400AndSkipsServiceCall() throws Exception {
             assertErrorResponseContains(performGetMyGroupSelectionHistory(Map.of("page", "0")),
-                    400, CODE_BAD_REQUEST, RESTAURANTS_MY_SELECTION_HISTORY_PATH,
+                    400, CODE_BAD_REQUEST, RESTAURANTS_SELECTION_HISTORY_PATH,
                     "page must be greater than or equal to the minimum value");
 
             verifyNoInteractions(restaurantService);
@@ -610,7 +673,7 @@ class RestaurantControllerTest {
         @Test
         void invalidLimit_returns400AndSkipsServiceCall() throws Exception {
             assertErrorResponseContains(performGetMyGroupSelectionHistory(Map.of("limit", "0")),
-                    400, CODE_BAD_REQUEST, RESTAURANTS_MY_SELECTION_HISTORY_PATH,
+                    400, CODE_BAD_REQUEST, RESTAURANTS_SELECTION_HISTORY_PATH,
                     "limit must be greater than or equal to the minimum value");
 
             verifyNoInteractions(restaurantService);
@@ -622,7 +685,7 @@ class RestaurantControllerTest {
                     .thenThrow(new RuntimeException("Selection history query failed"));
 
             assertErrorResponse(performGetMyGroupSelectionHistory(),
-                    HttpStatus.INTERNAL_SERVER_ERROR, RESTAURANTS_MY_SELECTION_HISTORY_PATH,
+                    HttpStatus.INTERNAL_SERVER_ERROR, RESTAURANTS_SELECTION_HISTORY_PATH,
                     "Selection history query failed");
 
             verify(restaurantService).getMyGroupSelectionHistory(any(GetSelectionHistoryQuery.class));
@@ -646,7 +709,7 @@ class RestaurantControllerTest {
                     .when(restaurantService).clearMyGroupRandomPool();
 
             assertErrorResponse(performClearMyGroupRandomPool(),
-                    HttpStatus.INTERNAL_SERVER_ERROR, RESTAURANTS_MY_RANDOM_CLEAR_PATH, "Clear pool failed");
+                    HttpStatus.INTERNAL_SERVER_ERROR, RESTAURANTS_RANDOM_CLEAR_PATH, "Clear pool failed");
 
             verify(restaurantService).clearMyGroupRandomPool();
         }
@@ -658,7 +721,7 @@ class RestaurantControllerTest {
         @Test
         void success_returnsRestaurant() throws Exception {
             RestaurantResponse restaurant = buildRestaurantResponse(5, 1, 2, "單筆查詢餐廳");
-            when(restaurantService.getRestaurant(5)).thenReturn(restaurant);
+            when(restaurantService.getRestaurant(5, false)).thenReturn(restaurant);
 
             mockMvc.perform(get("/restaurants/{id}", 5))
                     .andExpect(status().isOk())
@@ -667,62 +730,82 @@ class RestaurantControllerTest {
                     .andExpect(jsonPath("$.categoryId").value(2))
                     .andExpect(jsonPath("$.restaurantName").value("單筆查詢餐廳"));
 
-            verify(restaurantService).getRestaurant(5);
+            verify(restaurantService).getRestaurant(5, false);
+        }
+
+        @Test
+        void withIncludeDishes_returnsRestaurantWithDishes() throws Exception {
+            DishResponse first = buildDishResponse(1, 100, 1, 120, "豚骨拉麵");
+            DishResponse second = buildDishResponse(2, 100, 2, 90, "炸蝦天婦羅");
+            RestaurantResponse restaurant = buildRestaurantResponse(100, 1, 2, "餐廳含餐點");
+            restaurant.setDishes(List.of(first, second));
+            restaurant.setDishTotal(2);
+            when(restaurantService.getRestaurant(100, true)).thenReturn(restaurant);
+
+            mockMvc.perform(get("/restaurants/{id}", 100).param("includeDishes", "true"))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.restaurantId").value(100))
+                    .andExpect(jsonPath("$.dishTotal").value(2))
+                    .andExpect(jsonPath("$.dishes.length()").value(2))
+                    .andExpect(jsonPath("$.dishes[0].dishName").value("豚骨拉麵"))
+                    .andExpect(jsonPath("$.dishes[1].dishName").value("炸蝦天婦羅"));
+
+            verify(restaurantService).getRestaurant(100, true);
         }
 
         @Test
         void notFound_returns404() throws Exception {
-            when(restaurantService.getRestaurant(999))
+            when(restaurantService.getRestaurant(999, false))
                     .thenThrow(new ResponseStatusException(HttpStatus.NOT_FOUND, "Restaurant not found"));
 
             assertErrorResponse(mockMvc.perform(get("/restaurants/{id}", 999)),
                     HttpStatus.NOT_FOUND, "/restaurants/999", "Restaurant not found");
 
-            verify(restaurantService).getRestaurant(999);
+            verify(restaurantService).getRestaurant(999, false);
         }
 
         @Test
         void notInGroup_returns400() throws Exception {
-            when(restaurantService.getRestaurant(5))
+            when(restaurantService.getRestaurant(5, false))
                     .thenThrow(new ResponseStatusException(HttpStatus.BAD_REQUEST, "該帳號未加入群組"));
 
             assertErrorResponse(mockMvc.perform(get("/restaurants/{id}", 5)),
                     HttpStatus.BAD_REQUEST, "/restaurants/5", "該帳號未加入群組");
 
-            verify(restaurantService).getRestaurant(5);
+            verify(restaurantService).getRestaurant(5, false);
         }
 
         @Test
         void forbidden_returns403() throws Exception {
-            when(restaurantService.getRestaurant(5))
+            when(restaurantService.getRestaurant(5, false))
                     .thenThrow(new ResponseStatusException(HttpStatus.FORBIDDEN, "Restaurant belongs to another group"));
 
             assertErrorResponse(mockMvc.perform(get("/restaurants/{id}", 5)),
                     HttpStatus.FORBIDDEN, "/restaurants/5", "Restaurant belongs to another group");
 
-            verify(restaurantService).getRestaurant(5);
+            verify(restaurantService).getRestaurant(5, false);
         }
 
         @Test
         void archived_returns410() throws Exception {
-            when(restaurantService.getRestaurant(7))
+            when(restaurantService.getRestaurant(7, false))
                     .thenThrow(new ResponseStatusException(HttpStatus.GONE, "Restaurant is archived"));
 
             assertErrorResponse(mockMvc.perform(get("/restaurants/{id}", 7)),
                     HttpStatus.GONE, "/restaurants/7", "Restaurant is archived");
 
-            verify(restaurantService).getRestaurant(7);
+            verify(restaurantService).getRestaurant(7, false);
         }
 
         @Test
         void serviceThrowsUnexpectedException_returns500() throws Exception {
-            when(restaurantService.getRestaurant(7))
+            when(restaurantService.getRestaurant(7, false))
                     .thenThrow(new RuntimeException("Get restaurant failed"));
 
             assertErrorResponse(mockMvc.perform(get("/restaurants/{id}", 7)),
                     HttpStatus.INTERNAL_SERVER_ERROR, "/restaurants/7", "Get restaurant failed");
 
-            verify(restaurantService).getRestaurant(7);
+            verify(restaurantService).getRestaurant(7, false);
         }
 
         @Test
@@ -732,75 +815,6 @@ class RestaurantControllerTest {
                     "Failed to convert value of type");
 
             verifyNoInteractions(restaurantService);
-        }
-    }
-
-    @Nested
-    class GetRestaurantDishes {
-        @Test
-        void success_returnsDishList() throws Exception {
-            DishResponse first = buildDishResponse(1, 100, 1, 120, "豚骨拉麵");
-            DishResponse second = buildDishResponse(2, 100, 2, 90, "炸蝦天婦羅");
-            when(restaurantService.getRestaurantDishes(100))
-                    .thenReturn(DishListResponse.builder()
-                            .data(List.of(first, second))
-                            .total(2)
-                            .build());
-
-            performGetRestaurantDishes(100)
-                    .andExpect(status().isOk())
-                    .andExpect(jsonPath("$.total").value(2))
-                    .andExpect(jsonPath("$.data.length()").value(2))
-                    .andExpect(jsonPath("$.data[0].dishId").value(1))
-                    .andExpect(jsonPath("$.data[1].dishName").value("炸蝦天婦羅"));
-
-            verify(restaurantService).getRestaurantDishes(100);
-        }
-
-        @Test
-        void success_returnsEmptyList() throws Exception {
-            when(restaurantService.getRestaurantDishes(100))
-                    .thenReturn(DishListResponse.builder()
-                            .data(List.of())
-                            .total(0)
-                            .build());
-
-            performGetRestaurantDishes(100)
-                    .andExpect(status().isOk())
-                    .andExpect(jsonPath("$.total").value(0))
-                    .andExpect(jsonPath("$.data.length()").value(0));
-
-            verify(restaurantService).getRestaurantDishes(100);
-        }
-
-        @Test
-        void restaurantNotFound_returns404() throws Exception {
-            when(restaurantService.getRestaurantDishes(999))
-                    .thenThrow(new ResponseStatusException(HttpStatus.NOT_FOUND, "Restaurant not found"));
-
-            assertErrorResponse(performGetRestaurantDishes(999),
-                    HttpStatus.NOT_FOUND, "/restaurants/999/dishes", "Restaurant not found");
-
-            verify(restaurantService).getRestaurantDishes(999);
-        }
-
-        @Test
-        void invalidPathVariable_returns500AndSkipsServiceCall() throws Exception {
-            assertErrorResponseContains(mockMvc.perform(get("/restaurants/{restaurantId}/dishes", "bad-id")),
-                    HTTP_INTERNAL_SERVER_ERROR, CODE_INTERNAL_SERVER_ERROR, "/restaurants/bad-id/dishes",
-                    "Failed to convert value of type");
-            verifyNoInteractions(restaurantService);
-        }
-
-        @Test
-        void serviceThrowsUnexpectedException_returns500() throws Exception {
-            when(restaurantService.getRestaurantDishes(100))
-                    .thenThrow(new RuntimeException("Get dishes failed"));
-
-            assertErrorResponse(performGetRestaurantDishes(100),
-                    HttpStatus.INTERNAL_SERVER_ERROR, "/restaurants/100/dishes", "Get dishes failed");
-
-            verify(restaurantService).getRestaurantDishes(100);
         }
     }
 
@@ -1169,24 +1183,8 @@ class RestaurantControllerTest {
         when(restaurantService.getRestaurants(argThat(matcher::test))).thenThrow(throwable);
     }
 
-    private void stubGetMyGroupRestaurants(
-            java.util.function.Predicate<GetRestaurantQuery> matcher,
-            RestaurantListResponse<RestaurantResponse> response) {
-        when(restaurantService.getMyGroupRestaurants(argThat(matcher::test))).thenReturn(response);
-    }
-
-    private void stubGetMyGroupRestaurantsThrows(
-            java.util.function.Predicate<GetRestaurantQuery> matcher,
-            Throwable throwable) {
-        when(restaurantService.getMyGroupRestaurants(argThat(matcher::test))).thenThrow(throwable);
-    }
-
     private void verifyGetRestaurantsCalled(java.util.function.Predicate<GetRestaurantQuery> matcher) {
         verify(restaurantService).getRestaurants(argThat(matcher::test));
-    }
-
-    private void verifyGetMyGroupRestaurantsCalled(java.util.function.Predicate<GetRestaurantQuery> matcher) {
-        verify(restaurantService).getMyGroupRestaurants(argThat(matcher::test));
     }
 
     private void assertInvalidListQuery(String paramName, String paramValue, String messagePart) throws Exception {
@@ -1307,39 +1305,39 @@ class RestaurantControllerTest {
     }
 
     private ResultActions performGetMyGroupRestaurants() throws Exception {
-        return mockMvc.perform(get(RESTAURANTS_MY_PATH));
+        return mockMvc.perform(get(RESTAURANTS_PATH).param("mine", "true"));
     }
 
     private ResultActions performGetMyGroupRestaurants(Map<String, String> queryParams) throws Exception {
-        var requestBuilder = get(RESTAURANTS_MY_PATH);
+        var requestBuilder = get(RESTAURANTS_PATH).param("mine", "true");
         queryParams.forEach(requestBuilder::param);
         return mockMvc.perform(requestBuilder);
     }
 
     private ResultActions performGetRandomMyGroupRestaurant() throws Exception {
-        return mockMvc.perform(get(RESTAURANTS_MY_RANDOM_PATH));
+        return mockMvc.perform(get(RESTAURANTS_RANDOM_PATH));
     }
 
     private ResultActions performGetRandomMyGroupRestaurant(Map<String, String> queryParams) throws Exception {
-        var requestBuilder = get(RESTAURANTS_MY_RANDOM_PATH);
+        var requestBuilder = get(RESTAURANTS_RANDOM_PATH);
         queryParams.forEach(requestBuilder::param);
         return mockMvc.perform(requestBuilder);
     }
 
     private ResultActions performChooseMyGroupRestaurant(Integer id) throws Exception {
-        return mockMvc.perform(patch("/restaurants/my/choose/{id}", id));
+        return mockMvc.perform(patch("/restaurants/{id}/choose", id));
     }
 
     private ResultActions performClearMyGroupRandomPool() throws Exception {
-        return mockMvc.perform(post(RESTAURANTS_MY_RANDOM_CLEAR_PATH));
+        return mockMvc.perform(post(RESTAURANTS_RANDOM_CLEAR_PATH));
     }
 
     private ResultActions performGetMyGroupSelectionHistory() throws Exception {
-        return mockMvc.perform(get(RESTAURANTS_MY_SELECTION_HISTORY_PATH));
+        return mockMvc.perform(get(RESTAURANTS_SELECTION_HISTORY_PATH));
     }
 
     private ResultActions performGetMyGroupSelectionHistory(Map<String, String> queryParams) throws Exception {
-        var requestBuilder = get(RESTAURANTS_MY_SELECTION_HISTORY_PATH);
+        var requestBuilder = get(RESTAURANTS_SELECTION_HISTORY_PATH);
         queryParams.forEach(requestBuilder::param);
         return mockMvc.perform(requestBuilder);
     }
@@ -1402,8 +1400,12 @@ class RestaurantControllerTest {
                 20);
     }
 
+    private static java.util.function.Predicate<GetRestaurantQuery> matchesMyGroupDefaultListQuery() {
+        return withMyGroupScope(matchesDefaultListQuery());
+    }
+
     private static java.util.function.Predicate<GetRestaurantQuery> matchesMyGroupFilteredListQuery() {
-        return p -> matchesListQuery(
+        return withMyGroupScope(p -> matchesListQuery(
                 p,
                 null,
                 21,
@@ -1412,7 +1414,27 @@ class RestaurantControllerTest {
                 RestaurantSort.SortBy.RESTAURANT_ID,
                 RestaurantSort.SortOrder.ASC,
                 1,
-                20);
+                20));
+    }
+
+    private static java.util.function.Predicate<GetRestaurantQuery> matchesMyGroupSortedListQuery() {
+        return withMyGroupScope(matchesSortedListQuery());
+    }
+
+    private static java.util.function.Predicate<GetRestaurantQuery> matchesMyGroupPagedListQuery() {
+        return withMyGroupScope(matchesPagedListQuery());
+    }
+
+    private static java.util.function.Predicate<GetRestaurantQuery> withMyGroupScope(
+            java.util.function.Predicate<GetRestaurantQuery> matcher) {
+        return p -> Boolean.TRUE.equals(p.getMine()) && matcher.test(p);
+    }
+
+    private static java.util.function.Predicate<GetRestaurantQuery> matchesMyGroupCategoriesListQuery() {
+        return p -> Boolean.TRUE.equals(p.getMine())
+                && Boolean.TRUE.equals(p.getIncludeCategories())
+                && Objects.equals(p.getLimit(), 1)
+                && Objects.equals(p.getPage(), 1);
     }
 
     private static java.util.function.Predicate<GetRestaurantQuery> matchesSortedListQuery() {
@@ -1439,10 +1461,6 @@ class RestaurantControllerTest {
                 RestaurantSort.SortOrder.ASC,
                 2,
                 5);
-    }
-
-    private ResultActions performGetRestaurantDishes(Integer restaurantId) throws Exception {
-        return mockMvc.perform(get("/restaurants/{restaurantId}/dishes", restaurantId));
     }
 
     private DishResponse buildDishResponse(Integer dishId, Integer restaurantId, Integer displayOrderId,

@@ -1,6 +1,5 @@
 package com.romi.mogumogu.controller.restaurant;
 
-import com.romi.mogumogu.Response.DishListResponse;
 import com.romi.mogumogu.Response.RestaurantListResponse;
 import com.romi.mogumogu.Response.RestaurantResponse;
 import com.romi.mogumogu.Response.SelectionHistoryResponse;
@@ -8,6 +7,7 @@ import com.romi.mogumogu.dto.CreateRestaurantDto;
 import com.romi.mogumogu.dto.GetRestaurantQuery;
 import com.romi.mogumogu.dto.GetSelectionHistoryQuery;
 import com.romi.mogumogu.dto.UpdateRestaurantDto;
+import com.romi.mogumogu.security.SecurityUtils;
 import com.romi.mogumogu.service.restaurant.RestaurantService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -38,55 +38,47 @@ public class RestaurantController {
     }
 
     @GetMapping("")
-    @Operation(summary = "取得所有餐廳清單")
+    @Operation(summary = "取得餐廳清單（mine=true 限自己所屬群組；否則需 SYSTEM_ADMIN）")
     public RestaurantListResponse<RestaurantResponse> getRestaurants(
             @Valid @ModelAttribute @ParameterObject GetRestaurantQuery queryParams) {
+        if (!Boolean.TRUE.equals(queryParams.getMine())) {
+            SecurityUtils.requireSystemAdmin();
+        }
         return restaurantService.getRestaurants(queryParams);
     }
 
-    @GetMapping("/my")
-    @Operation(summary = "取得自己所屬群組的餐廳清單（不含已封存）")
-    public RestaurantListResponse<RestaurantResponse> getMyGroupRestaurants(
-            @Valid @ModelAttribute @ParameterObject GetRestaurantQuery queryParams) {
-        return restaurantService.getMyGroupRestaurants(queryParams);
-    }
-
-    @GetMapping("/my/random")
+    @GetMapping("/random")
     @Operation(summary = "抽取自己所屬群組的一間餐廳")
     public RestaurantResponse getRandomMyGroupRestaurant(@RequestParam(required = false) Integer categoryId) {
         return restaurantService.getRandomMyGroupRestaurant(categoryId);
     }
 
-    @PatchMapping("/my/choose/{id}")
-    @Operation(summary = "確認選擇餐廳並重置抽籤池")
-    public RestaurantResponse chooseMyGroupRestaurant(@PathVariable("id") Integer restaurantId) {
-        return restaurantService.chooseMyGroupRestaurant(restaurantId);
-    }
-
-    @PostMapping("/my/random/clear")
+    @PostMapping("/random/clear")
     @Operation(summary = "重置抽籤池")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void clearMyGroupRandomPool() {
         restaurantService.clearMyGroupRandomPool();
     }
 
-    @GetMapping("/my/selection-history")
+    @GetMapping("/selection-history")
     @Operation(summary = "查詢自己所屬群組的餐廳選擇歷史")
     public RestaurantListResponse<SelectionHistoryResponse> getMyGroupSelectionHistory(
             @Valid @ModelAttribute @ParameterObject GetSelectionHistoryQuery queryParams) {
         return restaurantService.getMyGroupSelectionHistory(queryParams);
     }
 
-    @GetMapping("/{id}")
-    @Operation(summary = "依餐廳 ID 取得自己所屬群組的單筆餐廳資訊（不含已封存）")
-    public RestaurantResponse getRestaurant(@PathVariable("id") Integer restaurantId) {
-        return restaurantService.getRestaurant(restaurantId);
+    @PatchMapping("/{id}/choose")
+    @Operation(summary = "確認選擇餐廳並重置抽籤池")
+    public RestaurantResponse chooseMyGroupRestaurant(@PathVariable("id") Integer restaurantId) {
+        return restaurantService.chooseMyGroupRestaurant(restaurantId);
     }
 
-    @GetMapping("/{restaurantId}/dishes")
-    @Operation(summary = "查詢該餐廳對應的所有餐點")
-    public DishListResponse getRestaurantDishes(@PathVariable Integer restaurantId) {
-        return restaurantService.getRestaurantDishes(restaurantId);
+    @GetMapping("/{id}")
+    @Operation(summary = "依餐廳 ID 取得自己所屬群組的單筆餐廳資訊（不含已封存）")
+    public RestaurantResponse getRestaurant(
+            @PathVariable("id") Integer restaurantId,
+            @RequestParam(required = false, defaultValue = "false") boolean includeDishes) {
+        return restaurantService.getRestaurant(restaurantId, includeDishes);
     }
 
     @PostMapping("")

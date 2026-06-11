@@ -14,7 +14,6 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.romi.mogumogu.config.JwtTokenProvider;
-import com.romi.mogumogu.enums.UserRole;
 
 @Configuration
 @EnableWebSecurity
@@ -57,10 +56,6 @@ public class SecurityConfig {
                                                 // permitAll：略過認證，匿名即可存取
                                                 .requestMatchers(HttpMethod.POST, "/auth/register", "/auth/login")
                                                 .permitAll()
-                                                // hasRole：須具指定角色（依路徑與 HTTP 方法匹配）
-                                                .requestMatchers(HttpMethod.GET, "/restaurants")
-                                                .hasRole(UserRole.SYSTEM_ADMIN.name())
-
                                                 // anyRequest：前述規則未涵蓋的請求，一律須已認證
                                                 .anyRequest()
                                                 .authenticated())

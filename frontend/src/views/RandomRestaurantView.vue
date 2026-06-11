@@ -6,13 +6,10 @@ import client from '@/api/client'
 import WarmAlertDialogShell from '@/components/feedback/WarmAlertDialogShell.vue'
 import WarmButton from '@/components/warm/WarmButton.vue'
 import { useFeedbackDialog } from '@/composables/useFeedbackDialog'
+import { useRestaurantCategories } from '@/composables/useRestaurantCategories'
 import WarmPanel from '@/components/warm/WarmPanel.vue'
 import WarmSelectTrigger from '@/components/warm/WarmSelectTrigger.vue'
-import {
-  ALL_CATEGORIES_VALUE,
-  DEFAULT_RESTAURANT_IMAGE,
-  RESTAURANT_CATEGORY_OPTIONS_WITH_ALL,
-} from '@/constants/restaurant'
+import { ALL_CATEGORIES_VALUE, DEFAULT_RESTAURANT_IMAGE } from '@/constants/restaurant'
 import {
   AlertDialog,
   AlertDialogDescription,
@@ -42,7 +39,7 @@ const imageLoadFailed = ref(false)
 
 let midpointTimer: ReturnType<typeof setTimeout> | undefined
 
-const categoryOptions = RESTAURANT_CATEGORY_OPTIONS_WITH_ALL
+const { categoryOptionsWithAll } = useRestaurantCategories()
 
 const router = useRouter()
 
@@ -56,7 +53,9 @@ const chosenRestaurantName = ref('')
 const { showFeedback, clearFeedback } = useFeedbackDialog()
 
 const selectedCategoryLabel = computed(() => {
-  const matched = categoryOptions.find((option) => option.value === selectedCategory.value)
+  const matched = categoryOptionsWithAll.value.find(
+    (option) => option.value === selectedCategory.value,
+  )
   return matched?.label ?? '未分類'
 })
 
@@ -192,7 +191,7 @@ function handleViewChosenRestaurantDetail() {
 }
 
 async function resetRandomPool() {
-  const { error } = await client.POST('/restaurants/my/random/clear')
+  const { error } = await client.POST('/restaurants/random/clear')
   if (error) {
     throw error
   }
@@ -221,7 +220,7 @@ async function handleRandomRestaurant() {
   try {
     const categoryId =
       selectedCategory.value !== ALL_CATEGORIES_VALUE ? Number(selectedCategory.value) : undefined
-    const { data, error } = await client.GET('/restaurants/my/random', {
+    const { data, error } = await client.GET('/restaurants/random', {
       params: {
         query: {
           categoryId,
@@ -251,7 +250,7 @@ async function handleChooseRestaurant() {
   isChooseLoading.value = true
 
   try {
-    const { error } = await client.PATCH('/restaurants/my/choose/{id}', {
+    const { error } = await client.PATCH('/restaurants/{id}/choose', {
       params: {
         path: {
           id: currentRestaurant.value.restaurantId,
@@ -290,7 +289,7 @@ async function handleChooseRestaurant() {
             </WarmSelectTrigger>
             <SelectContent class="border-border bg-card text-popover-foreground">
               <SelectItem
-                v-for="option in categoryOptions"
+                v-for="option in categoryOptionsWithAll"
                 :key="option.value"
                 :value="option.value"
               >

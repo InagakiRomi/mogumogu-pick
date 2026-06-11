@@ -19,11 +19,8 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { useFeedbackDialog } from '@/composables/useFeedbackDialog'
-import {
-  DEFAULT_RESTAURANT_IMAGE,
-  formatRestaurantCategoryLabel,
-  formatRestaurantDate,
-} from '@/constants/restaurant'
+import { useRestaurantCategories } from '@/composables/useRestaurantCategories'
+import { DEFAULT_RESTAURANT_IMAGE, formatOptionalDate } from '@/constants/restaurant'
 import { authSession } from '@/lib/authSession'
 import {
   ARCHIVED_RESTAURANT_MESSAGE,
@@ -43,6 +40,7 @@ const RESTAURANT_IMAGE_HEIGHT = 80
 const route = useRoute()
 const router = useRouter()
 const { showFeedback, clearFeedback } = useFeedbackDialog()
+const { categories: categoryOptions } = useRestaurantCategories()
 
 const restaurantId = computed(() => {
   const parsed = Number(route.params.id)
@@ -274,9 +272,10 @@ async function fetchDishes(id: number) {
   isDishesLoading.value = true
 
   try {
-    const { data, error } = await client.GET('/restaurants/{restaurantId}/dishes', {
+    const { data, error } = await client.GET('/restaurants/{id}', {
       params: {
-        path: { restaurantId: id },
+        path: { id },
+        query: { includeDishes: true },
       },
     })
 
@@ -284,8 +283,8 @@ async function fetchDishes(id: number) {
       throw error
     }
 
-    dishes.value = data?.data ?? []
-    dishTotal.value = Number(data?.total ?? dishes.value.length)
+    dishes.value = data?.dishes ?? []
+    dishTotal.value = Number(data?.dishTotal ?? dishes.value.length)
   } catch (error) {
     dishes.value = []
     dishTotal.value = 0
@@ -312,6 +311,7 @@ async function fetchRestaurantDetail() {
     const { data: restaurantData, error: restaurantError } = await client.GET('/restaurants/{id}', {
       params: {
         path: { id },
+        query: { includeDishes: true },
       },
     })
 
@@ -325,9 +325,8 @@ async function fetchRestaurantDetail() {
     }
 
     restaurant.value = restaurantData ?? null
-    if (restaurant.value) {
-      await fetchDishes(id)
-    }
+    dishes.value = restaurantData?.dishes ?? []
+    dishTotal.value = Number(restaurantData?.dishTotal ?? dishes.value.length)
   } catch (error) {
     if (isArchivedRestaurantError(error)) {
       showArchivedRestaurantFeedback()
@@ -741,12 +740,12 @@ watch(isDeleteDishDialogOpen, (open) => {
               <p class="sm:col-span-2 text-lg font-semibold">
                 {{ restaurant.restaurantName ?? '-' }}
               </p>
-              <p>分類：{{ formatRestaurantCategoryLabel(restaurant.categoryId) }}</p>
+              <p>分類：{{ restaurant.categoryName ?? '-' }}</p>
               <p>顯示排序 ID：{{ restaurant.displayOrderId ?? '-' }}</p>
               <p>被選取次數：{{ restaurant.selectedCount ?? 0 }}</p>
-              <p>最後被選時間：{{ formatRestaurantDate(restaurant.lastSelectedAt) }}</p>
-              <p>建立時間：{{ formatRestaurantDate(restaurant.createdAt) }}</p>
-              <p>更新時間：{{ formatRestaurantDate(restaurant.updatedAt) }}</p>
+              <p>最後被選時間：{{ formatOptionalDate(restaurant.lastSelectedAt) }}</p>
+              <p>建立時間：{{ formatOptionalDate(restaurant.createdAt) }}</p>
+              <p>更新時間：{{ formatOptionalDate(restaurant.updatedAt) }}</p>
               <p class="sm:col-span-2">備註：{{ restaurant.note || '-' }}</p>
             </div>
           </div>
@@ -823,6 +822,7 @@ watch(isDeleteDishDialogOpen, (open) => {
     <RestaurantFormDialog
       :open="isEditDialogOpen"
       v-model="editForm"
+      :category-options="categoryOptions"
       mode="edit"
       title="修改餐廳"
       id-prefix="edit-restaurant"

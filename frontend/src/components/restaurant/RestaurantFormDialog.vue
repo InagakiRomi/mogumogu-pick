@@ -4,7 +4,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { FORM_LABEL_CLASS } from '@/constants/form'
-import { RESTAURANT_CATEGORY_OPTIONS } from '@/constants/restaurant'
+import type { RestaurantCategoryOption } from '@/composables/useRestaurantCategories'
 
 const FORM_SELECT_TRIGGER_CLASS =
   'h-10 w-full rounded-md border border-border bg-muted/90 px-3 text-left text-sm text-popover-foreground'
@@ -29,6 +29,7 @@ withDefaults(
     mode: 'create' | 'edit'
     title: string
     idPrefix: string
+    categoryOptions: RestaurantCategoryOption[]
     loading?: boolean
     canSubmit?: boolean
     submitLabel?: string
@@ -84,7 +85,7 @@ const imageUrlMaxLength = (mode: 'create' | 'edit') => (mode === 'create' ? 255 
         </SelectTrigger>
         <SelectContent position="popper" :class="FORM_SELECT_CONTENT_CLASS">
           <SelectItem
-            v-for="option in RESTAURANT_CATEGORY_OPTIONS"
+            v-for="option in categoryOptions"
             :key="option.value"
             :value="option.value"
           >

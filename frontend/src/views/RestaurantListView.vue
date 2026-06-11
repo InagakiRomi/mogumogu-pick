@@ -24,24 +24,24 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { useFeedbackDialog } from '@/composables/useFeedbackDialog'
+import { useRestaurantCategories } from '@/composables/useRestaurantCategories'
 import {
   ALL_CATEGORIES_VALUE,
   DEFAULT_RESTAURANT_IMAGE,
-  formatRestaurantCategoryLabel,
-  formatRestaurantDate,
-  RESTAURANT_CATEGORY_OPTIONS_WITH_ALL,
+  formatOptionalDate,
 } from '@/constants/restaurant'
 import { getApiErrorMessage, RESTAURANT_FEEDBACK_MESSAGES } from '@/lib/apiErrorMessage'
 
 type Restaurant = components['schemas']['RestaurantResponse']
-type RestaurantListQuery = operations['getMyGroupRestaurants']['parameters']['query']
+type RestaurantListQuery = operations['getRestaurants']['parameters']['query']
 type OrderBy = Exclude<NonNullable<RestaurantListQuery>['orderBy'], undefined>
 type SortOrder = Exclude<NonNullable<RestaurantListQuery>['sort'], undefined>
 
 const DEFAULT_LIMIT = 10
 
 const failedImageIds = ref(new Set<number>())
-const categoryOptions = RESTAURANT_CATEGORY_OPTIONS_WITH_ALL
+const { categoryOptionsWithAll, categories, defaultCategoryId } = useRestaurantCategories()
+const categoryOptions = categoryOptionsWithAll
 
 const orderByOptions: Array<{ label: string; value: OrderBy }> = [
   { label: 'ID', value: 'DISPLAY_ORDER_ID' },
@@ -131,7 +131,7 @@ function handleImageError(event: Event, restaurantId?: number) {
 function resetCreateForm() {
   createForm.value = {
     restaurantName: '',
-    categoryId: '1',
+    categoryId: defaultCategoryId.value || '1',
     note: '',
     imageUrl: '',
   }
@@ -155,6 +155,7 @@ async function fetchRestaurants() {
 
   try {
     const query: RestaurantListQuery = {
+      mine: true,
       search: searchInput.value.trim() || undefined,
       categoryId: resolveCategoryId(selectedCategory.value),
       isArchived: false,
@@ -164,7 +165,7 @@ async function fetchRestaurants() {
       limit: limit.value,
     }
 
-    const { data, error } = await client.GET('/restaurants/my', {
+    const { data, error } = await client.GET('/restaurants', {
       params: {
         query,
       },
@@ -399,14 +400,14 @@ onMounted(() => {
                   {{ restaurant.restaurantName ?? '-' }}
                 </TableCell>
                 <TableCell class="text-center">
-                  {{ formatRestaurantCategoryLabel(restaurant.categoryId) }}
+                  {{ restaurant.categoryName ?? '-' }}
                 </TableCell>
                 <TableCell class="text-center">{{ restaurant.selectedCount ?? 0 }}</TableCell>
                 <TableCell class="truncate" :title="restaurant.note || undefined">
                   {{ restaurant.note || '-' }}
                 </TableCell>
-                <TableCell class="truncate text-center" :title="formatRestaurantDate(restaurant.lastSelectedAt)">
-                  {{ formatRestaurantDate(restaurant.lastSelectedAt) }}
+                <TableCell class="truncate text-center" :title="formatOptionalDate(restaurant.lastSelectedAt)">
+                  {{ formatOptionalDate(restaurant.lastSelectedAt) }}
                 </TableCell>
                 <TableCell class="text-center">
                   <WarmButton
@@ -442,6 +443,7 @@ onMounted(() => {
     <RestaurantFormDialog
       :open="isCreateDialogOpen"
       v-model="createForm"
+      :category-options="categories"
       mode="create"
       title="新增餐廳"
       id-prefix="create-restaurant"

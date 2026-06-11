@@ -1,6 +1,7 @@
 package com.romi.mogumogu.service.restaurant;
 
 import com.romi.mogumogu.Response.DishListResponse;
+import com.romi.mogumogu.Response.RestaurantCategoryResponse;
 import com.romi.mogumogu.Response.RestaurantListResponse;
 import com.romi.mogumogu.Response.RestaurantResponse;
 import com.romi.mogumogu.Response.SelectionHistoryResponse;
@@ -69,8 +70,15 @@ public class RestaurantService {
         this.dishService = dishService;
     }
 
-    /** 取得所有餐廳 */
+    /** 取得餐廳清單（可依群組、分類、封存狀態等條件篩選） */
     public RestaurantListResponse<RestaurantResponse> getRestaurants(GetRestaurantQuery queryParams) {
+        if (Boolean.TRUE.equals(queryParams.getMine())) {
+            queryParams.setGroupId(resolveCurrentUserGroupId());
+            if (queryParams.getIsArchived() == null) {
+                queryParams.setIsArchived(false);
+            }
+        }
+
         Integer groupId = queryParams.getGroupId();
         Integer categoryId = queryParams.getCategoryId();
         Boolean isArchived = queryParams.getIsArchived();
@@ -148,29 +156,26 @@ public class RestaurantService {
                 .map(RestaurantResponse::restaurantResponse)
                 .toList();
 
+        if (Boolean.TRUE.equals(queryParams.getIncludeCategories()) && groupId != null) {
+            List<RestaurantCategoryResponse> categories = findRestaurantCategories(groupId);
+            return RestaurantListResponse.of(
+                    restaurantResponses, page, limit, pageResult.getTotalElements(), categories);
+        }
+
         return RestaurantListResponse.of(restaurantResponses, page, limit, pageResult.getTotalElements());
     }
 
     /** 依餐廳 ID 取得目前登入使用者所屬群組的單筆餐廳資訊（不含已封存） */
-    public RestaurantResponse getRestaurant(Integer restaurantId) {
+    public RestaurantResponse getRestaurant(Integer restaurantId, boolean includeDishes) {
         Integer groupId = resolveCurrentUserGroupId();
         RestaurantEntity restaurant = findActiveRestaurantOrThrow(restaurantId, groupId);
-        return RestaurantResponse.restaurantResponse(restaurant);
-    }
-
-    /** 查詢目前登入使用者所屬群組內指定餐廳的所有餐點（不含已封存） */
-    public DishListResponse getRestaurantDishes(Integer restaurantId) {
-        Integer groupId = resolveCurrentUserGroupId();
-        findActiveRestaurantOrThrow(restaurantId, groupId);
-        return dishService.getRestaurantDishes(restaurantId);
-    }
-
-    /** 取得目前登入使用者所屬群組的餐廳清單（不含已封存） */
-    public RestaurantListResponse<RestaurantResponse> getMyGroupRestaurants(GetRestaurantQuery queryParams) {
-        Integer groupId = resolveCurrentUserGroupId();
-        queryParams.setGroupId(groupId);
-        queryParams.setIsArchived(false);
-        return getRestaurants(queryParams);
+        RestaurantResponse response = RestaurantResponse.restaurantResponse(restaurant);
+        if (includeDishes) {
+            DishListResponse dishList = dishService.getRestaurantDishes(restaurantId);
+            response.setDishes(dishList.getData());
+            response.setDishTotal(dishList.getTotal());
+        }
+        return response;
     }
 
     /** 抽取目前登入使用者所屬群組的一間餐廳 */
@@ -437,6 +442,13 @@ public class RestaurantService {
         }
 
         return restaurant;
+    }
+
+    /** 取得群組內所有分類（依顯示排序） */
+    private List<RestaurantCategoryResponse> findRestaurantCategories(Integer groupId) {
+        return restaurantCategoryRepository.findByGroupIdOrderByDisplayOrderIdAsc(groupId).stream()
+                .map(RestaurantCategoryResponse::from)
+                .toList();
     }
 
     /** 檢查分類是否存在 */

@@ -11,7 +11,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** 取得所有餐廳清單 */
+        /** 取得餐廳清單（mine=true 限自己所屬群組；否則需 SYSTEM_ADMIN） */
         get: operations["getRestaurants"];
         put?: never;
         /** 新增餐廳 */
@@ -22,7 +22,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/restaurants/my/random/clear": {
+    "/restaurants/random/clear": {
         parameters: {
             query?: never;
             header?: never;
@@ -161,11 +161,13 @@ export interface paths {
         patch: operations["updateRestaurant"];
         trace?: never;
     };
-    "/restaurants/my/choose/{id}": {
+    "/restaurants/{id}/choose": {
         parameters: {
             query?: never;
             header?: never;
-            path?: never;
+            path: {
+                id: number;
+            };
             cookie?: never;
         };
         get?: never;
@@ -176,6 +178,40 @@ export interface paths {
         head?: never;
         /** 確認選擇餐廳並重置抽籤池 */
         patch: operations["chooseMyGroupRestaurant"];
+        trace?: never;
+    };
+    "/restaurants/selection-history": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 查詢自己所屬群組的餐廳選擇歷史 */
+        get: operations["getMyGroupSelectionHistory"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/restaurants/random": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 抽取自己所屬群組的一間餐廳 */
+        get: operations["getRandomMyGroupRestaurant"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
         trace?: never;
     };
     "/groups/my": {
@@ -194,74 +230,6 @@ export interface paths {
         head?: never;
         /** 修改目前群組名稱 */
         patch: operations["updateMyGroupName"];
-        trace?: never;
-    };
-    "/restaurants/{restaurantId}/dishes": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** 查詢該餐廳對應的所有餐點 */
-        get: operations["getRestaurantDishes"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/restaurants/my": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** 取得自己所屬群組的餐廳清單 */
-        get: operations["getMyGroupRestaurants"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/restaurants/my/selection-history": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** 查詢自己所屬群組的餐廳選擇歷史 */
-        get: operations["getMyGroupSelectionHistory"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/restaurants/my/random": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** 抽取自己所屬群組的一間餐廳 */
-        get: operations["getRandomMyGroupRestaurant"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
         trace?: never;
     };
     "/groups/my/members/{userId}": {
@@ -332,6 +300,25 @@ export interface components {
              */
             imageUrl?: string;
         };
+        RestaurantCategoryResponse: {
+            /**
+             * Format: int32
+             * @description 分類 ID
+             * @example 1
+             */
+            categoryId?: number;
+            /**
+             * @description 分類名稱
+             * @example 主食
+             */
+            categoryName?: string;
+            /**
+             * Format: int32
+             * @description 群組內顯示排序 ID
+             * @example 1
+             */
+            displayOrderId?: number;
+        };
         RestaurantResponse: {
             /**
              * Format: int32
@@ -351,6 +338,11 @@ export interface components {
              * @example 1
              */
             categoryId?: number;
+            /**
+             * @description 分類名稱
+             * @example 主食
+             */
+            categoryName?: string;
             /**
              * Format: int32
              * @description 群組內顯示排序 ID
@@ -401,6 +393,13 @@ export interface components {
              * @example 2026-05-03 14:58:57
              */
             updatedAt?: string;
+            /** @description 餐點清單（僅在 includeDishes=true 時回傳） */
+            dishes?: components["schemas"]["DishResponse"][];
+            /**
+             * Format: int32
+             * @description 餐點總筆數（僅在 includeDishes=true 時回傳）
+             */
+            dishTotal?: number;
         };
         TransferGroupAdminDto: {
             /**
@@ -614,6 +613,8 @@ export interface components {
             limit?: number;
             /** Format: int64 */
             total?: number;
+            /** @description 分類清單（僅在 includeCategories=true 時回傳） */
+            categories?: components["schemas"]["RestaurantCategoryResponse"][];
         };
         DishListResponse: {
             data?: components["schemas"]["DishResponse"][];
@@ -651,8 +652,12 @@ export interface operations {
     getRestaurants: {
         parameters: {
             query?: {
+                /** @description 是否限定為目前登入使用者所屬群組（false 或未帶時需 SYSTEM_ADMIN） */
+                mine?: boolean;
                 /** @description 群組 ID */
                 groupId?: number;
+                /** @description 是否一併回傳分類清單 */
+                includeCategories?: boolean;
                 /** @description 分類 ID */
                 categoryId?: number;
                 /** @description 是否已刪除 */
@@ -887,7 +892,9 @@ export interface operations {
     };
     getRestaurant: {
         parameters: {
-            query?: never;
+            query?: {
+                includeDishes?: boolean;
+            };
             header?: never;
             path: {
                 id: number;
@@ -1043,65 +1050,6 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["DishResponse"];
-                };
-            };
-        };
-    };
-    getRestaurantDishes: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                restaurantId: number;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["DishListResponse"];
-                };
-            };
-        };
-    };
-    getMyGroupRestaurants: {
-        parameters: {
-            query?: {
-                /** @description 群組 ID */
-                groupId?: number;
-                /** @description 分類 ID */
-                categoryId?: number;
-                /** @description 是否已刪除 */
-                isArchived?: boolean;
-                /** @description 搜尋關鍵字 */
-                search?: string;
-                /** @description 排序欄位 */
-                orderBy?: "RESTAURANT_ID" | "CATEGORY_ID" | "DISPLAY_ORDER_ID" | "SELECTED_COUNT" | "RESTAURANT_NAME" | "LAST_SELECTED_AT" | "CREATED_AT" | "UPDATED_AT";
-                /** @description 排序方向 */
-                sort?: "ASC" | "DESC";
-                /** @description 頁碼 */
-                page?: number;
-                /** @description 每頁筆數 */
-                limit?: number;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["RestaurantListResponseRestaurantResponse"];
                 };
             };
         };

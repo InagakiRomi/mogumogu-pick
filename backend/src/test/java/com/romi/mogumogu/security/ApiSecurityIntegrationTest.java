@@ -96,14 +96,15 @@ class ApiSecurityIntegrationTest {
 
     @Test
     void getMyGroupRestaurants_withoutToken_returns401() throws Exception {
-        mockMvc.perform(get("/restaurants/my"))
+        mockMvc.perform(get("/restaurants").param("mine", "true"))
                 .andExpect(status().isUnauthorized())
                 .andExpect(jsonPath("$.code").value("UNAUTHORIZED"));
     }
 
     @Test
     void getMyGroupRestaurants_asUser_returns401WhenUserNotInDatabase() throws Exception {
-        mockMvc.perform(get("/restaurants/my").header(HttpHeaders.AUTHORIZATION, bearerToken(UserRole.USER)))
+        mockMvc.perform(get("/restaurants").param("mine", "true")
+                        .header(HttpHeaders.AUTHORIZATION, bearerToken(UserRole.USER)))
                 .andExpect(status().isUnauthorized());
     }
 

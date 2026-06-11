@@ -11,6 +11,7 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.util.Date;
+import java.util.List;
 
 @Getter
 @Setter
@@ -26,6 +27,9 @@ public class RestaurantResponse {
 
         @Schema(description = "分類 ID", example = "1")
         private Integer categoryId;
+
+        @Schema(description = "分類名稱", example = "主食")
+        private String categoryName;
 
         @Schema(description = "群組內顯示排序 ID", example = "1")
         private Integer displayOrderId;
@@ -54,11 +58,18 @@ public class RestaurantResponse {
         @Schema(description = "更新時間", pattern = DateTimePatternConstants.STANDARD_DATE_TIME, example = "2026-05-03 14:58:57")
         private Date updatedAt;
 
+        @Schema(description = "餐點清單（僅在 includeDishes=true 時回傳）")
+        private List<DishResponse> dishes;
+
+        @Schema(description = "餐點總筆數（僅在 includeDishes=true 時回傳）")
+        private Integer dishTotal;
+
         public static RestaurantResponse restaurantResponse(RestaurantEntity entity) {
                 return RestaurantResponse.builder()
                                 .restaurantId(entity.getRestaurantId())
                                 .groupId(entity.getGroupId())
                                 .categoryId(entity.getCategoryId().getCategoryId())
+                                .categoryName(entity.getCategoryId().getCategoryName())
                                 .displayOrderId(entity.getDisplayOrderId())
                                 .selectedCount(entity.getSelectedCount())
                                 .restaurantName(entity.getRestaurantName())
