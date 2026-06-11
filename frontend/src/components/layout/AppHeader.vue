@@ -5,8 +5,8 @@ import client from '@/api/client'
 import { authSession, clearAuthSession, hasGroup } from '@/lib/authSession'
 import { authToken } from '@/lib/authToken'
 import { getRoleLabel, isRegularUser } from '@/lib/userRole'
-import CoffeeButton from '@/components/coffee/CoffeeButton.vue'
-import NinePatchBox from '@/components/coffee/NinePatchBox.vue'
+import NinePatchBox from '@/components/nine-patch/NinePatchBox.vue'
+import WarmButton from '@/components/warm/WarmButton.vue'
 
 const headerTiles = {
   tl: '/images/header-patch/tl.png',
@@ -106,7 +106,7 @@ onMounted(() => {
       >
         <li v-for="item in navItems" :key="item.name" class="w-full md:w-auto">
           <RouterLink v-slot="{ isActive, href, navigate }" :to="{ name: item.name }" custom>
-            <CoffeeButton
+            <WarmButton
               as="a"
               :href="href"
               variant="nav"
@@ -115,18 +115,18 @@ onMounted(() => {
               @click="navigate"
             >
               {{ item.label }}
-            </CoffeeButton>
+            </WarmButton>
           </RouterLink>
         </li>
         <li class="w-full md:w-auto">
-          <CoffeeButton
+          <WarmButton
             type="button"
             variant="compact"
             class="w-full md:w-auto"
             @click="handleLogout"
           >
             登出
-          </CoffeeButton>
+          </WarmButton>
         </li>
       </ul>
     </nav>

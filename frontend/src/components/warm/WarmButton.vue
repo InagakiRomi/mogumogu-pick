@@ -4,11 +4,11 @@ import { computed } from 'vue'
 import { Button, buttonVariants } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 
-type CoffeeButtonVariant = 'auth' | 'compact' | 'standard' | 'nav' | 'outline-standard'
+type WarmButtonVariant = 'block' | 'compact' | 'standard' | 'nav' | 'outline-standard'
 
 const props = withDefaults(
   defineProps<{
-    variant?: CoffeeButtonVariant
+    variant?: WarmButtonVariant
     active?: boolean
     class?: HTMLAttributes['class']
   }>(),
@@ -29,7 +29,7 @@ const outlineBaseClass =
 
 const variantClass = computed(() => {
   switch (props.variant) {
-    case 'auth':
+    case 'block':
       return cn(
         baseClass,
         'mt-7.5 block h-[54px] w-full border border-[rgba(146,80,58,0.28)] px-6 py-0 text-[1.1rem] font-semibold',

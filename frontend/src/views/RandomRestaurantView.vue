@@ -2,11 +2,11 @@
 import { computed, ref } from 'vue'
 import type { components } from '@/api/schema'
 import client from '@/api/client'
-import AuthFeedback from '@/components/auth/AuthFeedback.vue'
-import RandomRestaurantResultCard from '@/components/restaurant/RandomRestaurantResultCard.vue'
-import CoffeeButton from '@/components/coffee/CoffeeButton.vue'
-import CoffeeSelectTrigger from '@/components/coffee/CoffeeSelectTrigger.vue'
-import AuthPageCard from '@/components/auth/AuthPageCard.vue'
+import WarmButton from '@/components/warm/WarmButton.vue'
+import WarmFeedback from '@/components/warm/WarmFeedback.vue'
+import WarmInfoCard from '@/components/warm/WarmInfoCard.vue'
+import WarmPanel from '@/components/warm/WarmPanel.vue'
+import WarmSelectTrigger from '@/components/warm/WarmSelectTrigger.vue'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectValue } from '@/components/ui/select'
 import { getApiErrorMessage, RESTAURANT_FEEDBACK_MESSAGES } from '@/lib/apiErrorMessage'
@@ -132,14 +132,14 @@ async function handleChooseRestaurant() {
   <main
     class="min-h-screen bg-[linear-gradient(rgba(255,255,255,0.24),rgba(255,255,255,0.24)),url('/images/homeBg.jpg')] bg-cover bg-center bg-no-repeat px-4 py-6"
   >
-    <AuthPageCard>
+    <WarmPanel>
       <div class="space-y-5">
         <div class="space-y-2">
           <Label for="restaurant-category" class="font-bold text-muted-foreground">篩選類別</Label>
           <Select :model-value="selectedCategory" @update:model-value="handleCategoryChange">
-            <CoffeeSelectTrigger id="restaurant-category">
+            <WarmSelectTrigger id="restaurant-category">
               <SelectValue placeholder="選擇類別" />
-            </CoffeeSelectTrigger>
+            </WarmSelectTrigger>
             <SelectContent class="border-border bg-card text-popover-foreground">
               <SelectItem
                 v-for="option in categoryOptions"
@@ -152,26 +152,26 @@ async function handleChooseRestaurant() {
           </Select>
         </div>
 
-        <RandomRestaurantResultCard
+        <WarmInfoCard
           :restaurant="currentRestaurant"
           :category-label="selectedCategoryLabel"
         />
 
         <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
-          <CoffeeButton :disabled="isRandomLoading" @click="handleRandomRestaurant">
+          <WarmButton :disabled="isRandomLoading" @click="handleRandomRestaurant">
             {{ isRandomLoading ? '抽選中...' : '抽！' }}
-          </CoffeeButton>
-          <CoffeeButton
+          </WarmButton>
+          <WarmButton
             :disabled="!canChooseRestaurant"
             variant="outline-standard"
             @click="handleChooseRestaurant"
           >
             {{ isChooseLoading ? '送出中...' : '就決定選這間！' }}
-          </CoffeeButton>
+          </WarmButton>
         </div>
       </div>
 
-      <AuthFeedback v-if="feedback" :type="feedbackType" :message="feedback" />
-    </AuthPageCard>
+      <WarmFeedback v-if="feedback" :type="feedbackType" :message="feedback" />
+    </WarmPanel>
   </main>
 </template>

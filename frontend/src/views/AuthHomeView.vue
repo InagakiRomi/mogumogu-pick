@@ -5,10 +5,10 @@ import client from '@/api/client'
 import { AUTH_FEEDBACK_MESSAGES, getApiErrorMessage } from '@/lib/apiErrorMessage'
 import { setAuthSession, hasGroup } from '@/lib/authSession'
 import { authToken } from '@/lib/authToken'
-import AuthFeedback from '@/components/auth/AuthFeedback.vue'
-import CoffeeButton from '@/components/coffee/CoffeeButton.vue'
-import CoffeeSelectTrigger from '@/components/coffee/CoffeeSelectTrigger.vue'
-import AuthPageCard from '@/components/auth/AuthPageCard.vue'
+import WarmButton from '@/components/warm/WarmButton.vue'
+import WarmFeedback from '@/components/warm/WarmFeedback.vue'
+import WarmPanel from '@/components/warm/WarmPanel.vue'
+import WarmSelectTrigger from '@/components/warm/WarmSelectTrigger.vue'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectValue } from '@/components/ui/select'
@@ -125,7 +125,7 @@ async function handleRegister() {
       />
     </div>
 
-    <AuthPageCard>
+    <WarmPanel>
       <Tabs v-model="activeTab" class="w-full">
         <TabsList
           class="grid h-auto w-full grid-cols-2 gap-1 rounded-lg border border-[rgba(198,134,105,0.35)] bg-[rgba(255,245,236,0.75)] p-1 group-data-horizontal/tabs:h-auto"
@@ -162,9 +162,9 @@ async function handleRegister() {
               />
             </div>
 
-            <CoffeeButton type="submit" variant="auth" :disabled="isLoading">
+            <WarmButton type="submit" variant="block" :disabled="isLoading">
               {{ isLoading ? '登入中...' : '登入' }}
-            </CoffeeButton>
+            </WarmButton>
           </form>
         </TabsContent>
 
@@ -212,9 +212,9 @@ async function handleRegister() {
             <div class="space-y-2">
               <Label :class="authLabelClass"> 帳號類型 </Label>
               <Select v-model="registerForm.role">
-                <CoffeeSelectTrigger>
+                <WarmSelectTrigger>
                   <SelectValue placeholder="選擇帳號類型" />
-                </CoffeeSelectTrigger>
+                </WarmSelectTrigger>
                 <SelectContent class="border-border bg-card text-popover-foreground">
                   <SelectItem value="2"> 一般使用者 </SelectItem>
                   <SelectItem value="1"> 群組管理者 </SelectItem>
@@ -222,14 +222,14 @@ async function handleRegister() {
               </Select>
             </div>
 
-            <CoffeeButton type="submit" variant="auth" :disabled="isLoading">
+            <WarmButton type="submit" variant="block" :disabled="isLoading">
               {{ isLoading ? '註冊中...' : '註冊' }}
-            </CoffeeButton>
+            </WarmButton>
           </form>
         </TabsContent>
       </Tabs>
 
-      <AuthFeedback v-if="feedback" :type="feedbackType" :message="feedback" />
-    </AuthPageCard>
+      <WarmFeedback v-if="feedback" :type="feedbackType" :message="feedback" />
+    </WarmPanel>
   </main>
 </template>
