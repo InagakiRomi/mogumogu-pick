@@ -3,19 +3,15 @@ import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import client from '@/api/client'
 import { AUTH_FEEDBACK_MESSAGES, getApiErrorMessage } from '@/lib/apiErrorMessage'
+import { setAuthSession, hasGroup } from '@/lib/authSession'
 import { authToken } from '@/lib/authToken'
 import AuthFeedback from '@/components/auth/AuthFeedback.vue'
-import AuthPageButton from '@/components/auth/AuthPageButton.vue'
+import CoffeeButton from '@/components/coffee/CoffeeButton.vue'
+import CoffeeSelectTrigger from '@/components/coffee/CoffeeSelectTrigger.vue'
 import AuthPageCard from '@/components/auth/AuthPageCard.vue'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
+import { Select, SelectContent, SelectItem, SelectValue } from '@/components/ui/select'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 
 type AuthTab = 'login' | 'register'
@@ -70,9 +66,10 @@ async function handleLogin() {
     }
 
     authToken.value = token
+    setAuthSession(data)
 
     setFeedback(AUTH_FEEDBACK_MESSAGES.login.success, 'success')
-    await router.push({ name: 'random-restaurant' })
+    await router.push({ name: hasGroup() ? 'random-restaurant' : 'no-group' })
   } catch (error) {
     setFeedback(getApiErrorMessage(error, AUTH_FEEDBACK_MESSAGES.login.fallback))
   } finally {
@@ -165,9 +162,9 @@ async function handleRegister() {
               />
             </div>
 
-            <AuthPageButton type="submit" :disabled="isLoading">
+            <CoffeeButton type="submit" variant="auth" :disabled="isLoading">
               {{ isLoading ? '登入中...' : '登入' }}
-            </AuthPageButton>
+            </CoffeeButton>
           </form>
         </TabsContent>
 
@@ -215,14 +212,9 @@ async function handleRegister() {
             <div class="space-y-2">
               <Label :class="authLabelClass"> 帳號類型 </Label>
               <Select v-model="registerForm.role">
-                <SelectTrigger
-                  :class="[
-                    authFieldClass,
-                    'h-auto min-h-[42px] w-full whitespace-normal data-[size=default]:h-auto',
-                  ]"
-                >
+                <CoffeeSelectTrigger>
                   <SelectValue placeholder="選擇帳號類型" />
-                </SelectTrigger>
+                </CoffeeSelectTrigger>
                 <SelectContent class="border-border bg-card text-popover-foreground">
                   <SelectItem value="2"> 一般使用者 </SelectItem>
                   <SelectItem value="1"> 群組管理者 </SelectItem>
@@ -230,9 +222,9 @@ async function handleRegister() {
               </Select>
             </div>
 
-            <AuthPageButton type="submit" :disabled="isLoading">
+            <CoffeeButton type="submit" variant="auth" :disabled="isLoading">
               {{ isLoading ? '註冊中...' : '註冊' }}
-            </AuthPageButton>
+            </CoffeeButton>
           </form>
         </TabsContent>
       </Tabs>

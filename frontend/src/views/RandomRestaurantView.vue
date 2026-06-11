@@ -4,18 +4,12 @@ import type { components } from '@/api/schema'
 import client from '@/api/client'
 import AuthFeedback from '@/components/auth/AuthFeedback.vue'
 import RandomRestaurantResultCard from '@/components/restaurant/RandomRestaurantResultCard.vue'
-import { Button } from '@/components/ui/button'
+import CoffeeButton from '@/components/coffee/CoffeeButton.vue'
+import CoffeeSelectTrigger from '@/components/coffee/CoffeeSelectTrigger.vue'
 import AuthPageCard from '@/components/auth/AuthPageCard.vue'
 import { Label } from '@/components/ui/label'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
+import { Select, SelectContent, SelectItem, SelectValue } from '@/components/ui/select'
 import { getApiErrorMessage, RESTAURANT_FEEDBACK_MESSAGES } from '@/lib/apiErrorMessage'
-
 type CategoryOption = {
   label: string
   value: string
@@ -112,7 +106,7 @@ async function handleChooseRestaurant() {
   isChooseLoading.value = true
 
   try {
-    const { data, error } = await client.PATCH('/restaurants/my/choose/{id}', {
+    const { error } = await client.PATCH('/restaurants/my/choose/{id}', {
       params: {
         path: {
           id: currentRestaurant.value.restaurantId,
@@ -124,7 +118,7 @@ async function handleChooseRestaurant() {
       throw error
     }
 
-    currentRestaurant.value = data ?? currentRestaurant.value
+    currentRestaurant.value = null
     setFeedback(RESTAURANT_FEEDBACK_MESSAGES.choose.success, 'success')
   } catch (error) {
     setFeedback(getApiErrorMessage(error, RESTAURANT_FEEDBACK_MESSAGES.choose.fallback))
@@ -143,12 +137,9 @@ async function handleChooseRestaurant() {
         <div class="space-y-2">
           <Label for="restaurant-category" class="font-bold text-muted-foreground">篩選類別</Label>
           <Select :model-value="selectedCategory" @update:model-value="handleCategoryChange">
-            <SelectTrigger
-              id="restaurant-category"
-              class="h-[42px] w-full rounded-md border-border bg-muted/90 px-2.5 text-base text-popover-foreground shadow-[inset_0_1px_2px_rgba(121,73,52,0.12)]"
-            >
+            <CoffeeSelectTrigger id="restaurant-category">
               <SelectValue placeholder="選擇類別" />
-            </SelectTrigger>
+            </CoffeeSelectTrigger>
             <SelectContent class="border-border bg-card text-popover-foreground">
               <SelectItem
                 v-for="option in categoryOptions"
@@ -167,21 +158,16 @@ async function handleChooseRestaurant() {
         />
 
         <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
-          <Button
-            :disabled="isRandomLoading"
-            class="h-11 rounded-lg bg-linear-to-br from-[#d78867] to-[#c96d57] text-primary-foreground shadow-[0_8px_18px_rgba(138,73,52,0.3)] hover:-translate-y-0.5"
-            @click="handleRandomRestaurant"
-          >
+          <CoffeeButton :disabled="isRandomLoading" @click="handleRandomRestaurant">
             {{ isRandomLoading ? '抽選中...' : '抽！' }}
-          </Button>
-          <Button
-            variant="outline"
+          </CoffeeButton>
+          <CoffeeButton
             :disabled="!canChooseRestaurant"
-            class="h-11 rounded-lg border-[rgba(146,80,58,0.32)] bg-[rgba(255,248,241,0.9)] text-[rgba(84,44,30,0.95)] hover:bg-[rgba(255,236,223,0.95)]"
+            variant="outline-standard"
             @click="handleChooseRestaurant"
           >
             {{ isChooseLoading ? '送出中...' : '就決定選這間！' }}
-          </Button>
+          </CoffeeButton>
         </div>
       </div>
 

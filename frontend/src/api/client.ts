@@ -1,5 +1,6 @@
 import createClient, { type Middleware } from 'openapi-fetch'
 
+import { clearAuthSession } from '@/lib/authSession'
 import { authToken } from '@/lib/authToken'
 import type { paths } from './schema'
 
@@ -13,6 +14,7 @@ const authMiddleware: Middleware = {
   onResponse({ response, schemaPath }) {
     if (response.status === 401 && !schemaPath.startsWith('/auth/')) {
       authToken.value = null
+      clearAuthSession()
       window.location.assign(import.meta.env.BASE_URL || '/')
     }
     return undefined
