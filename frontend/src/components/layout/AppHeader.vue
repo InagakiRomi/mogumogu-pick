@@ -89,7 +89,7 @@ onMounted(() => {
       >
         團隊：{{ groupName }}
       </p>
-      <p class="text-center text-[0.95rem] font-medium md:text-left md:text-[1.1rem]">
+      <p class="text-center text-[0.95rem] font-semibold md:text-left md:text-[1.1rem]">
         帳號權限：{{ roleLabel }}
       </p>
       <p

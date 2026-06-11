@@ -108,8 +108,9 @@ async function handleChooseRestaurant() {
       throw error
     }
 
+    const chosenName = currentRestaurant.value.restaurantName ?? '這間'
     currentRestaurant.value = null
-    showFeedback(RESTAURANT_FEEDBACK_MESSAGES.choose.success, 'success')
+    showFeedback(RESTAURANT_FEEDBACK_MESSAGES.choose.success(chosenName), 'success')
   } catch (error) {
     showFeedback(getApiErrorMessage(error, RESTAURANT_FEEDBACK_MESSAGES.choose.fallback))
   } finally {
@@ -145,6 +146,7 @@ async function handleChooseRestaurant() {
         <WarmInfoCard
           :restaurant="currentRestaurant"
           :category-label="selectedCategoryLabel"
+          :is-drawing="isRandomLoading"
         />
 
         <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">

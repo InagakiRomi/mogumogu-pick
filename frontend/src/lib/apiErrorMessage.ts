@@ -40,7 +40,7 @@ export const RESTAURANT_FEEDBACK_MESSAGES = {
     fallback: '取得餐廳清單失敗',
   },
   choose: {
-    success: '選擇成功！今天就吃這間。',
+    success: (restaurantName: string) => `選擇成功！今天就吃${restaurantName}。`,
     fallback: '選擇餐廳失敗',
   },
   clearPool: {
