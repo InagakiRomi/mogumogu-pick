@@ -6,6 +6,7 @@ import AuthHomeView from '@/views/AuthHomeView.vue'
 import NoGroupView from '@/views/NoGroupView.vue'
 import PlaceholderView from '@/views/PlaceholderView.vue'
 import RandomRestaurantView from '@/views/RandomRestaurantView.vue'
+import RestaurantHistoryView from '@/views/RestaurantHistoryView.vue'
 import RestaurantDetailView from '@/views/RestaurantDetailView.vue'
 import RestaurantListView from '@/views/RestaurantListView.vue'
 
@@ -48,7 +49,7 @@ const router = createRouter({
         {
           path: 'restaurants/history',
           name: 'restaurant-history',
-          component: PlaceholderView,
+          component: RestaurantHistoryView,
           meta: { requiresAuth: true, requiresGroup: true, pageTitle: '歷史紀錄' },
         },
         {

@@ -46,7 +46,6 @@ const categoryOptions = categoryOptionsWithAll
 const orderByOptions: Array<{ label: string; value: OrderBy }> = [
   { label: 'ID', value: 'DISPLAY_ORDER_ID' },
   { label: '建立時間', value: 'CREATED_AT' },
-  { label: '餐廳名稱', value: 'RESTAURANT_NAME' },
   { label: '被選取次數', value: 'SELECTED_COUNT' },
   { label: '最後被選時間', value: 'LAST_SELECTED_AT' },
 ]

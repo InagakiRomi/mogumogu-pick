@@ -22,8 +22,6 @@ public final class RestaurantSort {
         DISPLAY_ORDER_ID("displayOrderId"),
         /** 選擇次數 */
         SELECTED_COUNT("selectedCount"),
-        /** 餐廳名稱 */
-        RESTAURANT_NAME("restaurantName"),
         /** 最後選擇時間 */
         LAST_SELECTED_AT("lastSelectedAt"),
         /** 建立時間 */

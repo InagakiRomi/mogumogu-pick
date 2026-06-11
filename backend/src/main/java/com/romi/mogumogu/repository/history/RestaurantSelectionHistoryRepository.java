@@ -4,13 +4,21 @@ import com.romi.mogumogu.entity.history.RestaurantSelectionHistoryEntity;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
+import org.springframework.lang.NonNull;
+import org.springframework.lang.Nullable;
 
 public interface RestaurantSelectionHistoryRepository
-                extends JpaRepository<RestaurantSelectionHistoryEntity, Integer> {
-        /** 查詢群組的餐廳選擇歷史，並按選擇時間排序 */
-        @EntityGraph(attributePaths = { "restaurant", "restaurant.categoryId" })
-        Page<RestaurantSelectionHistoryEntity> findByGroupIdOrderBySelectedAtDesc(
-                        Integer groupId, Pageable pageable);
+        extends JpaRepository<RestaurantSelectionHistoryEntity, Integer>,
+        JpaSpecificationExecutor<RestaurantSelectionHistoryEntity> {
+
+    /** 取得餐廳抽選歷史紀錄 */
+    @EntityGraph(attributePaths = { "restaurant", "restaurant.categoryId" })
+    @Override
+    @NonNull
+    Page<RestaurantSelectionHistoryEntity> findAll(
+            @Nullable Specification<RestaurantSelectionHistoryEntity> spec, @NonNull Pageable pageable);
 }

@@ -615,6 +615,25 @@ class RestaurantControllerTest {
         }
 
         @Test
+        void withSort_passesQueryParamsToService() throws Exception {
+            SelectionHistoryResponse sorted = SelectionHistoryResponse.builder()
+                    .historyId(3)
+                    .restaurantId(5)
+                    .restaurantName("壽司店")
+                    .category("主食")
+                    .selectedAt(new Date())
+                    .build();
+            stubGetMyGroupSelectionHistory(matchesSortedHistoryQuery(),
+                    buildSelectionHistoryListResponse(List.of(sorted), 1, 10, 1L));
+
+            performGetMyGroupSelectionHistory(Map.of("sort", "ASC", "page", "1", "limit", "10"))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.data.length()").value(1));
+
+            verifyGetMyGroupSelectionHistoryCalled(matchesSortedHistoryQuery());
+        }
+
+        @Test
         void withPageAndLimit_passesQueryParamsToService() throws Exception {
             SelectionHistoryResponse paged = SelectionHistoryResponse.builder()
                     .historyId(2)
@@ -1359,11 +1378,21 @@ class RestaurantControllerTest {
     }
 
     private static java.util.function.Predicate<GetSelectionHistoryQuery> matchesDefaultHistoryQuery() {
-        return p -> Objects.equals(p.getPage(), 1) && Objects.equals(p.getLimit(), 10);
+        return p -> Objects.equals(p.getSort(), RestaurantSort.SortOrder.DESC)
+                && Objects.equals(p.getPage(), 1)
+                && Objects.equals(p.getLimit(), 10);
     }
 
     private static java.util.function.Predicate<GetSelectionHistoryQuery> matchesPagedHistoryQuery() {
-        return p -> Objects.equals(p.getPage(), 2) && Objects.equals(p.getLimit(), 10);
+        return p -> Objects.equals(p.getSort(), RestaurantSort.SortOrder.DESC)
+                && Objects.equals(p.getPage(), 2)
+                && Objects.equals(p.getLimit(), 10);
+    }
+
+    private static java.util.function.Predicate<GetSelectionHistoryQuery> matchesSortedHistoryQuery() {
+        return p -> Objects.equals(p.getSort(), RestaurantSort.SortOrder.ASC)
+                && Objects.equals(p.getPage(), 1)
+                && Objects.equals(p.getLimit(), 10);
     }
 
     private void assertMessageContains(String responseJson, String messagePart) throws Exception {

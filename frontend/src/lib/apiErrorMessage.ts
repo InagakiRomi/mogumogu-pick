@@ -85,6 +85,9 @@ export const RESTAURANT_FEEDBACK_MESSAGES = {
   list: {
     fallback: '取得餐廳清單失敗',
   },
+  history: {
+    fallback: '查詢歷史紀錄失敗',
+  },
   choose: {
     success: (restaurantName: string) => `選擇成功！今天就吃${restaurantName}。`,
     fallback: '選擇餐廳失敗',

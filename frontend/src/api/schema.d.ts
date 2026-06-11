@@ -665,7 +665,7 @@ export interface operations {
                 /** @description 搜尋關鍵字 */
                 search?: string;
                 /** @description 排序欄位 */
-                orderBy?: "RESTAURANT_ID" | "CATEGORY_ID" | "DISPLAY_ORDER_ID" | "SELECTED_COUNT" | "RESTAURANT_NAME" | "LAST_SELECTED_AT" | "CREATED_AT" | "UPDATED_AT";
+                orderBy?: "RESTAURANT_ID" | "CATEGORY_ID" | "DISPLAY_ORDER_ID" | "SELECTED_COUNT" | "LAST_SELECTED_AT" | "CREATED_AT" | "UPDATED_AT";
                 /** @description 排序方向 */
                 sort?: "ASC" | "DESC";
                 /** @description 頁碼 */
@@ -1057,6 +1057,8 @@ export interface operations {
     getMyGroupSelectionHistory: {
         parameters: {
             query?: {
+                /** @description 抽選時間排序方向 */
+                sort?: "ASC" | "DESC";
                 /** @description 頁碼 */
                 page?: number;
                 /** @description 每頁筆數 */

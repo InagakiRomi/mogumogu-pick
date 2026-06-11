@@ -6,6 +6,7 @@ import com.romi.mogumogu.dto.GetSelectionHistoryQuery;
 import com.romi.mogumogu.entity.history.RestaurantSelectionHistoryEntity;
 import com.romi.mogumogu.entity.restaurant.RestaurantEntity;
 import com.romi.mogumogu.entity.user.UserEntity;
+import com.romi.mogumogu.enums.RestaurantSort;
 import com.romi.mogumogu.repository.history.RestaurantSelectionHistoryRepository;
 import com.romi.mogumogu.repository.user.UserRepository;
 import com.romi.mogumogu.security.SecurityUtils;
@@ -13,6 +14,8 @@ import com.romi.mogumogu.security.SecurityUtils;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -54,10 +57,21 @@ public class RestaurantSelectionHistoryService {
         Integer page = queryParams.getPage();
         Integer limit = queryParams.getLimit();
 
-        // 分頁參數
-        Pageable pageable = PageRequest.of(page - 1, limit);
-        Page<RestaurantSelectionHistoryEntity> pageResult = historyRepository
-                .findByGroupIdOrderBySelectedAtDesc(groupId, pageable);
+        RestaurantSort.SortOrder safeSort = queryParams.getSort() != null
+                ? queryParams.getSort()
+                : RestaurantSort.SortOrder.DESC;
+
+        Sort.Direction sortDirection = Objects.requireNonNull(safeSort.getSortDirection());
+        Sort jpaSort = Sort.by(sortDirection, "selectedAt");
+
+        Specification<RestaurantSelectionHistoryEntity> spec = (root, query, cb) ->
+                cb.equal(root.get("groupId"), groupId);
+
+        // 建立分頁規則
+        Pageable pageable = PageRequest.of(page - 1, limit, jpaSort);
+
+        // 取得餐廳抽選歷史紀錄
+        Page<RestaurantSelectionHistoryEntity> pageResult = historyRepository.findAll(spec, pageable);
 
         // 轉換為回傳 DTO
         List<SelectionHistoryResponse> data = pageResult.getContent().stream()
