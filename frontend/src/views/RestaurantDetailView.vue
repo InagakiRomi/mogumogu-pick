@@ -3,26 +3,13 @@ import { computed, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import type { components } from '@/api/schema'
 import client from '@/api/client'
+import ConfirmAlertDialog from '@/components/feedback/ConfirmAlertDialog.vue'
+import FormAlertDialog from '@/components/feedback/FormAlertDialog.vue'
+import RestaurantFormDialog from '@/components/restaurant/RestaurantFormDialog.vue'
 import WarmButton from '@/components/warm/WarmButton.vue'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@/components/ui/alert-dialog'
+import { FORM_LABEL_CLASS } from '@/constants/form'
 import {
   Table,
   TableBody,
@@ -31,8 +18,12 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import ConfirmAlertDialog from '@/components/feedback/ConfirmAlertDialog.vue'
 import { useFeedbackDialog } from '@/composables/useFeedbackDialog'
+import {
+  DEFAULT_RESTAURANT_IMAGE,
+  formatRestaurantCategoryLabel,
+  formatRestaurantDate,
+} from '@/constants/restaurant'
 import { authSession } from '@/lib/authSession'
 import {
   ARCHIVED_RESTAURANT_MESSAGE,
@@ -45,21 +36,9 @@ import { isGroupAdmin } from '@/lib/userRole'
 type Restaurant = components['schemas']['RestaurantResponse']
 type Dish = components['schemas']['DishResponse']
 
-type CategoryOption = {
-  label: string
-  value: string
-}
-
-const DEFAULT_RESTAURANT_IMAGE = '/images/defaultRestaurant.jpg'
 /** 預設圖原始尺寸 480×320；詳細頁固定以 120×80 顯示 */
 const RESTAURANT_IMAGE_WIDTH = 120
 const RESTAURANT_IMAGE_HEIGHT = 80
-
-const categoryOptions: CategoryOption[] = [
-  { label: '主食', value: '1' },
-  { label: '輕食', value: '2' },
-  { label: '飲料', value: '3' },
-]
 
 const route = useRoute()
 const router = useRouter()
@@ -129,44 +108,90 @@ const canSave = computed(() => {
   )
 })
 
-const canCreateDish = computed(() => {
-  const price = Number(createDishForm.value.price)
-  return createDishForm.value.dishName.trim().length > 0 && Number.isInteger(price) && price >= 0 && !isCreatingDish.value
-})
-
-const canSaveDish = computed(() => {
-  const displayOrderId = Number(editDishForm.value.displayOrderId)
-  const price = Number(editDishForm.value.price)
-  return (
-    Number.isInteger(displayOrderId) &&
-    displayOrderId >= 1 &&
-    editDishForm.value.dishName.trim().length > 0 &&
-    Number.isInteger(price) &&
-    price >= 0
-  )
-})
+const canCreateDish = computed(() => validateCreateDish() === null && !isCreatingDish.value)
+const canSaveDish = computed(() => validateEditDish() === null)
 
 const canDeleteAsGroupAdmin = computed(() => isGroupAdmin(authSession.value?.role))
+const EMPTY_DISH_FORM = { displayOrderId: '', dishName: '', price: '' }
+const EMPTY_CREATE_DISH_FORM = { dishName: '', price: '' }
+const DELETE_PERMISSION_MESSAGE = '只有群組管理員可以刪除'
+const INVALID_RESTAURANT_ID_MESSAGE = '餐廳 ID 不正確'
+const INVALID_DISH_ID_MESSAGE = '餐點 ID 不正確'
 
-function formatDate(value?: string): string {
-  if (!value) {
-    return '-'
+const toPadded = (part: number) => String(part).padStart(2, '0')
+const toNonNegativeInteger = (value: string) => Number(value)
+const isValidNonNegativeInteger = (value: number) => Number.isInteger(value) && value >= 0
+const isValidPositiveInteger = (value: number) => Number.isInteger(value) && value >= 1
+
+function showValidationError(error: string | null): boolean {
+  if (error) {
+    showFeedback(error)
+    return false
   }
 
-  const parsed = new Date(value)
-  if (Number.isNaN(parsed.getTime())) {
-    return value
-  }
-
-  return parsed.toLocaleString('zh-TW', { hour12: false })
+  return true
 }
 
-function formatCategoryLabel(categoryId?: number): string {
-  if (categoryId == null) {
-    return '-'
+function validateEditRestaurant(): string | null {
+  const restaurantName = editForm.value.restaurantName.trim()
+  const displayOrderId = toNonNegativeInteger(editForm.value.displayOrderId)
+  const selectedCount = toNonNegativeInteger(editForm.value.selectedCount)
+
+  if (!restaurantName) {
+    return '請輸入餐廳名稱'
+  }
+  if (restaurantName.length > 64) {
+    return '餐廳名稱不可超過 64 字'
+  }
+  if (!isValidNonNegativeInteger(displayOrderId)) {
+    return '請輸入有效的顯示排序 ID（須為 0 以上的整數）'
+  }
+  if (!isValidNonNegativeInteger(selectedCount)) {
+    return '請輸入有效的被選取次數（須為 0 以上的整數）'
+  }
+  if (editForm.value.note.length > 512) {
+    return '備註不可超過 512 字'
+  }
+  if (editForm.value.imageUrl.length > 512) {
+    return '圖片網址不可超過 512 字'
+  }
+  if (editForm.value.lastSelectedAt.trim() && !toApiDatetime(editForm.value.lastSelectedAt)) {
+    return '請輸入有效的最後被選取時間'
   }
 
-  return categoryOptions.find((option) => option.value === String(categoryId))?.label ?? '-'
+  return null
+}
+
+function validateCreateDish(): string | null {
+  const dishName = createDishForm.value.dishName.trim()
+  const price = toNonNegativeInteger(createDishForm.value.price)
+
+  if (!dishName) {
+    return '請輸入餐點名稱'
+  }
+  if (!isValidNonNegativeInteger(price)) {
+    return '請輸入有效的餐點價格'
+  }
+
+  return null
+}
+
+function validateEditDish(): string | null {
+  const displayOrderId = toNonNegativeInteger(editDishForm.value.displayOrderId)
+  const dishName = editDishForm.value.dishName.trim()
+  const price = toNonNegativeInteger(editDishForm.value.price)
+
+  if (!isValidPositiveInteger(displayOrderId)) {
+    return '請輸入有效的顯示排序 ID（須為 1 以上的整數）'
+  }
+  if (!dishName) {
+    return '請輸入餐點名稱'
+  }
+  if (!isValidNonNegativeInteger(price)) {
+    return '請輸入有效的餐點價格'
+  }
+
+  return null
 }
 
 function formatPrice(value?: number): string {
@@ -188,8 +213,7 @@ function toDatetimeLocalValue(value?: string): string {
     return ''
   }
 
-  const pad = (part: number) => String(part).padStart(2, '0')
-  return `${parsed.getFullYear()}-${pad(parsed.getMonth() + 1)}-${pad(parsed.getDate())}T${pad(parsed.getHours())}:${pad(parsed.getMinutes())}`
+  return `${parsed.getFullYear()}-${toPadded(parsed.getMonth() + 1)}-${toPadded(parsed.getDate())}T${toPadded(parsed.getHours())}:${toPadded(parsed.getMinutes())}`
 }
 
 function toApiDatetime(value: string): string | undefined {
@@ -203,8 +227,7 @@ function toApiDatetime(value: string): string | undefined {
     return undefined
   }
 
-  const pad = (part: number) => String(part).padStart(2, '0')
-  return `${parsed.getFullYear()}-${pad(parsed.getMonth() + 1)}-${pad(parsed.getDate())} ${pad(parsed.getHours())}:${pad(parsed.getMinutes())}:${pad(parsed.getSeconds())}`
+  return `${parsed.getFullYear()}-${toPadded(parsed.getMonth() + 1)}-${toPadded(parsed.getDate())} ${toPadded(parsed.getHours())}:${toPadded(parsed.getMinutes())}:${toPadded(parsed.getSeconds())}`
 }
 
 const displayImageUrl = computed(() => {
@@ -275,8 +298,7 @@ async function fetchDishes(id: number) {
 async function fetchRestaurantDetail() {
   const id = restaurantId.value
   if (id == null) {
-    showFeedback('餐廳 ID 不正確')
-    void router.replace({ name: 'list-restaurant' })
+    showFeedback(INVALID_RESTAURANT_ID_MESSAGE, 'error', redirectToRestaurantList)
     return
   }
 
@@ -313,7 +335,7 @@ async function fetchRestaurantDetail() {
     }
 
     restaurant.value = null
-    showFeedback(getApiErrorMessage(error, '取得餐廳詳細資料失敗'))
+    showFeedback(getApiErrorMessage(error, '取得餐廳詳細資料失敗'), 'error', redirectToRestaurantList)
   } finally {
     isLoading.value = false
   }
@@ -325,43 +347,18 @@ async function handleSaveRestaurant() {
   }
 
   if (restaurantId.value == null) {
-    showFeedback('餐廳 ID 不正確')
+    showFeedback(INVALID_RESTAURANT_ID_MESSAGE)
+    return
+  }
+
+  if (!showValidationError(validateEditRestaurant())) {
     return
   }
 
   const restaurantName = editForm.value.restaurantName.trim()
-  const displayOrderId = Number(editForm.value.displayOrderId)
-  const selectedCount = Number(editForm.value.selectedCount)
+  const displayOrderId = toNonNegativeInteger(editForm.value.displayOrderId)
+  const selectedCount = toNonNegativeInteger(editForm.value.selectedCount)
   const lastSelectedAt = toApiDatetime(editForm.value.lastSelectedAt)
-
-  if (!restaurantName) {
-    showFeedback('請輸入餐廳名稱')
-    return
-  }
-  if (restaurantName.length > 64) {
-    showFeedback('餐廳名稱不可超過 64 字')
-    return
-  }
-  if (!Number.isInteger(displayOrderId) || displayOrderId < 0) {
-    showFeedback('請輸入有效的顯示排序 ID（須為 0 以上的整數）')
-    return
-  }
-  if (!Number.isInteger(selectedCount) || selectedCount < 0) {
-    showFeedback('請輸入有效的被選取次數（須為 0 以上的整數）')
-    return
-  }
-  if (editForm.value.note.length > 512) {
-    showFeedback('備註不可超過 512 字')
-    return
-  }
-  if (editForm.value.imageUrl.length > 512) {
-    showFeedback('圖片網址不可超過 512 字')
-    return
-  }
-  if (editForm.value.lastSelectedAt.trim() && !lastSelectedAt) {
-    showFeedback('請輸入有效的最後被選取時間')
-    return
-  }
 
   clearFeedback()
   isSaving.value = true
@@ -442,7 +439,7 @@ async function handleDeleteRestaurant() {
   }
 
   if (restaurantId.value == null) {
-    showFeedback('餐廳 ID 不正確')
+    showFeedback(INVALID_RESTAURANT_ID_MESSAGE)
     return
   }
 
@@ -478,10 +475,7 @@ function backToList() {
 }
 
 function resetCreateDishForm() {
-  createDishForm.value = {
-    dishName: '',
-    price: '',
-  }
+  createDishForm.value = { ...EMPTY_CREATE_DISH_FORM }
 }
 
 function openCreateDishDialog() {
@@ -500,20 +494,16 @@ function handleCreateDishDialogOpenChange(open: boolean) {
 async function handleCreateDish() {
   const id = restaurantId.value
   if (id == null) {
-    showFeedback('餐廳 ID 不正確')
+    showFeedback(INVALID_RESTAURANT_ID_MESSAGE)
+    return
+  }
+
+  if (!showValidationError(validateCreateDish())) {
     return
   }
 
   const dishName = createDishForm.value.dishName.trim()
-  const price = Number(createDishForm.value.price)
-  if (!dishName) {
-    showFeedback('請輸入餐點名稱')
-    return
-  }
-  if (!Number.isInteger(price) || price < 0) {
-    showFeedback('請輸入有效的餐點價格')
-    return
-  }
+  const price = toNonNegativeInteger(createDishForm.value.price)
 
   clearFeedback()
   isCreatingDish.value = true
@@ -562,7 +552,7 @@ function closeEditDishDialog() {
   allowEditDishDialogClose.value = true
   isEditDishDialogOpen.value = false
   editingDish.value = null
-  editDishForm.value = { displayOrderId: '', dishName: '', price: '' }
+  editDishForm.value = { ...EMPTY_DISH_FORM }
 }
 
 function handleEditDishDialogOpenChange(open: boolean) {
@@ -574,7 +564,7 @@ function handleEditDishDialogOpenChange(open: boolean) {
   isEditDishDialogOpen.value = open
   if (!open) {
     editingDish.value = null
-    editDishForm.value = { displayOrderId: '', dishName: '', price: '' }
+    editDishForm.value = { ...EMPTY_DISH_FORM }
   }
 }
 
@@ -586,25 +576,17 @@ async function handleSaveDish() {
   const id = restaurantId.value
   const dishId = editingDish.value?.dishId
   if (id == null || dishId == null) {
-    showFeedback('餐點 ID 不正確')
+    showFeedback(INVALID_DISH_ID_MESSAGE)
     return
   }
 
-  const displayOrderId = Number(editDishForm.value.displayOrderId)
+  if (!showValidationError(validateEditDish())) {
+    return
+  }
+
+  const displayOrderId = toNonNegativeInteger(editDishForm.value.displayOrderId)
   const dishName = editDishForm.value.dishName.trim()
-  const price = Number(editDishForm.value.price)
-  if (!Number.isInteger(displayOrderId) || displayOrderId < 1) {
-    showFeedback('請輸入有效的顯示排序 ID（須為 1 以上的整數）')
-    return
-  }
-  if (!dishName) {
-    showFeedback('請輸入餐點名稱')
-    return
-  }
-  if (!Number.isInteger(price) || price < 0) {
-    showFeedback('請輸入有效的餐點價格')
-    return
-  }
+  const price = toNonNegativeInteger(editDishForm.value.price)
 
   clearFeedback()
   isSavingDish.value = true
@@ -639,7 +621,7 @@ async function handleSaveDish() {
 
 function openDeleteDishDialog(dish: Dish) {
   if (!canDeleteAsGroupAdmin.value) {
-    showFeedback('只有群組管理員可以刪除')
+    showFeedback(DELETE_PERMISSION_MESSAGE)
     return
   }
 
@@ -649,14 +631,14 @@ function openDeleteDishDialog(dish: Dish) {
 
 async function handleDeleteDish() {
   if (!canDeleteAsGroupAdmin.value) {
-    showFeedback('只有群組管理員可以刪除')
+    showFeedback(DELETE_PERMISSION_MESSAGE)
     return
   }
 
   const id = restaurantId.value
   const dishId = deletingDish.value?.dishId
   if (id == null || dishId == null) {
-    showFeedback('餐點 ID 不正確')
+    showFeedback(INVALID_DISH_ID_MESSAGE)
     return
   }
 
@@ -692,6 +674,12 @@ watch(
   },
   { immediate: true },
 )
+
+watch(isDeleteDishDialogOpen, (open) => {
+  if (!open) {
+    deletingDish.value = null
+  }
+})
 </script>
 
 <template>
@@ -753,12 +741,12 @@ watch(
               <p class="sm:col-span-2 text-lg font-semibold">
                 {{ restaurant.restaurantName ?? '-' }}
               </p>
-              <p>分類：{{ formatCategoryLabel(restaurant.categoryId) }}</p>
+              <p>分類：{{ formatRestaurantCategoryLabel(restaurant.categoryId) }}</p>
               <p>顯示排序 ID：{{ restaurant.displayOrderId ?? '-' }}</p>
               <p>被選取次數：{{ restaurant.selectedCount ?? 0 }}</p>
-              <p>最後被選時間：{{ formatDate(restaurant.lastSelectedAt) }}</p>
-              <p>建立時間：{{ formatDate(restaurant.createdAt) }}</p>
-              <p>更新時間：{{ formatDate(restaurant.updatedAt) }}</p>
+              <p>最後被選時間：{{ formatRestaurantDate(restaurant.lastSelectedAt) }}</p>
+              <p>建立時間：{{ formatRestaurantDate(restaurant.createdAt) }}</p>
+              <p>更新時間：{{ formatRestaurantDate(restaurant.updatedAt) }}</p>
               <p class="sm:col-span-2">備註：{{ restaurant.note || '-' }}</p>
             </div>
           </div>
@@ -832,131 +820,20 @@ watch(
       </div>
     </div>
 
-    <AlertDialog :open="isEditDialogOpen" @update:open="handleEditDialogOpenChange">
-      <AlertDialogContent
-        class="max-w-[min(92vw,768px)]! data-[size=default]:max-w-[min(92vw,768px)]! data-[size=default]:sm:max-w-[min(92vw,768px)]! border-border bg-card text-card-foreground"
-      >
-        <AlertDialogHeader>
-          <AlertDialogTitle>修改餐廳</AlertDialogTitle>
-        </AlertDialogHeader>
-
-        <form class="space-y-4" @submit.prevent="handleSaveRestaurant">
-          <div class="space-y-2">
-            <Label for="edit-restaurant-name" class="font-bold text-muted-foreground">餐廳名稱</Label>
-            <Input
-              id="edit-restaurant-name"
-              v-model="editForm.restaurantName"
-              maxlength="64"
-              placeholder="例如：和食天國"
-              required
-            />
-          </div>
-
-          <div class="space-y-2">
-            <Label for="edit-restaurant-category" class="font-bold text-muted-foreground">分類</Label>
-            <Select v-model="editForm.categoryId">
-              <SelectTrigger
-                id="edit-restaurant-category"
-                class="h-10 w-full rounded-md border border-border bg-muted/90 px-3 text-left text-sm text-popover-foreground"
-              >
-                <SelectValue placeholder="選擇分類" />
-              </SelectTrigger>
-              <SelectContent
-                position="popper"
-                class="z-10000 border-border bg-card text-popover-foreground"
-              >
-                <SelectItem v-for="option in categoryOptions" :key="option.value" :value="option.value">
-                  {{ option.label }}
-                </SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div class="grid gap-4 sm:grid-cols-2">
-            <div class="space-y-2">
-              <Label for="edit-restaurant-display-order-id" class="font-bold text-muted-foreground">
-                顯示排序 ID
-              </Label>
-              <Input
-                id="edit-restaurant-display-order-id"
-                v-model="editForm.displayOrderId"
-                type="number"
-                min="0"
-                step="1"
-                placeholder="例如：1"
-                required
-              />
-            </div>
-
-            <div class="space-y-2">
-              <Label for="edit-restaurant-selected-count" class="font-bold text-muted-foreground">
-                被選取次數
-              </Label>
-              <Input
-                id="edit-restaurant-selected-count"
-                v-model="editForm.selectedCount"
-                type="number"
-                min="0"
-                step="1"
-                placeholder="例如：0"
-                required
-              />
-            </div>
-          </div>
-
-          <div class="space-y-2">
-            <Label for="edit-restaurant-note" class="font-bold text-muted-foreground">備註</Label>
-            <Input
-              id="edit-restaurant-note"
-              v-model="editForm.note"
-              maxlength="512"
-              placeholder="例如：可電話訂位"
-            />
-          </div>
-
-          <div class="space-y-2">
-            <Label for="edit-restaurant-image-url" class="font-bold text-muted-foreground">圖片網址</Label>
-            <Input
-              id="edit-restaurant-image-url"
-              v-model="editForm.imageUrl"
-              maxlength="512"
-              placeholder="https://example.com/restaurant.jpg"
-            />
-          </div>
-
-          <div class="space-y-2">
-            <Label for="edit-restaurant-last-selected-at" class="font-bold text-muted-foreground">
-              最後被選取時間
-            </Label>
-            <Input
-              id="edit-restaurant-last-selected-at"
-              v-model="editForm.lastSelectedAt"
-              type="datetime-local"
-              step="1"
-            />
-          </div>
-
-          <AlertDialogFooter class="mt-1 sm:gap-3">
-            <WarmButton
-              type="button"
-              variant="outline-standard"
-              class="h-11 min-w-[120px] flex-1 sm:flex-none"
-              :disabled="isSaving"
-              @click="closeEditRestaurantDialog"
-            >
-              取消
-            </WarmButton>
-            <WarmButton
-              type="submit"
-              class="h-11 min-w-[120px] flex-1 sm:flex-none"
-              :disabled="!canSave || isSaving"
-            >
-              {{ isSaving ? '儲存中...' : '確認修改' }}
-            </WarmButton>
-          </AlertDialogFooter>
-        </form>
-      </AlertDialogContent>
-    </AlertDialog>
+    <RestaurantFormDialog
+      :open="isEditDialogOpen"
+      v-model="editForm"
+      mode="edit"
+      title="修改餐廳"
+      id-prefix="edit-restaurant"
+      submit-label="確認修改"
+      loading-label="儲存中..."
+      :loading="isSaving"
+      :can-submit="canSave"
+      @update:open="handleEditDialogOpenChange"
+      @submit="handleSaveRestaurant"
+      @cancel="closeEditRestaurantDialog"
+    />
 
     <ConfirmAlertDialog
       v-model:open="isDeleteDialogOpen"
@@ -969,154 +846,100 @@ watch(
       刪除後會封存此餐廳，確定要刪除「{{ restaurant?.restaurantName ?? '此餐廳' }}」嗎？
     </ConfirmAlertDialog>
 
-    <AlertDialog :open="isCreateDishDialogOpen" @update:open="handleCreateDishDialogOpenChange">
-      <AlertDialogContent
-        class="max-w-[min(92vw,768px)]! data-[size=default]:max-w-[min(92vw,768px)]! data-[size=default]:sm:max-w-[min(92vw,768px)]! border-border bg-card text-card-foreground"
-      >
-        <AlertDialogHeader>
-          <AlertDialogTitle>新增餐點</AlertDialogTitle>
-        </AlertDialogHeader>
-
-        <form class="space-y-4" @submit.prevent="handleCreateDish">
-          <div class="space-y-2">
-            <Label for="create-dish-name" class="font-bold text-muted-foreground">餐點名稱</Label>
-            <Input
-              id="create-dish-name"
-              v-model="createDishForm.dishName"
-              maxlength="64"
-              placeholder="例如：牛肉拉麵"
-              required
-            />
-          </div>
-
-          <div class="space-y-2">
-            <Label for="create-dish-price" class="font-bold text-muted-foreground">價格</Label>
-            <Input
-              id="create-dish-price"
-              v-model="createDishForm.price"
-              type="number"
-              min="0"
-              step="1"
-              placeholder="例如：130"
-              required
-            />
-          </div>
-
-          <AlertDialogFooter class="mt-1 sm:gap-3">
-            <WarmButton
-              type="button"
-              variant="outline-standard"
-              class="h-11 min-w-[120px] flex-1 sm:flex-none"
-              :disabled="isCreatingDish"
-              @click="handleCreateDishDialogOpenChange(false)"
-            >
-              取消
-            </WarmButton>
-            <WarmButton
-              type="submit"
-              class="h-11 min-w-[120px] flex-1 sm:flex-none"
-              :disabled="!canCreateDish"
-            >
-              {{ isCreatingDish ? '新增中...' : '確認新增' }}
-            </WarmButton>
-          </AlertDialogFooter>
-        </form>
-      </AlertDialogContent>
-    </AlertDialog>
-
-    <AlertDialog :open="isEditDishDialogOpen" @update:open="handleEditDishDialogOpenChange">
-      <AlertDialogContent
-        class="max-w-[min(92vw,768px)]! data-[size=default]:max-w-[min(92vw,768px)]! data-[size=default]:sm:max-w-[min(92vw,768px)]! border-border bg-card text-card-foreground"
-      >
-        <AlertDialogHeader>
-          <AlertDialogTitle>修改餐點</AlertDialogTitle>
-        </AlertDialogHeader>
-
-        <form class="space-y-4" @submit.prevent="handleSaveDish">
-          <div class="space-y-2">
-            <Label for="edit-dish-display-order-id" class="font-bold text-muted-foreground">
-              顯示排序 ID
-            </Label>
-            <Input
-              id="edit-dish-display-order-id"
-              v-model="editDishForm.displayOrderId"
-              type="number"
-              min="1"
-              step="1"
-              placeholder="例如：1"
-              required
-            />
-          </div>
-
-          <div class="space-y-2">
-            <Label for="edit-dish-name" class="font-bold text-muted-foreground">餐點名稱</Label>
-            <Input
-              id="edit-dish-name"
-              v-model="editDishForm.dishName"
-              maxlength="64"
-              placeholder="例如：雙倍叉燒拉麵"
-              required
-            />
-          </div>
-
-          <div class="space-y-2">
-            <Label for="edit-dish-price" class="font-bold text-muted-foreground">價格</Label>
-            <Input
-              id="edit-dish-price"
-              v-model="editDishForm.price"
-              type="number"
-              min="0"
-              step="1"
-              placeholder="例如：180"
-              required
-            />
-          </div>
-
-          <AlertDialogFooter class="mt-1 sm:gap-3">
-            <WarmButton
-              type="button"
-              variant="outline-standard"
-              class="h-11 min-w-[120px] flex-1 sm:flex-none"
-              :disabled="isSavingDish"
-              @click="closeEditDishDialog"
-            >
-              取消
-            </WarmButton>
-            <WarmButton
-              type="submit"
-              class="h-11 min-w-[120px] flex-1 sm:flex-none"
-              :disabled="!canSaveDish || isSavingDish"
-            >
-              {{ isSavingDish ? '儲存中...' : '確認修改' }}
-            </WarmButton>
-          </AlertDialogFooter>
-        </form>
-      </AlertDialogContent>
-    </AlertDialog>
-
-    <AlertDialog
-      :open="isDeleteDishDialogOpen"
-      @update:open="
-        (value) => {
-          isDeleteDishDialogOpen = value
-          if (!value) deletingDish = null
-        }
-      "
+    <FormAlertDialog
+      :open="isCreateDishDialogOpen"
+      title="新增餐點"
+      submit-label="確認新增"
+      loading-label="新增中..."
+      :loading="isCreatingDish"
+      :can-submit="canCreateDish"
+      @update:open="handleCreateDishDialogOpenChange"
+      @submit="handleCreateDish"
+      @cancel="handleCreateDishDialogOpenChange(false)"
     >
-      <AlertDialogContent class="border-border bg-card text-card-foreground">
-        <AlertDialogHeader>
-          <AlertDialogTitle>確認刪除餐點？</AlertDialogTitle>
-          <AlertDialogDescription>
-            確定要刪除「{{ deletingDish?.dishName ?? '此餐點' }}」嗎？此操作無法復原。
-          </AlertDialogDescription>
-        </AlertDialogHeader>
-        <AlertDialogFooter>
-          <AlertDialogCancel :disabled="isDeletingDish">取消</AlertDialogCancel>
-          <AlertDialogAction :disabled="isDeletingDish" @click="handleDeleteDish">
-            {{ isDeletingDish ? '刪除中...' : '確認刪除' }}
-          </AlertDialogAction>
-        </AlertDialogFooter>
-      </AlertDialogContent>
-    </AlertDialog>
+      <div class="space-y-2">
+        <Label for="create-dish-name" :class="FORM_LABEL_CLASS">餐點名稱</Label>
+        <Input
+          id="create-dish-name"
+          v-model="createDishForm.dishName"
+          maxlength="64"
+          placeholder="例如：牛肉拉麵"
+          required
+        />
+      </div>
+
+      <div class="space-y-2">
+        <Label for="create-dish-price" :class="FORM_LABEL_CLASS">價格</Label>
+        <Input
+          id="create-dish-price"
+          v-model="createDishForm.price"
+          type="number"
+          min="0"
+          step="1"
+          placeholder="例如：130"
+          required
+        />
+      </div>
+    </FormAlertDialog>
+
+    <FormAlertDialog
+      :open="isEditDishDialogOpen"
+      title="修改餐點"
+      submit-label="確認修改"
+      loading-label="儲存中..."
+      :loading="isSavingDish"
+      :can-submit="canSaveDish"
+      @update:open="handleEditDishDialogOpenChange"
+      @submit="handleSaveDish"
+      @cancel="closeEditDishDialog"
+    >
+      <div class="space-y-2">
+        <Label for="edit-dish-display-order-id" :class="FORM_LABEL_CLASS">顯示排序 ID</Label>
+        <Input
+          id="edit-dish-display-order-id"
+          v-model="editDishForm.displayOrderId"
+          type="number"
+          min="1"
+          step="1"
+          placeholder="例如：1"
+          required
+        />
+      </div>
+
+      <div class="space-y-2">
+        <Label for="edit-dish-name" :class="FORM_LABEL_CLASS">餐點名稱</Label>
+        <Input
+          id="edit-dish-name"
+          v-model="editDishForm.dishName"
+          maxlength="64"
+          placeholder="例如：雙倍叉燒拉麵"
+          required
+        />
+      </div>
+
+      <div class="space-y-2">
+        <Label for="edit-dish-price" :class="FORM_LABEL_CLASS">價格</Label>
+        <Input
+          id="edit-dish-price"
+          v-model="editDishForm.price"
+          type="number"
+          min="0"
+          step="1"
+          placeholder="例如：180"
+          required
+        />
+      </div>
+    </FormAlertDialog>
+
+    <ConfirmAlertDialog
+      v-model:open="isDeleteDishDialogOpen"
+      title="確認刪除餐點？"
+      confirm-label="確認刪除"
+      loading-label="刪除中..."
+      :loading="isDeletingDish"
+      @confirm="handleDeleteDish"
+    >
+      確定要刪除「{{ deletingDish?.dishName ?? '此餐點' }}」嗎？此操作無法復原。
+    </ConfirmAlertDialog>
   </main>
 </template>

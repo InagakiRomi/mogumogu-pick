@@ -1,16 +1,3 @@
-/** PATCH /restaurants/{id} 後端錯誤訊息對照 */
-const UPDATE_RESTAURANT_ERROR_MESSAGES: Record<string, string> = {
-  'displayOrderId already exists in this group': '此群組內已存在相同的顯示排序 ID',
-  'Category not found': '找不到此分類，或分類不屬於此群組',
-  'restaurantId must not be null': '餐廳 ID 不可為空',
-  'categoryId must be greater than or equal to the minimum value': '分類 ID 不可小於 0',
-  'displayOrderId must be greater than or equal to the minimum value': '顯示排序 ID 不可小於 0',
-  'selectedCount must be greater than or equal to the minimum value': '被選取次數不可小於 0',
-  'restaurantName size is out of allowed range': '餐廳名稱不可超過 64 字',
-  'note size is out of allowed range': '備註不可超過 512 字',
-  'imageUrl size is out of allowed range': '圖片網址不可超過 512 字',
-}
-
 const API_ERROR_MESSAGES: Record<string, string> = {
   'Full authentication is required to access this resource': '請先登入後再操作',
   Unauthorized: '尚未登入或登入已過期',
@@ -27,7 +14,11 @@ const API_ERROR_MESSAGES: Record<string, string> = {
   'Restaurant is archived': '該餐廳已被刪除',
   'User not found': '找不到使用者',
   '該帳號未加入群組': '該帳號未加入群組',
-  ...UPDATE_RESTAURANT_ERROR_MESSAGES,
+  'displayOrderId already exists in this group': '此群組內已存在相同的顯示排序 ID',
+  'Category not found': '找不到此分類，或分類不屬於此群組',
+  'restaurantName size is out of allowed range': '餐廳名稱不可超過 64 字',
+  'note size is out of allowed range': '備註不可超過 512 字',
+  'imageUrl size is out of allowed range': '圖片網址不可超過 512 字',
 }
 
 const API_ERROR_PATTERNS: Array<{ pattern: RegExp; message: string }> = [
