@@ -3,8 +3,16 @@ import { computed, onMounted, ref, watch } from 'vue'
 import type { components, operations } from '@/api/schema'
 import client from '@/api/client'
 import WarmButton from '@/components/warm/WarmButton.vue'
+import { authSession } from '@/lib/authSession'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import {
+  AlertDialog,
+  AlertDialogContent,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
 import {
   Select,
   SelectContent,
@@ -47,6 +55,7 @@ const categoryOptions: CategoryOption[] = [
 ]
 
 const orderByOptions: Array<{ label: string; value: OrderBy }> = [
+  { label: 'ID', value: 'DISPLAY_ORDER_ID' },
   { label: '建立時間', value: 'CREATED_AT' },
   { label: '餐廳名稱', value: 'RESTAURANT_NAME' },
   { label: '被選取次數', value: 'SELECTED_COUNT' },
@@ -61,12 +70,20 @@ const sortOptions: Array<{ label: string; value: SortOrder }> = [
 const restaurants = ref<Restaurant[]>([])
 const searchInput = ref('')
 const selectedCategory = ref(ALL_CATEGORIES_VALUE)
-const orderBy = ref<OrderBy>('CREATED_AT')
+const orderBy = ref<OrderBy>('DISPLAY_ORDER_ID')
 const sort = ref<SortOrder>('DESC')
 const page = ref(1)
 const limit = ref(DEFAULT_LIMIT)
 const total = ref(0)
 const isLoading = ref(false)
+const isCreateDialogOpen = ref(false)
+const isCreating = ref(false)
+const createForm = ref({
+  restaurantName: '',
+  categoryId: '1',
+  note: '',
+  imageUrl: '',
+})
 const { showFeedback, clearFeedback } = useFeedbackDialog()
 
 const totalPages = computed(() => {
@@ -78,6 +95,9 @@ const totalPages = computed(() => {
 
 const hasPrevPage = computed(() => page.value > 1)
 const hasNextPage = computed(() => page.value < totalPages.value)
+const canSubmitCreateRestaurant = computed(
+  () => createForm.value.restaurantName.trim().length > 0 && !isCreating.value,
+)
 
 const pagingText = computed(() => {
   if (!total.value) {
@@ -136,6 +156,28 @@ function handleImageError(event: Event, restaurantId?: number) {
   img.src = DEFAULT_RESTAURANT_IMAGE
 }
 
+function resetCreateForm() {
+  createForm.value = {
+    restaurantName: '',
+    categoryId: '1',
+    note: '',
+    imageUrl: '',
+  }
+}
+
+function openCreateDialog() {
+  clearFeedback()
+  resetCreateForm()
+  isCreateDialogOpen.value = true
+}
+
+function handleCreateDialogOpenChange(open: boolean) {
+  isCreateDialogOpen.value = open
+  if (!open) {
+    resetCreateForm()
+  }
+}
+
 async function fetchRestaurants() {
   clearFeedback()
   isLoading.value = true
@@ -170,6 +212,53 @@ async function fetchRestaurants() {
     showFeedback(getApiErrorMessage(error, RESTAURANT_FEEDBACK_MESSAGES.list.fallback))
   } finally {
     isLoading.value = false
+  }
+}
+
+async function handleCreateRestaurant() {
+  const groupId = authSession.value?.groupId
+  if (groupId == null || groupId <= 0) {
+    showFeedback('請先加入群組後才能新增餐廳')
+    return
+  }
+
+  const restaurantName = createForm.value.restaurantName.trim()
+  if (!restaurantName) {
+    showFeedback('請輸入餐廳名稱')
+    return
+  }
+
+  clearFeedback()
+  isCreating.value = true
+
+  try {
+    const { error } = await client.POST('/restaurants', {
+      body: {
+        groupId,
+        categoryId: Number(createForm.value.categoryId),
+        restaurantName,
+        note: createForm.value.note.trim() || undefined,
+        imageUrl: createForm.value.imageUrl.trim() || undefined,
+      },
+    })
+
+    if (error) {
+      throw error
+    }
+
+    isCreateDialogOpen.value = false
+    resetCreateForm()
+    showFeedback('新增餐廳成功', 'success')
+
+    if (page.value !== 1) {
+      page.value = 1
+    } else {
+      await fetchRestaurants()
+    }
+  } catch (error) {
+    showFeedback(getApiErrorMessage(error, '新增餐廳失敗'))
+  } finally {
+    isCreating.value = false
   }
 }
 
@@ -282,6 +371,9 @@ onMounted(() => {
           <WarmButton :disabled="isLoading" @click="handleSearch">
             {{ isLoading ? '查詢中...' : '查詢' }}
           </WarmButton>
+          <WarmButton :disabled="isLoading || isCreating" @click="openCreateDialog">
+            新增餐廳
+          </WarmButton>
         </div>
 
         <div class="rounded-lg border border-border bg-card/70">
@@ -352,5 +444,95 @@ onMounted(() => {
         </div>
       </div>
     </div>
+
+    <AlertDialog :open="isCreateDialogOpen" @update:open="handleCreateDialogOpenChange">
+      <AlertDialogContent
+        class="max-w-[min(92vw,768px)]! data-[size=default]:max-w-[min(92vw,768px)]! data-[size=default]:sm:max-w-[min(92vw,768px)]! border-border bg-card text-card-foreground"
+      >
+        <AlertDialogHeader>
+          <AlertDialogTitle>新增餐廳</AlertDialogTitle>
+        </AlertDialogHeader>
+
+        <form class="space-y-4" @submit.prevent="handleCreateRestaurant">
+          <div class="space-y-2">
+            <Label for="create-restaurant-name" class="font-bold text-muted-foreground">
+              餐廳名稱
+            </Label>
+            <Input
+              id="create-restaurant-name"
+              v-model="createForm.restaurantName"
+              maxlength="100"
+              placeholder="例如：和食天國"
+              required
+            />
+          </div>
+
+          <div class="space-y-2">
+            <Label for="create-restaurant-category" class="font-bold text-muted-foreground">分類</Label>
+            <Select v-model="createForm.categoryId">
+              <SelectTrigger
+                id="create-restaurant-category"
+                class="h-10 w-full rounded-md border border-border bg-muted/90 px-3 text-left text-sm text-popover-foreground"
+              >
+                <SelectValue placeholder="選擇分類" />
+              </SelectTrigger>
+              <SelectContent
+                position="popper"
+                class="z-10000 border-border bg-card text-popover-foreground"
+              >
+                <SelectItem
+                  v-for="option in categoryOptions.filter((option) => option.value !== ALL_CATEGORIES_VALUE)"
+                  :key="option.value"
+                  :value="option.value"
+                >
+                  {{ option.label }}
+                </SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div class="space-y-2">
+            <Label for="create-restaurant-note" class="font-bold text-muted-foreground">備註（選填）</Label>
+            <Input
+              id="create-restaurant-note"
+              v-model="createForm.note"
+              maxlength="255"
+              placeholder="例如：可電話訂位"
+            />
+          </div>
+
+          <div class="space-y-2">
+            <Label for="create-restaurant-image-url" class="font-bold text-muted-foreground">
+              圖片網址（選填）
+            </Label>
+            <Input
+              id="create-restaurant-image-url"
+              v-model="createForm.imageUrl"
+              maxlength="255"
+              placeholder="https://example.com/restaurant.jpg"
+            />
+          </div>
+
+          <AlertDialogFooter class="mt-1 sm:gap-3">
+            <WarmButton
+              type="button"
+              variant="outline-standard"
+              class="h-11 min-w-[120px] flex-1 sm:flex-none"
+              :disabled="isCreating"
+              @click="handleCreateDialogOpenChange(false)"
+            >
+              取消
+            </WarmButton>
+            <WarmButton
+              type="submit"
+              class="h-11 min-w-[120px] flex-1 sm:flex-none"
+              :disabled="!canSubmitCreateRestaurant"
+            >
+              {{ isCreating ? '新增中...' : '確認新增' }}
+            </WarmButton>
+          </AlertDialogFooter>
+        </form>
+      </AlertDialogContent>
+    </AlertDialog>
   </main>
 </template>
