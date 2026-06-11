@@ -403,7 +403,7 @@ public class RestaurantService {
 
         // 檢查使用者是否屬於群組
         if (user.getGroupId() == null) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "該帳號未加入群組");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "User is not in a group");
         }
         return user.getGroupId();
     }

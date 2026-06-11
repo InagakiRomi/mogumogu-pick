@@ -21,7 +21,6 @@ const API_ERROR_MESSAGES: Record<string, string> = {
   'restaurantId must not be null': '餐廳 ID 不可為空',
   'User not found': '找不到使用者',
   'User is not in a group': '使用者未加入群組',
-  '該帳號未加入群組': '該帳號未加入群組',
   'Group not found': '找不到此群組',
   'displayOrderId already exists in this group': '此群組內已存在相同的顯示排序 ID',
   'displayOrderId already exists in this restaurant': '此餐廳內已存在相同的顯示排序 ID',

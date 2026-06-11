@@ -335,10 +335,10 @@ class RestaurantControllerTest {
         @Test
         void notInGroup_returns400() throws Exception {
             when(restaurantService.getRestaurants(any(GetRestaurantQuery.class)))
-                    .thenThrow(new ResponseStatusException(HttpStatus.BAD_REQUEST, "該帳號未加入群組"));
+                    .thenThrow(new ResponseStatusException(HttpStatus.BAD_REQUEST, "User is not in a group"));
 
             assertErrorResponse(performGetMyGroupRestaurants(),
-                    HttpStatus.BAD_REQUEST, RESTAURANTS_PATH, "該帳號未加入群組");
+                    HttpStatus.BAD_REQUEST, RESTAURANTS_PATH, "User is not in a group");
 
             verify(restaurantService).getRestaurants(any(GetRestaurantQuery.class));
         }
@@ -473,10 +473,10 @@ class RestaurantControllerTest {
         @Test
         void notInGroup_returns400() throws Exception {
             when(restaurantService.getRandomMyGroupRestaurant(null))
-                    .thenThrow(new ResponseStatusException(HttpStatus.BAD_REQUEST, "該帳號未加入群組"));
+                    .thenThrow(new ResponseStatusException(HttpStatus.BAD_REQUEST, "User is not in a group"));
 
             assertErrorResponse(performGetRandomMyGroupRestaurant(),
-                    HttpStatus.BAD_REQUEST, RESTAURANTS_RANDOM_PATH, "該帳號未加入群組");
+                    HttpStatus.BAD_REQUEST, RESTAURANTS_RANDOM_PATH, "User is not in a group");
 
             verify(restaurantService).getRandomMyGroupRestaurant(null);
         }
@@ -534,10 +534,10 @@ class RestaurantControllerTest {
         @Test
         void notInGroup_returns400() throws Exception {
             when(restaurantService.chooseMyGroupRestaurant(7))
-                    .thenThrow(new ResponseStatusException(HttpStatus.BAD_REQUEST, "該帳號未加入群組"));
+                    .thenThrow(new ResponseStatusException(HttpStatus.BAD_REQUEST, "User is not in a group"));
 
             assertErrorResponse(performChooseMyGroupRestaurant(7),
-                    HttpStatus.BAD_REQUEST, "/restaurants/7/choose", "該帳號未加入群組");
+                    HttpStatus.BAD_REQUEST, "/restaurants/7/choose", "User is not in a group");
 
             verify(restaurantService).chooseMyGroupRestaurant(7);
         }
@@ -653,10 +653,10 @@ class RestaurantControllerTest {
         @Test
         void notInGroup_returns400() throws Exception {
             when(restaurantService.getMyGroupSelectionHistory(any(GetSelectionHistoryQuery.class)))
-                    .thenThrow(new ResponseStatusException(HttpStatus.BAD_REQUEST, "該帳號未加入群組"));
+                    .thenThrow(new ResponseStatusException(HttpStatus.BAD_REQUEST, "User is not in a group"));
 
             assertErrorResponse(performGetMyGroupSelectionHistory(),
-                    HttpStatus.BAD_REQUEST, RESTAURANTS_SELECTION_HISTORY_PATH, "該帳號未加入群組");
+                    HttpStatus.BAD_REQUEST, RESTAURANTS_SELECTION_HISTORY_PATH, "User is not in a group");
 
             verify(restaurantService).getMyGroupSelectionHistory(any(GetSelectionHistoryQuery.class));
         }
@@ -767,10 +767,10 @@ class RestaurantControllerTest {
         @Test
         void notInGroup_returns400() throws Exception {
             when(restaurantService.getRestaurant(5, false))
-                    .thenThrow(new ResponseStatusException(HttpStatus.BAD_REQUEST, "該帳號未加入群組"));
+                    .thenThrow(new ResponseStatusException(HttpStatus.BAD_REQUEST, "User is not in a group"));
 
             assertErrorResponse(mockMvc.perform(get("/restaurants/{id}", 5)),
-                    HttpStatus.BAD_REQUEST, "/restaurants/5", "該帳號未加入群組");
+                    HttpStatus.BAD_REQUEST, "/restaurants/5", "User is not in a group");
 
             verify(restaurantService).getRestaurant(5, false);
         }
