@@ -3,8 +3,8 @@ import { computed, ref } from 'vue'
 import type { components } from '@/api/schema'
 import client from '@/api/client'
 import WarmButton from '@/components/warm/WarmButton.vue'
-import WarmFeedback from '@/components/warm/WarmFeedback.vue'
 import WarmInfoCard from '@/components/warm/WarmInfoCard.vue'
+import { useFeedbackDialog } from '@/composables/useFeedbackDialog'
 import WarmPanel from '@/components/warm/WarmPanel.vue'
 import WarmSelectTrigger from '@/components/warm/WarmSelectTrigger.vue'
 import { Label } from '@/components/ui/label'
@@ -30,8 +30,7 @@ const selectedCategory = ref(ALL_CATEGORIES_VALUE)
 const currentRestaurant = ref<RestaurantResult | null>(null)
 const isRandomLoading = ref(false)
 const isChooseLoading = ref(false)
-const feedback = ref('')
-const feedbackType = ref<'error' | 'success'>('error')
+const { showFeedback, clearFeedback } = useFeedbackDialog()
 
 const selectedCategoryLabel = computed(() => {
   const matched = categoryOptions.find((option) => option.value === selectedCategory.value)
@@ -39,15 +38,6 @@ const selectedCategoryLabel = computed(() => {
 })
 
 const canChooseRestaurant = computed(() => !!currentRestaurant.value?.restaurantId && !isChooseLoading.value)
-
-function setFeedback(message: string, type: 'error' | 'success' = 'error') {
-  feedback.value = message
-  feedbackType.value = type
-}
-
-function clearFeedback() {
-  feedback.value = ''
-}
 
 async function resetRandomPool() {
   const { error } = await client.POST('/restaurants/my/random/clear')
@@ -63,9 +53,9 @@ async function handleCategoryChange(value: unknown) {
 
   try {
     await resetRandomPool()
-    setFeedback(RESTAURANT_FEEDBACK_MESSAGES.clearPool.success, 'success')
+    showFeedback(RESTAURANT_FEEDBACK_MESSAGES.clearPool.success, 'success')
   } catch (error) {
-    setFeedback(getApiErrorMessage(error, RESTAURANT_FEEDBACK_MESSAGES.clearPool.fallback))
+    showFeedback(getApiErrorMessage(error, RESTAURANT_FEEDBACK_MESSAGES.clearPool.fallback))
   }
 }
 
@@ -90,7 +80,7 @@ async function handleRandomRestaurant() {
 
     currentRestaurant.value = data ?? null
   } catch (error) {
-    setFeedback(getApiErrorMessage(error, RESTAURANT_FEEDBACK_MESSAGES.random.fallback))
+    showFeedback(getApiErrorMessage(error, RESTAURANT_FEEDBACK_MESSAGES.random.fallback))
   } finally {
     isRandomLoading.value = false
   }
@@ -98,7 +88,7 @@ async function handleRandomRestaurant() {
 
 async function handleChooseRestaurant() {
   if (!currentRestaurant.value?.restaurantId) {
-    setFeedback(RESTAURANT_FEEDBACK_MESSAGES.chooseRequiresRandom)
+    showFeedback(RESTAURANT_FEEDBACK_MESSAGES.chooseRequiresRandom)
     return
   }
 
@@ -119,9 +109,9 @@ async function handleChooseRestaurant() {
     }
 
     currentRestaurant.value = null
-    setFeedback(RESTAURANT_FEEDBACK_MESSAGES.choose.success, 'success')
+    showFeedback(RESTAURANT_FEEDBACK_MESSAGES.choose.success, 'success')
   } catch (error) {
-    setFeedback(getApiErrorMessage(error, RESTAURANT_FEEDBACK_MESSAGES.choose.fallback))
+    showFeedback(getApiErrorMessage(error, RESTAURANT_FEEDBACK_MESSAGES.choose.fallback))
   } finally {
     isChooseLoading.value = false
   }
@@ -170,8 +160,6 @@ async function handleChooseRestaurant() {
           </WarmButton>
         </div>
       </div>
-
-      <WarmFeedback v-if="feedback" :type="feedbackType" :message="feedback" />
     </WarmPanel>
   </main>
 </template>

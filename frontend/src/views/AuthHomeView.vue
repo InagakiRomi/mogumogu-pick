@@ -6,8 +6,8 @@ import { AUTH_FEEDBACK_MESSAGES, getApiErrorMessage } from '@/lib/apiErrorMessag
 import { setAuthSession, hasGroup } from '@/lib/authSession'
 import { authToken } from '@/lib/authToken'
 import WarmButton from '@/components/warm/WarmButton.vue'
-import WarmFeedback from '@/components/warm/WarmFeedback.vue'
 import WarmPanel from '@/components/warm/WarmPanel.vue'
+import { useFeedbackDialog } from '@/composables/useFeedbackDialog'
 import WarmSelectTrigger from '@/components/warm/WarmSelectTrigger.vue'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -19,8 +19,7 @@ type AuthTab = 'login' | 'register'
 const router = useRouter()
 const activeTab = ref<AuthTab>('login')
 const isLoading = ref(false)
-const feedback = ref('')
-const feedbackType = ref<'error' | 'success'>('error')
+const { showFeedback, clearFeedback } = useFeedbackDialog()
 
 const loginForm = ref({
   email: '',
@@ -33,15 +32,6 @@ const registerForm = ref({
   password: '',
   role: '2',
 })
-
-function setFeedback(message: string, type: 'error' | 'success' = 'error') {
-  feedback.value = message
-  feedbackType.value = type
-}
-
-function clearFeedback() {
-  feedback.value = ''
-}
 
 async function handleLogin() {
   clearFeedback()
@@ -61,17 +51,16 @@ async function handleLogin() {
 
     const token = data?.token?.trim()
     if (!token) {
-      setFeedback(AUTH_FEEDBACK_MESSAGES.login.missingToken)
+      showFeedback(AUTH_FEEDBACK_MESSAGES.login.missingToken)
       return
     }
 
     authToken.value = token
     setAuthSession(data)
 
-    setFeedback(AUTH_FEEDBACK_MESSAGES.login.success, 'success')
     await router.push({ name: hasGroup() ? 'random-restaurant' : 'no-group' })
   } catch (error) {
-    setFeedback(getApiErrorMessage(error, AUTH_FEEDBACK_MESSAGES.login.fallback))
+    showFeedback(getApiErrorMessage(error, AUTH_FEEDBACK_MESSAGES.login.fallback))
   } finally {
     isLoading.value = false
   }
@@ -103,10 +92,10 @@ async function handleRegister() {
       throw error
     }
 
-    setFeedback(AUTH_FEEDBACK_MESSAGES.register.success, 'success')
+    showFeedback(AUTH_FEEDBACK_MESSAGES.register.success, 'success')
     activeTab.value = 'login'
   } catch (error) {
-    setFeedback(getApiErrorMessage(error, AUTH_FEEDBACK_MESSAGES.register.fallback))
+    showFeedback(getApiErrorMessage(error, AUTH_FEEDBACK_MESSAGES.register.fallback))
   } finally {
     isLoading.value = false
   }
@@ -228,8 +217,6 @@ async function handleRegister() {
           </form>
         </TabsContent>
       </Tabs>
-
-      <WarmFeedback v-if="feedback" :type="feedbackType" :message="feedback" />
     </WarmPanel>
   </main>
 </template>
