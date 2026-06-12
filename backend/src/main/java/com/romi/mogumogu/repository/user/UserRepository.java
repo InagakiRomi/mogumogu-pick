@@ -18,7 +18,7 @@ public interface UserRepository extends JpaRepository<UserEntity, Integer> {
     boolean existsByEmailIgnoreCase(String email);
 
     /** 根據群組 ID 查詢最大顯示順序 ID */
-    @Query(value = "SELECT COALESCE(MAX(display_order_id), 0) FROM `user` WHERE group_id = :groupId", nativeQuery = true)
+    @Query("SELECT COALESCE(MAX(u.displayOrderId), 0) FROM UserEntity u WHERE u.groupId = :groupId")
     Integer findMaxDisplayOrderIdByGroupId(@Param("groupId") Integer groupId);
 
     /** 查詢群組所有成員（依排序與使用者 ID） */

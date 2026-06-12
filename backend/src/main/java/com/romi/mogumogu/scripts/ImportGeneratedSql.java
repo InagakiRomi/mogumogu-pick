@@ -66,6 +66,7 @@ public class ImportGeneratedSql {
                     validateGeneratedSqlAgainstConnection(connection, statements, target.label(), target.mysql());
                     clearTables(connection, target);
                     executeSqlStatements(connection, statements, target.sqlPath());
+                    syncIdentitySequences(connection, target.mysql());
                     connection.commit();
                     log.info("[" + target.label() + "] 清空並匯入完成");
                 } catch (Exception ex) {
@@ -303,6 +304,86 @@ public class ImportGeneratedSql {
             return t.substring(1, t.length() - 1).replace("\"\"", "\"");
         }
         return t;
+    }
+
+    private record IdentityColumn(String tableName, String columnName) {}
+
+    /**
+     * 匯入含明確主鍵時，自動遞增序號不一定會前進。
+     * 從 information_schema 掃描所有 IDENTITY / AUTO_INCREMENT 欄位並一次對齊。
+     */
+    private static void syncIdentitySequences(Connection connection, boolean mysql) throws SQLException {
+        List<IdentityColumn> identityColumns = loadIdentityColumns(connection, mysql);
+        if (identityColumns.isEmpty()) {
+            log.info("無需同步的自動遞增主鍵欄位");
+            return;
+        }
+        for (IdentityColumn identityColumn : identityColumns) {
+            syncIdentitySequence(connection, identityColumn, mysql);
+        }
+    }
+
+    /** 讀取資料庫內所有自動遞增主鍵欄位 */
+    private static List<IdentityColumn> loadIdentityColumns(Connection connection, boolean mysql)
+            throws SQLException {
+        String sql = mysql
+                ? "SELECT table_name, column_name FROM information_schema.columns "
+                        + "WHERE table_schema = DATABASE() AND extra LIKE '%auto_increment%' "
+                        + "ORDER BY table_name, ordinal_position"
+                : "SELECT table_name, column_name FROM information_schema.columns "
+                        + "WHERE table_schema = 'PUBLIC' AND is_identity = 'YES' "
+                        + "ORDER BY table_name, ordinal_position";
+        List<IdentityColumn> identityColumns = new ArrayList<>();
+        try (Statement statement = connection.createStatement();
+                ResultSet resultSet = statement.executeQuery(sql)) {
+            while (resultSet.next()) {
+                identityColumns.add(new IdentityColumn(resultSet.getString(1), resultSet.getString(2)));
+            }
+        }
+        return identityColumns;
+    }
+
+    /** 將單一自動遞增欄位對齊至目前最大主鍵 + 1 */
+    private static void syncIdentitySequence(Connection connection, IdentityColumn identityColumn, boolean mysql)
+            throws SQLException {
+        String tableRef = quoteTableReference(identityColumn.tableName(), mysql);
+        String columnRef = quoteColumnReference(identityColumn.columnName(), mysql);
+        int nextValue;
+        try (Statement statement = connection.createStatement();
+                ResultSet resultSet =
+                        statement.executeQuery("SELECT COALESCE(MAX(" + columnRef + "), 0) + 1 FROM " + tableRef)) {
+            if (!resultSet.next()) {
+                return;
+            }
+            nextValue = resultSet.getInt(1);
+        }
+        try (Statement statement = connection.createStatement()) {
+            if (mysql) {
+                statement.execute("ALTER TABLE " + tableRef + " AUTO_INCREMENT = " + nextValue);
+            } else {
+                statement.execute(
+                        "ALTER TABLE " + tableRef + " ALTER COLUMN " + columnRef + " RESTART WITH " + nextValue);
+            }
+        }
+        log.info("已同步序號：" + identityColumn.tableName() + "." + identityColumn.columnName() + " -> " + nextValue);
+    }
+
+    /** Flyway 建立的 H2 表名多為大寫；{@code user} 因保留字而以小寫引號建立 */
+    private static String quoteTableReference(String tableName, boolean mysql) {
+        if (mysql) {
+            return quoteMysqlIdentifier(tableName);
+        }
+        if ("user".equalsIgnoreCase(tableName)) {
+            return "\"user\"";
+        }
+        return tableName.toUpperCase(Locale.ROOT);
+    }
+
+    private static String quoteColumnReference(String columnName, boolean mysql) {
+        if (mysql) {
+            return quoteMysqlIdentifier(columnName);
+        }
+        return columnName.toUpperCase(Locale.ROOT);
     }
 
     /** 逐條執行 SQL 語句 */
