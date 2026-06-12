@@ -60,7 +60,7 @@ class GroupControllerTest {
     private static final int HTTP_INTERNAL_SERVER_ERROR = 500;
     private static final String CODE_INTERNAL_SERVER_ERROR = "INTERNAL_SERVER_ERROR";
     private static final String CODE_BAD_REQUEST = "BAD_REQUEST";
-    private static final String TRUNCATED_ADD_MEMBER_JSON = "{\"userId\":10";
+    private static final String TRUNCATED_ADD_MEMBER_JSON = "{\"email\":\"new@example.com";
     private static final String TRUNCATED_TRANSFER_ADMIN_JSON = "{\"targetUserId\":20";
     private static final String TRUNCATED_UPDATE_GROUP_NAME_JSON = "{\"groupName\":\"abc\"";
 
@@ -123,7 +123,7 @@ class GroupControllerTest {
     class AddGroupMember {
         @Test
         void success_returns201WithMember() throws Exception {
-            AddGroupMemberDto request = AddGroupMemberDto.builder().userId(10).build();
+            AddGroupMemberDto request = AddGroupMemberDto.builder().email("new-user@example.com").build();
             when(groupService.addGroupMember(any(AddGroupMemberDto.class)))
                     .thenReturn(buildMember(10, 1, 3, 2, "new-user"));
 
@@ -141,25 +141,25 @@ class GroupControllerTest {
 
         @Test
         void validationFailed_returns400AndSkipsService() throws Exception {
-            AddGroupMemberDto invalid = AddGroupMemberDto.builder().userId(0).build();
+            AddGroupMemberDto invalid = AddGroupMemberDto.builder().email("").build();
             assertErrorResponseContains(performPostMembers(invalid),
                     400, CODE_BAD_REQUEST, GROUPS_MY_MEMBERS_PATH,
-                    "userId must be greater than 0");
+                    "email is required");
             verifyNoInteractions(groupService);
         }
 
         @Test
-        void negativeUserId_returns400AndSkipsService() throws Exception {
-            AddGroupMemberDto invalid = AddGroupMemberDto.builder().userId(-5).build();
+        void invalidEmailFormat_returns400AndSkipsService() throws Exception {
+            AddGroupMemberDto invalid = AddGroupMemberDto.builder().email("not-an-email").build();
             assertBadRequestValidation(performPostMembers(invalid), GROUPS_MY_MEMBERS_PATH,
-                    "userId must be greater than 0");
+                    "email must be a valid email address");
             verifyNoInteractions(groupService);
         }
 
         @Test
-        void nullUserIdViaRawJson_returns400AndSkipsService() throws Exception {
-            assertBadRequestValidation(performPostMembersRaw("{\"userId\":null}"),
-                    GROUPS_MY_MEMBERS_PATH, "userId is required");
+        void nullEmailViaRawJson_returns400AndSkipsService() throws Exception {
+            assertBadRequestValidation(performPostMembersRaw("{\"email\":null}"),
+                    GROUPS_MY_MEMBERS_PATH, "email is required");
             verifyNoInteractions(groupService);
         }
 
@@ -179,7 +179,7 @@ class GroupControllerTest {
             when(groupService.addGroupMember(any(AddGroupMemberDto.class)))
                     .thenThrow(new ResponseStatusException(HttpStatus.BAD_REQUEST, "User is not in a group"));
 
-            assertErrorResponse(performPostMembers(AddGroupMemberDto.builder().userId(10).build()),
+            assertErrorResponse(performPostMembers(AddGroupMemberDto.builder().email("new-user@example.com").build()),
                     HttpStatus.BAD_REQUEST, GROUPS_MY_MEMBERS_PATH, "User is not in a group");
 
             verify(groupService).addGroupMember(any(AddGroupMemberDto.class));
@@ -190,7 +190,7 @@ class GroupControllerTest {
             when(groupService.addGroupMember(any(AddGroupMemberDto.class)))
                     .thenThrow(new ResponseStatusException(HttpStatus.FORBIDDEN, "Only group admin can perform this action"));
 
-            assertErrorResponse(performPostMembers(AddGroupMemberDto.builder().userId(10).build()),
+            assertErrorResponse(performPostMembers(AddGroupMemberDto.builder().email("new-user@example.com").build()),
                     HttpStatus.FORBIDDEN, GROUPS_MY_MEMBERS_PATH, "Only group admin can perform this action");
 
             verify(groupService).addGroupMember(any(AddGroupMemberDto.class));
@@ -201,7 +201,7 @@ class GroupControllerTest {
             when(groupService.addGroupMember(any(AddGroupMemberDto.class)))
                     .thenThrow(new ResponseStatusException(HttpStatus.NOT_FOUND, "Target user not found"));
 
-            assertErrorResponse(performPostMembers(AddGroupMemberDto.builder().userId(999).build()),
+            assertErrorResponse(performPostMembers(AddGroupMemberDto.builder().email("unknown@example.com").build()),
                     HttpStatus.NOT_FOUND, GROUPS_MY_MEMBERS_PATH, "Target user not found");
 
             verify(groupService).addGroupMember(any(AddGroupMemberDto.class));
@@ -212,7 +212,7 @@ class GroupControllerTest {
             when(groupService.addGroupMember(any(AddGroupMemberDto.class)))
                     .thenThrow(new ResponseStatusException(HttpStatus.BAD_REQUEST, "You are already in this group"));
 
-            assertErrorResponse(performPostMembers(AddGroupMemberDto.builder().userId(1).build()),
+            assertErrorResponse(performPostMembers(AddGroupMemberDto.builder().email("admin@example.com").build()),
                     HttpStatus.BAD_REQUEST, GROUPS_MY_MEMBERS_PATH, "You are already in this group");
 
             verify(groupService).addGroupMember(any(AddGroupMemberDto.class));
@@ -223,7 +223,7 @@ class GroupControllerTest {
             when(groupService.addGroupMember(any(AddGroupMemberDto.class)))
                     .thenThrow(new ResponseStatusException(HttpStatus.CONFLICT, "Target user already belongs to a group"));
 
-            assertErrorResponse(performPostMembers(AddGroupMemberDto.builder().userId(10).build()),
+            assertErrorResponse(performPostMembers(AddGroupMemberDto.builder().email("member@example.com").build()),
                     HttpStatus.CONFLICT, GROUPS_MY_MEMBERS_PATH, "Target user already belongs to a group");
 
             verify(groupService).addGroupMember(any(AddGroupMemberDto.class));
@@ -234,7 +234,7 @@ class GroupControllerTest {
             when(groupService.addGroupMember(any(AddGroupMemberDto.class)))
                     .thenThrow(new RuntimeException("Add group member failed"));
 
-            assertErrorResponse(performPostMembers(AddGroupMemberDto.builder().userId(10).build()),
+            assertErrorResponse(performPostMembers(AddGroupMemberDto.builder().email("new-user@example.com").build()),
                     HttpStatus.INTERNAL_SERVER_ERROR, GROUPS_MY_MEMBERS_PATH, "Add group member failed");
 
             verify(groupService).addGroupMember(any(AddGroupMemberDto.class));

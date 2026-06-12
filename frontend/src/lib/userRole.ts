@@ -1,6 +1,6 @@
 const ROLE_LABELS: Record<number, string> = {
   0: '系統管理員',
-  1: '群組管理者',
+  1: '群組管理員',
   2: '一般使用者',
 }
 

@@ -2,6 +2,7 @@ package com.romi.mogumogu.service.group;
 
 import java.util.Date;
 import java.util.List;
+import java.util.Locale;
 import java.util.Objects;
 import java.util.Optional;
 
@@ -52,8 +53,8 @@ public class GroupService {
         ensureGroupAdmin(currentUser);
 
         // 取得目標使用者
-        Integer targetUserId = Objects.requireNonNull(request.getUserId());
-        UserEntity targetUser = userRepository.findById(targetUserId)
+        String email = request.getEmail().trim().toLowerCase(Locale.ROOT);
+        UserEntity targetUser = userRepository.findByEmailIgnoreCase(email)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Target user not found"));
 
         // 檢查目標使用者是否為自己

@@ -4,7 +4,7 @@ import { RouterLink, useRouter } from 'vue-router'
 import client from '@/api/client'
 import { authSession, clearAuthSession, hasGroup } from '@/lib/authSession'
 import { authToken } from '@/lib/authToken'
-import { getRoleLabel, isRegularUser } from '@/lib/userRole'
+import { getRoleLabel } from '@/lib/userRole'
 import NinePatchBox from '@/components/nine-patch/NinePatchBox.vue'
 import WarmButton from '@/components/warm/WarmButton.vue'
 
@@ -33,7 +33,6 @@ const groupName = ref('')
 
 const username = computed(() => authSession.value?.username ?? '使用者')
 const roleLabel = computed(() => getRoleLabel(authSession.value?.role))
-const showUserHint = computed(() => isRegularUser(authSession.value?.role))
 
 const navItems = [
   { label: '抽餐廳', name: 'random-restaurant' },
@@ -91,12 +90,6 @@ onMounted(() => {
       </p>
       <p class="text-center text-[0.95rem] font-semibold md:text-[1.1rem] lg:text-left">
         帳號權限：{{ roleLabel }}
-      </p>
-      <p
-        v-if="showUserHint"
-        class="text-center text-[0.85rem] font-medium md:text-[0.95rem] lg:text-left"
-      >
-        （提示：一般使用者無法刪除餐廳與餐點）
       </p>
     </div>
 

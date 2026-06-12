@@ -4,7 +4,7 @@ import { authToken } from '@/lib/authToken'
 import AppLayout from '@/layouts/AppLayout.vue'
 import AuthHomeView from '@/views/AuthHomeView.vue'
 import NoGroupView from '@/views/NoGroupView.vue'
-import PlaceholderView from '@/views/PlaceholderView.vue'
+import MemberManagementView from '@/views/MemberManagementView.vue'
 import RandomRestaurantView from '@/views/RandomRestaurantView.vue'
 import RestaurantHistoryView from '@/views/RestaurantHistoryView.vue'
 import RestaurantDetailView from '@/views/RestaurantDetailView.vue'
@@ -55,7 +55,7 @@ const router = createRouter({
         {
           path: 'members',
           name: 'member-management',
-          component: PlaceholderView,
+          component: MemberManagementView,
           meta: { requiresAuth: true, requiresGroup: true, pageTitle: '成員管理' },
         },
       ],

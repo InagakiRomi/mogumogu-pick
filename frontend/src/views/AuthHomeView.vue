@@ -206,7 +206,7 @@ async function handleRegister() {
                 </WarmSelectTrigger>
                 <SelectContent class="border-border bg-card text-popover-foreground">
                   <SelectItem value="2"> 一般使用者 </SelectItem>
-                  <SelectItem value="1"> 群組管理者 </SelectItem>
+                  <SelectItem value="1"> 群組管理員 </SelectItem>
                 </SelectContent>
               </Select>
             </div>

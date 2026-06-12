@@ -149,7 +149,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** 依餐廳 ID 取得自己所屬群組的單筆餐廳資訊 */
+        /** 依餐廳 ID 取得自己所屬群組的單筆餐廳資訊（不含已封存） */
         get: operations["getRestaurant"];
         put?: never;
         post?: never;
@@ -165,9 +165,7 @@ export interface paths {
         parameters: {
             query?: never;
             header?: never;
-            path: {
-                id: number;
-            };
+            path?: never;
             cookie?: never;
         };
         get?: never;
@@ -178,6 +176,42 @@ export interface paths {
         head?: never;
         /** 確認選擇餐廳並重置抽籤池 */
         patch: operations["chooseMyGroupRestaurant"];
+        trace?: never;
+    };
+    "/groups/my": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 取得目前群組名稱 */
+        get: operations["getMyGroupProfile"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** 修改目前群組名稱 */
+        patch: operations["updateMyGroupName"];
+        trace?: never;
+    };
+    "/dishes/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** 刪除餐點 */
+        delete: operations["deleteDish"];
+        options?: never;
+        head?: never;
+        /** 修改餐點排序、名稱與價格 */
+        patch: operations["updateDish"];
         trace?: never;
     };
     "/restaurants/selection-history": {
@@ -214,24 +248,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/groups/my": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** 取得目前群組名稱 */
-        get: operations["getMyGroupProfile"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        /** 修改目前群組名稱 */
-        patch: operations["updateMyGroupName"];
-        trace?: never;
-    };
     "/groups/my/members/{userId}": {
         parameters: {
             query?: never;
@@ -247,24 +263,6 @@ export interface paths {
         options?: never;
         head?: never;
         patch?: never;
-        trace?: never;
-    };
-    "/dishes/{id}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post?: never;
-        /** 刪除餐點 */
-        delete: operations["deleteDish"];
-        options?: never;
-        head?: never;
-        /** 修改餐點 */
-        patch: operations["updateDish"];
         trace?: never;
     };
 }
@@ -300,24 +298,36 @@ export interface components {
              */
             imageUrl?: string;
         };
-        RestaurantCategoryResponse: {
+        DishResponse: {
             /**
              * Format: int32
-             * @description 分類 ID
+             * @description 餐點 ID
              * @example 1
              */
-            categoryId?: number;
-            /**
-             * @description 分類名稱
-             * @example 主食
-             */
-            categoryName?: string;
+            dishId?: number;
             /**
              * Format: int32
-             * @description 群組內顯示排序 ID
+             * @description 餐點對應餐廳編號
+             * @example 1
+             */
+            restaurantId?: number;
+            /**
+             * Format: int32
+             * @description 餐廳群組內順序 ID
              * @example 1
              */
             displayOrderId?: number;
+            /**
+             * Format: int32
+             * @description 價格
+             * @example 120
+             */
+            price?: number;
+            /**
+             * @description 餐點名稱
+             * @example 豚骨拉麵
+             */
+            dishName?: string;
         };
         RestaurantResponse: {
             /**
@@ -427,11 +437,10 @@ export interface components {
         };
         AddGroupMemberDto: {
             /**
-             * Format: int32
-             * @description 要加入群組的使用者 ID
-             * @example 12
+             * @description 要加入群組的使用者電子郵件
+             * @example member@example.com
              */
-            userId: number;
+            email: string;
         };
         CreateDishDto: {
             /**
@@ -451,37 +460,6 @@ export interface components {
              * @example 牛肉拉麵
              */
             dishName: string;
-        };
-        DishResponse: {
-            /**
-             * Format: int32
-             * @description 餐點 ID
-             * @example 1
-             */
-            dishId?: number;
-            /**
-             * Format: int32
-             * @description 餐點對應餐廳編號
-             * @example 1
-             */
-            restaurantId?: number;
-            /**
-             * Format: int32
-             * @description 餐廳群組內順序 ID
-             * @example 1
-             */
-            displayOrderId?: number;
-            /**
-             * Format: int32
-             * @description 價格
-             * @example 120
-             */
-            price?: number;
-            /**
-             * @description 餐點名稱
-             * @example 豚骨拉麵
-             */
-            dishName?: string;
         };
         RegisterRequest: {
             /**
@@ -605,6 +583,25 @@ export interface components {
              */
             price: number;
         };
+        RestaurantCategoryResponse: {
+            /**
+             * Format: int32
+             * @description 分類 ID
+             * @example 1
+             */
+            categoryId?: number;
+            /**
+             * @description 分類名稱
+             * @example 主食
+             */
+            categoryName?: string;
+            /**
+             * Format: int32
+             * @description 群組內顯示排序 ID
+             * @example 1
+             */
+            displayOrderId?: number;
+        };
         RestaurantListResponseRestaurantResponse: {
             data?: components["schemas"]["RestaurantResponse"][];
             /** Format: int32 */
@@ -613,13 +610,7 @@ export interface components {
             limit?: number;
             /** Format: int64 */
             total?: number;
-            /** @description 分類清單（僅在 includeCategories=true 時回傳） */
             categories?: components["schemas"]["RestaurantCategoryResponse"][];
-        };
-        DishListResponse: {
-            data?: components["schemas"]["DishResponse"][];
-            /** Format: int32 */
-            total?: number;
         };
         RestaurantListResponseSelectionHistoryResponse: {
             data?: components["schemas"]["SelectionHistoryResponse"][];
@@ -629,6 +620,7 @@ export interface components {
             limit?: number;
             /** Format: int64 */
             total?: number;
+            categories?: components["schemas"]["RestaurantCategoryResponse"][];
         };
         SelectionHistoryResponse: {
             /** Format: int32 */
@@ -652,10 +644,10 @@ export interface operations {
     getRestaurants: {
         parameters: {
             query?: {
-                /** @description 是否限定為目前登入使用者所屬群組（false 或未帶時需 SYSTEM_ADMIN） */
-                mine?: boolean;
                 /** @description 群組 ID */
                 groupId?: number;
+                /** @description 是否限定為目前登入使用者所屬群組（false 或未帶時需 SYSTEM_ADMIN） */
+                mine?: boolean;
                 /** @description 是否一併回傳分類清單 */
                 includeCategories?: boolean;
                 /** @description 分類 ID */
@@ -1028,6 +1020,26 @@ export interface operations {
             };
         };
     };
+    deleteDish: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     updateDish: {
         parameters: {
             query?: never;
@@ -1109,26 +1121,6 @@ export interface operations {
             header?: never;
             path: {
                 userId: number;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description No Content */
-            204: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
-    deleteDish: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: number;
             };
             cookie?: never;
         };
