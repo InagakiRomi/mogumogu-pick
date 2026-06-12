@@ -2,7 +2,7 @@
 import { AlertDialogContent } from '@/components/ui/alert-dialog'
 import { cn } from '@/lib/utils'
 
-const ALERT_BG_IMAGE = `${import.meta.env.BASE_URL}images/Alert.png`
+const alertBgImage = `${import.meta.env.BASE_URL}images/Alert.png`
 </script>
 
 <template>
@@ -13,7 +13,7 @@ const ALERT_BG_IMAGE = `${import.meta.env.BASE_URL}images/Alert.png`
         'aspect-2/1 overflow-hidden bg-size-[100%_100%] bg-center bg-no-repeat',
       )
     "
-    :style="{ backgroundImage: `url('${ALERT_BG_IMAGE}')` }"
+    :style="{ backgroundImage: `url('${alertBgImage}')` }"
   >
     <div class="flex min-h-0 flex-1 flex-col px-12 text-center sm:px-16">
       <header class="flex shrink-0 items-end justify-center pb-2 pt-16">

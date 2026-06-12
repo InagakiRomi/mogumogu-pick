@@ -12,9 +12,6 @@ import { useFeedbackDialog } from '@/composables/useFeedbackDialog'
 const { open, message, type, onOpenChange } = useFeedbackDialog()
 
 const title = computed(() => (type.value === 'error' ? '提示' : '完成'))
-
-const confirmButtonClass =
-  'h-10 min-w-[96px] rounded-lg border border-[rgba(176,68,68,0.38)] bg-linear-to-br from-[#d78867] to-[#c96d57] font-semibold text-primary-foreground shadow-[0_8px_18px_rgba(138,73,52,0.2)] hover:from-[#de8f6c] hover:to-[#d3735d]'
 </script>
 
 <template>
@@ -31,7 +28,10 @@ const confirmButtonClass =
         {{ message }}
       </AlertDialogDescription>
       <template #actions>
-        <AlertDialogAction :class="confirmButtonClass" @click="onOpenChange(false)">
+        <AlertDialogAction
+          class="h-10 min-w-[96px] rounded-lg border border-[rgba(176,68,68,0.38)] bg-linear-to-br from-[#d78867] to-[#c96d57] font-semibold text-primary-foreground shadow-[0_8px_18px_rgba(138,73,52,0.2)] hover:from-[#de8f6c] hover:to-[#d3735d]"
+          @click="onOpenChange(false)"
+        >
           確定
         </AlertDialogAction>
       </template>

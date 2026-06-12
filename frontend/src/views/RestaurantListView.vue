@@ -3,63 +3,65 @@ import { computed, onMounted, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import type { components, operations } from '@/api/schema'
 import client from '@/api/client'
+import FormSelectField from '@/components/form/FormSelectField.vue'
+import ListPagePanel from '@/components/form/ListPagePanel.vue'
+import ListPagination from '@/components/form/ListPagination.vue'
+import ListSection from '@/components/form/ListSection.vue'
+import ListTable, {
+  ListTableActions,
+  ListTableCell,
+  ListTableHead,
+  ListTableRow,
+} from '@/components/form/ListTable.vue'
 import WarmButton from '@/components/warm/WarmButton.vue'
 import { authSession } from '@/lib/authSession'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import RestaurantFormDialog from '@/components/restaurant/RestaurantFormDialog.vue'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table'
 import { useFeedbackDialog } from '@/composables/useFeedbackDialog'
-import { useRestaurantCategories } from '@/composables/useRestaurantCategories'
-import {
-  ALL_CATEGORIES_VALUE,
-  DEFAULT_RESTAURANT_IMAGE,
-  formatOptionalDate,
-} from '@/constants/restaurant'
+import { ALL_CATEGORIES_VALUE, useRestaurantCategories } from '@/composables/useRestaurantCategories'
 import { getApiErrorMessage, RESTAURANT_FEEDBACK_MESSAGES } from '@/lib/apiErrorMessage'
+
+const DEFAULT_RESTAURANT_IMAGE = '/images/defaultRestaurant.jpg'
+const DEFAULT_SORT_OPTIONS = [
+  { label: '小到大', value: 'ASC' as const },
+  { label: '大到小', value: 'DESC' as const },
+]
 
 type Restaurant = components['schemas']['RestaurantResponse']
 type RestaurantListQuery = operations['getRestaurants']['parameters']['query']
-type OrderBy = Exclude<NonNullable<RestaurantListQuery>['orderBy'], undefined>
+type RestaurantOrderBy = Exclude<NonNullable<RestaurantListQuery>['orderBy'], undefined>
 type SortOrder = Exclude<NonNullable<RestaurantListQuery>['sort'], undefined>
 
 const DEFAULT_LIMIT = 10
+
+const restaurantListForm = {
+  defaultOrderBy: 'DISPLAY_ORDER_ID' as RestaurantOrderBy,
+  defaultSort: 'DESC' as SortOrder,
+  orderByOptions: [
+    { label: 'ID', value: 'DISPLAY_ORDER_ID' as const },
+    { label: '建立時間', value: 'CREATED_AT' as const },
+    { label: '被選取次數', value: 'SELECTED_COUNT' as const },
+    { label: '最後被選時間', value: 'LAST_SELECTED_AT' as const },
+  ],
+  sortOptions: DEFAULT_SORT_OPTIONS,
+  searchLabel: '餐廳名稱搜尋',
+  searchPlaceholder: '輸入關鍵字，例如：拉麵',
+  categoryLabel: '分類',
+  categoryPlaceholder: '選擇分類',
+  loadingText: '載入資料中...',
+  emptyText: '找不到符合條件的餐廳',
+}
 
 const failedImageIds = ref(new Set<number>())
 const { categoryOptionsWithAll, categories, defaultCategoryId } = useRestaurantCategories()
 const categoryOptions = categoryOptionsWithAll
 
-const orderByOptions: Array<{ label: string; value: OrderBy }> = [
-  { label: 'ID', value: 'DISPLAY_ORDER_ID' },
-  { label: '建立時間', value: 'CREATED_AT' },
-  { label: '被選取次數', value: 'SELECTED_COUNT' },
-  { label: '最後被選時間', value: 'LAST_SELECTED_AT' },
-]
-
-const sortOptions: Array<{ label: string; value: SortOrder }> = [
-  { label: '新到舊 / 大到小', value: 'DESC' },
-  { label: '舊到新 / 小到大', value: 'ASC' },
-]
-
 const restaurants = ref<Restaurant[]>([])
 const searchInput = ref('')
 const selectedCategory = ref(ALL_CATEGORIES_VALUE)
-const orderBy = ref<OrderBy>('DISPLAY_ORDER_ID')
-const sort = ref<SortOrder>('DESC')
+const orderBy = ref<RestaurantOrderBy>(restaurantListForm.defaultOrderBy)
+const sort = ref<SortOrder>(restaurantListForm.defaultSort)
 const page = ref(1)
 const limit = ref(DEFAULT_LIMIT)
 const total = ref(0)
@@ -87,8 +89,6 @@ const hasNextPage = computed(() => page.value < totalPages.value)
 const canSubmitCreateRestaurant = computed(
   () => createForm.value.restaurantName.trim().length > 0 && !isCreating.value,
 )
-const SEARCH_PLACEHOLDER = '輸入關鍵字，例如：拉麵'
-
 function resolveCategoryId(category: string): number | undefined {
   return category !== ALL_CATEGORIES_VALUE ? Number(category) : undefined
 }
@@ -272,181 +272,140 @@ onMounted(() => {
 </script>
 
 <template>
-  <main
-    class="min-h-screen bg-[linear-gradient(rgba(255,255,255,0.24),rgba(255,255,255,0.24)),url('/images/homeBg.jpg')] bg-fixed bg-cover bg-center bg-no-repeat px-4 py-6 md:px-6"
-  >
-    <div
-      class="relative z-10 mx-auto mt-6 w-full rounded-[10px] border border-[rgba(226,164,136,0.52)] bg-linear-to-br from-[rgba(255,248,241,0.9)] to-[rgba(255,233,219,0.84)] px-[30px] pt-[30px] pb-8 shadow-[0_14px_32px_rgba(95,57,41,0.24),inset_0_1px_0_rgba(255,255,255,0.55)] backdrop-blur-sm max-lg:mt-5 max-lg:px-6 max-lg:pt-6 max-lg:pb-7 max-md:mt-4 max-md:rounded-lg max-md:px-4 max-md:pt-4 max-md:pb-6"
-    >
-      <div class="space-y-5">
-        <div class="flex flex-wrap items-end gap-3">
-          <div class="min-w-[220px] grow space-y-2">
-            <Label for="restaurant-search" class="font-bold text-muted-foreground">餐廳名稱搜尋</Label>
-            <Input
-              id="restaurant-search"
-              v-model="searchInput"
-              class="h-10"
-              :placeholder="SEARCH_PLACEHOLDER"
-              @keyup.enter="handleSearch"
-            />
-          </div>
-
-          <div class="w-[180px] space-y-2">
-            <Label for="restaurant-category" class="font-bold text-muted-foreground">分類</Label>
-            <Select v-model="selectedCategory">
-              <SelectTrigger
-                id="restaurant-category"
-                class="h-10 w-full rounded-md border border-border bg-muted/90 px-3 text-left text-sm text-popover-foreground"
-              >
-                <SelectValue placeholder="選擇分類" />
-              </SelectTrigger>
-              <SelectContent class="border-border bg-card text-popover-foreground">
-                <SelectItem
-                  v-for="option in categoryOptions"
-                  :key="option.value"
-                  :value="option.value"
-                >
-                  {{ option.label }}
-                </SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div class="w-[180px] space-y-2">
-            <Label class="font-bold text-muted-foreground">排序欄位</Label>
-            <Select v-model="orderBy">
-              <SelectTrigger
-                class="h-10 w-full rounded-md border border-border bg-muted/90 px-3 text-left text-sm text-popover-foreground"
-              >
-                <SelectValue placeholder="選擇排序欄位" />
-              </SelectTrigger>
-              <SelectContent class="border-border bg-card text-popover-foreground">
-                <SelectItem v-for="option in orderByOptions" :key="option.value" :value="option.value">
-                  {{ option.label }}
-                </SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div class="w-[180px] space-y-2">
-            <Label class="font-bold text-muted-foreground">排序方向</Label>
-            <Select v-model="sort">
-              <SelectTrigger
-                class="h-10 w-full rounded-md border border-border bg-muted/90 px-3 text-left text-sm text-popover-foreground"
-              >
-                <SelectValue placeholder="選擇排序方向" />
-              </SelectTrigger>
-              <SelectContent class="border-border bg-card text-popover-foreground">
-                <SelectItem v-for="option in sortOptions" :key="option.value" :value="option.value">
-                  {{ option.label }}
-                </SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          <WarmButton :disabled="isLoading" @click="handleSearch">
-            {{ isLoading ? '查詢中...' : '查詢' }}
-          </WarmButton>
-          <WarmButton :disabled="isLoading || isCreating" @click="openCreateDialog">
-            新增餐廳
-          </WarmButton>
+  <ListPagePanel>
+    <ListSection title="餐廳列表" :summary="`共 ${total} 間餐廳`">
+      <div class="flex flex-wrap items-end gap-3">
+        <div class="min-w-[220px] grow space-y-2">
+          <Label for="restaurant-search" class="font-bold text-muted-foreground">
+            {{ restaurantListForm.searchLabel }}
+          </Label>
+          <Input
+            id="restaurant-search"
+            v-model="searchInput"
+            class="h-10 px-2.5 text-sm rounded-md border border-border bg-muted/90 text-popover-foreground"
+            :placeholder="restaurantListForm.searchPlaceholder"
+            @keyup.enter="handleSearch"
+          />
         </div>
 
-        <div class="rounded-lg border border-border bg-card/70">
-          <Table class="table-fixed">
-            <TableHeader>
-              <TableRow>
-                <TableHead class="w-[72px] text-center">ID</TableHead>
-                <TableHead class="w-[96px] text-center">餐廳圖片</TableHead>
-                <TableHead class="w-[20%] text-center">餐廳名稱</TableHead>
-                <TableHead class="w-[72px] text-center">分類</TableHead>
-                <TableHead class="w-[120px] text-center">被選中的次數</TableHead>
-                <TableHead class="w-[24%] text-center">備註</TableHead>
-                <TableHead class="w-[180px] text-center">最後被選時間</TableHead>
-                <TableHead class="w-[140px] text-center">操作</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              <TableRow v-if="isLoading">
-                <TableCell colspan="8" class="py-8 text-center text-muted-foreground">
-                  載入資料中...
-                </TableCell>
-              </TableRow>
-              <TableRow v-else-if="restaurants.length === 0">
-                <TableCell colspan="8" class="py-8 text-center text-muted-foreground">
-                  找不到符合條件的餐廳
-                </TableCell>
-              </TableRow>
-              <TableRow v-for="restaurant in restaurants" :key="restaurant.restaurantId">
-                <TableCell class="text-center">{{ restaurant.displayOrderId ?? '-' }}</TableCell>
-                <TableCell class="text-center">
-                  <img
-                    :src="getRestaurantImageUrl(restaurant)"
-                    :alt="restaurant.restaurantName ?? '餐廳圖片'"
-                    :title="restaurant.imageUrl?.trim() || undefined"
-                    class="mx-auto h-12 w-16 rounded border border-border object-cover"
-                    loading="lazy"
-                    @error="handleImageError($event, restaurant.restaurantId)"
-                  />
-                </TableCell>
-                <TableCell class="truncate text-center font-medium" :title="restaurant.restaurantName ?? undefined">
-                  {{ restaurant.restaurantName ?? '-' }}
-                </TableCell>
-                <TableCell class="text-center">
-                  {{ restaurant.categoryName ?? '-' }}
-                </TableCell>
-                <TableCell class="text-center">{{ restaurant.selectedCount ?? 0 }}</TableCell>
-                <TableCell class="truncate" :title="restaurant.note || undefined">
-                  {{ restaurant.note || '-' }}
-                </TableCell>
-                <TableCell class="truncate text-center" :title="formatOptionalDate(restaurant.lastSelectedAt)">
-                  {{ formatOptionalDate(restaurant.lastSelectedAt) }}
-                </TableCell>
-                <TableCell class="text-center">
-                  <WarmButton
-                    variant="outline-standard"
-                    class="h-9 px-3 text-sm"
-                    @click="goRestaurantDetail(restaurant.restaurantId)"
-                  >
-                    查看詳細
-                  </WarmButton>
-                </TableCell>
-              </TableRow>
-            </TableBody>
-          </Table>
-        </div>
+        <FormSelectField
+          id="restaurant-category"
+          v-model="selectedCategory"
+          :label="restaurantListForm.categoryLabel"
+          :options="categoryOptions"
+          :placeholder="restaurantListForm.categoryPlaceholder"
+        />
+        <FormSelectField
+          v-model="orderBy"
+          label="排序欄位"
+          :options="restaurantListForm.orderByOptions"
+          placeholder="選擇排序欄位"
+        />
+        <FormSelectField
+          v-model="sort"
+          label="排序方向"
+          :options="restaurantListForm.sortOptions"
+          placeholder="選擇排序方向"
+        />
 
-        <div class="flex flex-col items-center gap-3">
-          <p class="text-sm text-muted-foreground">{{ pagingText }}</p>
-          <div class="flex items-center justify-center gap-2">
-            <WarmButton variant="outline-standard" :disabled="!hasPrevPage || isLoading" @click="goPrevPage">
-              上一頁
-            </WarmButton>
-            <span class="text-sm font-medium text-card-foreground">
-              第 {{ page }} / {{ totalPages }} 頁
-            </span>
-            <WarmButton variant="outline-standard" :disabled="!hasNextPage || isLoading" @click="goNextPage">
-              下一頁
-            </WarmButton>
-          </div>
-        </div>
+        <WarmButton :disabled="isLoading" @click="handleSearch">
+          {{ isLoading ? '查詢中...' : '查詢' }}
+        </WarmButton>
+        <WarmButton :disabled="isLoading || isCreating" @click="openCreateDialog">
+          新增餐廳
+        </WarmButton>
       </div>
-    </div>
 
-    <RestaurantFormDialog
-      :open="isCreateDialogOpen"
-      v-model="createForm"
-      :category-options="categories"
-      mode="create"
-      title="新增餐廳"
-      id-prefix="create-restaurant"
-      submit-label="確認新增"
-      loading-label="新增中..."
-      :loading="isCreating"
-      :can-submit="canSubmitCreateRestaurant"
-      @update:open="handleCreateDialogOpenChange"
-      @submit="handleCreateRestaurant"
-      @cancel="handleCreateDialogOpenChange(false)"
-    />
-  </main>
+      <ListTable
+        :is-loading="isLoading"
+        :is-empty="restaurants.length === 0"
+        :column-count="8"
+        :loading-text="restaurantListForm.loadingText"
+        :empty-text="restaurantListForm.emptyText"
+      >
+        <template #header>
+          <ListTableHead class="w-[72px]">ID</ListTableHead>
+          <ListTableHead class="w-[96px]">餐廳圖片</ListTableHead>
+          <ListTableHead class="w-[20%]">餐廳名稱</ListTableHead>
+          <ListTableHead class="w-[72px]">分類</ListTableHead>
+          <ListTableHead class="w-[120px]">被選中的次數</ListTableHead>
+          <ListTableHead class="w-[24%]">備註</ListTableHead>
+          <ListTableHead class="w-[180px]">最後被選時間</ListTableHead>
+          <ListTableHead class="w-[140px]">操作</ListTableHead>
+        </template>
+
+        <ListTableRow
+          v-for="restaurant in restaurants"
+          :key="restaurant.restaurantId"
+        >
+          <ListTableCell>{{ restaurant.displayOrderId ?? '-' }}</ListTableCell>
+          <ListTableCell>
+            <img
+              :src="getRestaurantImageUrl(restaurant)"
+              :alt="restaurant.restaurantName ?? '餐廳圖片'"
+              :title="restaurant.imageUrl?.trim() || undefined"
+              class="mx-auto h-12 w-16 rounded border border-border object-cover"
+              loading="lazy"
+              @error="handleImageError($event, restaurant.restaurantId)"
+            />
+          </ListTableCell>
+          <ListTableCell
+            truncate
+            class="font-medium"
+            :title="restaurant.restaurantName ?? undefined"
+          >
+            {{ restaurant.restaurantName ?? '-' }}
+          </ListTableCell>
+          <ListTableCell>{{ restaurant.categoryName ?? '-' }}</ListTableCell>
+          <ListTableCell>{{ restaurant.selectedCount ?? 0 }}</ListTableCell>
+          <ListTableCell truncate :title="restaurant.note || undefined">
+            {{ restaurant.note || '-' }}
+          </ListTableCell>
+          <ListTableCell truncate :title="restaurant.lastSelectedAt?.trim() || '-'">
+            {{ restaurant.lastSelectedAt?.trim() || '-' }}
+          </ListTableCell>
+          <ListTableCell>
+            <ListTableActions>
+              <WarmButton
+                variant="outline-standard"
+                class="h-9 px-3 text-sm"
+                @click="goRestaurantDetail(restaurant.restaurantId)"
+              >
+                查看詳細
+              </WarmButton>
+            </ListTableActions>
+          </ListTableCell>
+        </ListTableRow>
+      </ListTable>
+
+      <ListPagination
+        :paging-text="pagingText"
+        :page="page"
+        :total-pages="totalPages"
+        :has-prev-page="hasPrevPage"
+        :has-next-page="hasNextPage"
+        :is-loading="isLoading"
+        @prev="goPrevPage"
+        @next="goNextPage"
+      />
+    </ListSection>
+
+    <template #overlay>
+      <RestaurantFormDialog
+        :open="isCreateDialogOpen"
+        v-model="createForm"
+        :category-options="categories"
+        mode="create"
+        title="新增餐廳"
+        id-prefix="create-restaurant"
+        submit-label="確認新增"
+        loading-label="新增中..."
+        :loading="isCreating"
+        :can-submit="canSubmitCreateRestaurant"
+        @update:open="handleCreateDialogOpenChange"
+        @submit="handleCreateRestaurant"
+        @cancel="handleCreateDialogOpenChange(false)"
+      />
+    </template>
+  </ListPagePanel>
 </template>

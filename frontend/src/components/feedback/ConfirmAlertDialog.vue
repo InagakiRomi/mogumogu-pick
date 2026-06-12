@@ -29,12 +29,6 @@ withDefaults(
 const emit = defineEmits<{
   confirm: []
 }>()
-
-const confirmButtonClass =
-  'h-10 min-w-[96px] rounded-lg border border-[rgba(176,68,68,0.38)] bg-linear-to-br from-[#d78867] to-[#c96d57] font-semibold text-primary-foreground shadow-[0_8px_18px_rgba(138,73,52,0.2)] hover:from-[#de8f6c] hover:to-[#d3735d]'
-
-const cancelButtonClass =
-  'h-10 min-w-[96px] rounded-lg border border-[rgba(146,80,58,0.32)] bg-linear-to-br from-[rgba(255,252,248,0.98)] to-[rgba(255,236,220,0.95)] font-semibold text-[#5c4033] shadow-[0_2px_8px_rgba(138,73,52,0.1)] hover:border-[rgba(146,80,58,0.45)] hover:from-[rgba(255,245,235,1)] hover:to-[rgba(255,228,210,0.98)] hover:text-[#4a2c2a]'
 </script>
 
 <template>
@@ -52,12 +46,15 @@ const cancelButtonClass =
       </AlertDialogDescription>
       <template #actions>
         <div class="flex flex-wrap items-center justify-center gap-3">
-          <AlertDialogCancel :disabled="loading" :class="cancelButtonClass">
+          <AlertDialogCancel
+            :disabled="loading"
+            class="h-10 min-w-[96px] rounded-lg border border-[rgba(146,80,58,0.32)] bg-linear-to-br from-[rgba(255,252,248,0.98)] to-[rgba(255,236,220,0.95)] font-semibold text-[#5c4033] shadow-[0_2px_8px_rgba(138,73,52,0.1)] hover:border-[rgba(146,80,58,0.45)] hover:from-[rgba(255,245,235,1)] hover:to-[rgba(255,228,210,0.98)] hover:text-[#4a2c2a]"
+          >
             {{ cancelLabel }}
           </AlertDialogCancel>
           <AlertDialogAction
             :disabled="loading"
-            :class="confirmButtonClass"
+            class="h-10 min-w-[96px] rounded-lg border border-[rgba(176,68,68,0.38)] bg-linear-to-br from-[#d78867] to-[#c96d57] font-semibold text-primary-foreground shadow-[0_8px_18px_rgba(138,73,52,0.2)] hover:from-[#de8f6c] hover:to-[#d3735d]"
             @click="emit('confirm')"
           >
             {{ loading ? loadingLabel : confirmLabel }}

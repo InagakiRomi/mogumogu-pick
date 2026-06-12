@@ -3,13 +3,11 @@ import FormAlertDialog from '@/components/feedback/FormAlertDialog.vue'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { FORM_LABEL_CLASS } from '@/constants/form'
 import type { RestaurantCategoryOption } from '@/composables/useRestaurantCategories'
 
-const FORM_SELECT_TRIGGER_CLASS =
-  'h-10 w-full rounded-md border border-border bg-muted/90 px-3 text-left text-sm text-popover-foreground'
-
-const FORM_SELECT_CONTENT_CLASS = 'z-10000 border-border bg-card text-popover-foreground'
+const FORM_LABEL_CLASS = 'font-bold text-muted-foreground'
+const FORM_INPUT_CLASS =
+  'h-10 px-2.5 text-sm rounded-md border border-border bg-muted/90 text-popover-foreground'
 
 export type RestaurantFormData = {
   restaurantName: string
@@ -72,6 +70,7 @@ const imageUrlMaxLength = (mode: 'create' | 'edit') => (mode === 'create' ? 255 
         :id="`${idPrefix}-name`"
         v-model="form.restaurantName"
         :maxlength="nameMaxLength(mode)"
+        :class="FORM_INPUT_CLASS"
         placeholder="例如：和食天國"
         required
       />
@@ -80,10 +79,13 @@ const imageUrlMaxLength = (mode: 'create' | 'edit') => (mode === 'create' ? 255 
     <div class="space-y-2">
       <Label :for="`${idPrefix}-category`" :class="FORM_LABEL_CLASS">分類</Label>
       <Select v-model="form.categoryId">
-        <SelectTrigger :id="`${idPrefix}-category`" :class="FORM_SELECT_TRIGGER_CLASS">
+        <SelectTrigger
+          :id="`${idPrefix}-category`"
+          class="h-10 w-full px-3 text-left text-sm rounded-md border border-border bg-muted/90 text-popover-foreground"
+        >
           <SelectValue placeholder="選擇分類" />
         </SelectTrigger>
-        <SelectContent position="popper" :class="FORM_SELECT_CONTENT_CLASS">
+        <SelectContent position="popper" class="z-10000 border-border bg-card text-popover-foreground">
           <SelectItem
             v-for="option in categoryOptions"
             :key="option.value"
@@ -107,6 +109,7 @@ const imageUrlMaxLength = (mode: 'create' | 'edit') => (mode === 'create' ? 255 
             type="number"
             min="0"
             step="1"
+            :class="FORM_INPUT_CLASS"
             placeholder="例如：1"
             required
           />
@@ -122,6 +125,7 @@ const imageUrlMaxLength = (mode: 'create' | 'edit') => (mode === 'create' ? 255 
             type="number"
             min="0"
             step="1"
+            :class="FORM_INPUT_CLASS"
             placeholder="例如：0"
             required
           />
@@ -137,6 +141,7 @@ const imageUrlMaxLength = (mode: 'create' | 'edit') => (mode === 'create' ? 255 
         :id="`${idPrefix}-note`"
         v-model="form.note"
         :maxlength="noteMaxLength(mode)"
+        :class="FORM_INPUT_CLASS"
         placeholder="例如：可電話訂位"
       />
     </div>
@@ -149,6 +154,7 @@ const imageUrlMaxLength = (mode: 'create' | 'edit') => (mode === 'create' ? 255 
         :id="`${idPrefix}-image-url`"
         v-model="form.imageUrl"
         :maxlength="imageUrlMaxLength(mode)"
+        :class="FORM_INPUT_CLASS"
         placeholder="https://example.com/restaurant.jpg"
       />
     </div>
@@ -162,6 +168,7 @@ const imageUrlMaxLength = (mode: 'create' | 'edit') => (mode === 'create' ? 255 
         v-model="form.lastSelectedAt"
         type="datetime-local"
         step="1"
+        :class="FORM_INPUT_CLASS"
       />
     </div>
   </FormAlertDialog>

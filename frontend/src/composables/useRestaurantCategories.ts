@@ -1,7 +1,8 @@
 import { computed, onMounted, ref } from 'vue'
 import type { components } from '@/api/schema'
 import client from '@/api/client'
-import { ALL_CATEGORIES_VALUE } from '@/constants/restaurant'
+
+export const ALL_CATEGORIES_VALUE = 'all'
 
 export type RestaurantCategoryOption = {
   label: string

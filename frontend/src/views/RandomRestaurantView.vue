@@ -5,11 +5,10 @@ import type { components } from '@/api/schema'
 import client from '@/api/client'
 import WarmAlertDialogShell from '@/components/feedback/WarmAlertDialogShell.vue'
 import WarmButton from '@/components/warm/WarmButton.vue'
-import { useFeedbackDialog } from '@/composables/useFeedbackDialog'
-import { useRestaurantCategories } from '@/composables/useRestaurantCategories'
 import WarmPanel from '@/components/warm/WarmPanel.vue'
 import WarmSelectTrigger from '@/components/warm/WarmSelectTrigger.vue'
-import { ALL_CATEGORIES_VALUE, DEFAULT_RESTAURANT_IMAGE } from '@/constants/restaurant'
+import { useFeedbackDialog } from '@/composables/useFeedbackDialog'
+import { ALL_CATEGORIES_VALUE, useRestaurantCategories } from '@/composables/useRestaurantCategories'
 import {
   AlertDialog,
   AlertDialogDescription,
@@ -25,6 +24,7 @@ import { getApiErrorMessage, RESTAURANT_FEEDBACK_MESSAGES } from '@/lib/apiError
 type RestaurantResult = components['schemas']['RestaurantResponse']
 
 const START_IMAGE = '/images/start.jpg'
+const DEFAULT_RESTAURANT_IMAGE = '/images/defaultRestaurant.jpg'
 const FLIP_DURATION_MS = 700
 const cardClass =
   'border-[rgba(198,134,105,0.45)] bg-linear-to-br from-[rgba(255,248,241,0.92)] to-[rgba(255,233,219,0.86)] shadow-[0_12px_28px_rgba(95,57,41,0.2)]'

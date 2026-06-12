@@ -5,7 +5,6 @@ import client from '@/api/client'
 import { authSession, clearAuthSession, hasGroup } from '@/lib/authSession'
 import { authToken } from '@/lib/authToken'
 import { getRoleLabel } from '@/lib/userRole'
-import NinePatchBox from '@/components/nine-patch/NinePatchBox.vue'
 import WarmButton from '@/components/warm/WarmButton.vue'
 
 const headerTiles = {
@@ -20,6 +19,8 @@ const headerTiles = {
   br: '/images/header-patch/br.png',
 } as const
 
+const headerTileSize = 64
+
 /** header 內容區留白（px），與 tile-size 無關，可單獨調整 */
 const headerContentInset = {
   top: 32,
@@ -27,6 +28,25 @@ const headerContentInset = {
   bottom: 32,
   left: 40,
 } as const
+
+const headerGridStyle = computed(() => ({
+  gridTemplateColumns: `${headerTileSize}px 1fr ${headerTileSize}px`,
+  gridTemplateRows: `${headerTileSize}px 1fr ${headerTileSize}px`,
+}))
+
+const headerCornerStyle = computed(() => ({
+  width: `${headerTileSize}px`,
+  height: `${headerTileSize}px`,
+}))
+
+const headerTileBackgroundSize = computed(() => `${headerTileSize}px ${headerTileSize}px`)
+
+const headerContentInsetStyle = computed(() => ({
+  paddingTop: `${headerContentInset.top}px`,
+  paddingRight: `${headerContentInset.right}px`,
+  paddingBottom: `${headerContentInset.bottom}px`,
+  paddingLeft: `${headerContentInset.left}px`,
+}))
 
 const router = useRouter()
 const groupName = ref('')
@@ -69,60 +89,121 @@ onMounted(() => {
 </script>
 
 <template>
-  <NinePatchBox
-    tag="header"
-    :tiles="headerTiles"
-    :tile-size="64"
-    :content-inset="headerContentInset"
-    root-class="shadow-[0_4px_14px_rgba(95,57,41,0.18)]"
-    class="flex flex-wrap items-center justify-between gap-2 text-[#4a2c2a] md:flex-col md:items-center md:gap-3 lg:flex-row lg:items-center lg:justify-between"
+  <header
+    class="grid shadow-[0_4px_14px_rgba(95,57,41,0.18)]"
+    :style="headerGridStyle"
   >
-    <div class="flex w-full flex-col gap-0 md:w-full md:items-center lg:w-auto lg:items-start">
-      <p
-        class="text-center text-[1.25rem] font-bold tracking-wide text-[#4a2c2a] [text-shadow:0_1px_1px_rgba(255,255,255,0.4)] md:text-[1.8rem] lg:text-left"
-      >
-        Hello！{{ username }}
-      </p>
-      <p
-        v-if="groupName"
-        class="text-center text-[0.95rem] font-semibold md:text-[1.1rem] lg:text-left"
-      >
-        團隊：{{ groupName }}
-      </p>
-      <p class="text-center text-[0.95rem] font-semibold md:text-[1.1rem] lg:text-left">
-        帳號權限：{{ roleLabel }}
-      </p>
-    </div>
+    <img
+      :src="headerTiles.tl"
+      alt=""
+      class="pointer-events-none col-start-1 row-start-1 block max-w-none object-fill"
+      :style="headerCornerStyle"
+      draggable="false"
+      aria-hidden="true"
+    />
+    <div
+      class="pointer-events-none col-start-2 row-start-1 h-full w-full bg-repeat-x bg-top"
+      :style="{ backgroundImage: `url(${headerTiles.t})`, backgroundSize: headerTileBackgroundSize }"
+      aria-hidden="true"
+    />
+    <img
+      :src="headerTiles.tr"
+      alt=""
+      class="pointer-events-none col-start-3 row-start-1 block max-w-none object-fill"
+      :style="headerCornerStyle"
+      draggable="false"
+      aria-hidden="true"
+    />
 
-    <nav class="w-full lg:w-auto">
-      <ul
-        class="flex flex-col gap-2 md:flex-row md:flex-wrap md:items-center md:justify-center md:gap-4 lg:justify-end"
-      >
-        <li v-for="item in navItems" :key="item.name" class="w-full md:w-auto">
-          <RouterLink v-slot="{ isActive, href, navigate }" :to="{ name: item.name }" custom>
+    <div
+      class="pointer-events-none col-start-1 row-start-2 h-full w-full bg-repeat-y bg-left"
+      :style="{ backgroundImage: `url(${headerTiles.l})`, backgroundSize: headerTileBackgroundSize }"
+      aria-hidden="true"
+    />
+    <div
+      class="pointer-events-none col-start-2 row-start-2 h-full w-full bg-repeat"
+      :style="{ backgroundImage: `url(${headerTiles.c})`, backgroundSize: headerTileBackgroundSize }"
+      aria-hidden="true"
+    />
+    <div
+      class="pointer-events-none col-start-3 row-start-2 h-full w-full bg-repeat-y bg-right"
+      :style="{ backgroundImage: `url(${headerTiles.r})`, backgroundSize: headerTileBackgroundSize }"
+      aria-hidden="true"
+    />
+
+    <img
+      :src="headerTiles.bl"
+      alt=""
+      class="pointer-events-none col-start-1 row-start-3 block max-w-none object-fill"
+      :style="headerCornerStyle"
+      draggable="false"
+      aria-hidden="true"
+    />
+    <div
+      class="pointer-events-none col-start-2 row-start-3 h-full w-full bg-repeat-x bg-bottom"
+      :style="{ backgroundImage: `url(${headerTiles.b})`, backgroundSize: headerTileBackgroundSize }"
+      aria-hidden="true"
+    />
+    <img
+      :src="headerTiles.br"
+      alt=""
+      class="pointer-events-none col-start-3 row-start-3 block max-w-none object-fill"
+      :style="headerCornerStyle"
+      draggable="false"
+      aria-hidden="true"
+    />
+
+    <div
+      class="relative z-10 col-start-1 col-span-3 row-start-1 row-span-3 flex min-w-0 flex-wrap items-center justify-between gap-2 self-stretch text-[#4a2c2a] md:flex-col md:items-center md:gap-3 lg:flex-row lg:items-center lg:justify-between"
+      :style="headerContentInsetStyle"
+    >
+      <div class="flex w-full flex-col gap-0 md:w-full md:items-center lg:w-auto lg:items-start">
+        <p
+          class="text-center text-[1.25rem] font-bold tracking-wide text-[#4a2c2a] [text-shadow:0_1px_1px_rgba(255,255,255,0.4)] md:text-[1.8rem] lg:text-left"
+        >
+          Hello！{{ username }}
+        </p>
+        <p
+          v-if="groupName"
+          class="text-center text-[0.95rem] font-semibold md:text-[1.1rem] lg:text-left"
+        >
+          團隊：{{ groupName }}
+        </p>
+        <p class="text-center text-[0.95rem] font-semibold md:text-[1.1rem] lg:text-left">
+          帳號權限：{{ roleLabel }}
+        </p>
+      </div>
+
+      <nav class="w-full lg:w-auto">
+        <ul
+          class="flex flex-col gap-2 md:flex-row md:flex-wrap md:items-center md:justify-center md:gap-4 lg:justify-end"
+        >
+          <li v-for="item in navItems" :key="item.name" class="w-full md:w-auto">
+            <RouterLink v-slot="{ isActive, href, navigate }" :to="{ name: item.name }" custom>
+              <WarmButton
+                as="a"
+                :href="href"
+                variant="nav"
+                :active="isActive"
+                class="w-full"
+                @click="navigate"
+              >
+                {{ item.label }}
+              </WarmButton>
+            </RouterLink>
+          </li>
+          <li class="w-full md:w-auto">
             <WarmButton
-              as="a"
-              :href="href"
-              variant="nav"
-              :active="isActive"
-              class="w-full"
-              @click="navigate"
+              type="button"
+              variant="compact"
+              class="w-full md:w-auto"
+              @click="handleLogout"
             >
-              {{ item.label }}
+              登出
             </WarmButton>
-          </RouterLink>
-        </li>
-        <li class="w-full md:w-auto">
-          <WarmButton
-            type="button"
-            variant="compact"
-            class="w-full md:w-auto"
-            @click="handleLogout"
-          >
-            登出
-          </WarmButton>
-        </li>
-      </ul>
-    </nav>
-  </NinePatchBox>
+          </li>
+        </ul>
+      </nav>
+    </div>
+  </header>
 </template>

@@ -9,7 +9,6 @@ import RestaurantFormDialog from '@/components/restaurant/RestaurantFormDialog.v
 import WarmButton from '@/components/warm/WarmButton.vue'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { FORM_LABEL_CLASS } from '@/constants/form'
 import {
   Table,
   TableBody,
@@ -20,7 +19,6 @@ import {
 } from '@/components/ui/table'
 import { useFeedbackDialog } from '@/composables/useFeedbackDialog'
 import { useRestaurantCategories } from '@/composables/useRestaurantCategories'
-import { DEFAULT_RESTAURANT_IMAGE, formatOptionalDate } from '@/constants/restaurant'
 import { authSession } from '@/lib/authSession'
 import {
   ARCHIVED_RESTAURANT_MESSAGE,
@@ -30,12 +28,15 @@ import {
 } from '@/lib/apiErrorMessage'
 import { isGroupAdmin } from '@/lib/userRole'
 
+const FORM_LABEL_CLASS = 'font-bold text-muted-foreground'
+const FORM_INPUT_CLASS =
+  'h-10 px-2.5 text-sm rounded-md border border-border bg-muted/90 text-popover-foreground'
+const DEFAULT_RESTAURANT_IMAGE = '/images/defaultRestaurant.jpg'
+
 type Restaurant = components['schemas']['RestaurantResponse']
 type Dish = components['schemas']['DishResponse']
 
 /** 預設圖原始尺寸 480×320；詳細頁固定以 120×80 顯示 */
-const RESTAURANT_IMAGE_WIDTH = 120
-const RESTAURANT_IMAGE_HEIGHT = 80
 
 const route = useRoute()
 const router = useRouter()
@@ -720,8 +721,8 @@ watch(isDeleteDishDialogOpen, (open) => {
               :alt="restaurant.restaurantName ?? '餐廳圖片'"
               class="mx-auto shrink-0 rounded border border-border object-cover sm:mx-0"
               :style="{
-                width: `${RESTAURANT_IMAGE_WIDTH}px`,
-                height: `${RESTAURANT_IMAGE_HEIGHT}px`,
+                width: '120px',
+                height: '80px',
               }"
               loading="lazy"
               @error="handleImageError"
@@ -734,9 +735,9 @@ watch(isDeleteDishDialogOpen, (open) => {
               <p>分類：{{ restaurant.categoryName ?? '-' }}</p>
               <p>顯示排序 ID：{{ restaurant.displayOrderId ?? '-' }}</p>
               <p>被選取次數：{{ restaurant.selectedCount ?? 0 }}</p>
-              <p>最後被選時間：{{ formatOptionalDate(restaurant.lastSelectedAt) }}</p>
-              <p>建立時間：{{ formatOptionalDate(restaurant.createdAt) }}</p>
-              <p>更新時間：{{ formatOptionalDate(restaurant.updatedAt) }}</p>
+              <p>最後被選時間：{{ restaurant.lastSelectedAt?.trim() || '-' }}</p>
+              <p>建立時間：{{ restaurant.createdAt?.trim() || '-' }}</p>
+              <p>更新時間：{{ restaurant.updatedAt?.trim() || '-' }}</p>
               <p class="sm:col-span-2">備註：{{ restaurant.note || '-' }}</p>
             </div>
           </div>
@@ -854,6 +855,7 @@ watch(isDeleteDishDialogOpen, (open) => {
           id="create-dish-name"
           v-model="createDishForm.dishName"
           maxlength="64"
+          :class="FORM_INPUT_CLASS"
           placeholder="例如：牛肉拉麵"
           required
         />
@@ -867,6 +869,7 @@ watch(isDeleteDishDialogOpen, (open) => {
           type="number"
           min="0"
           step="1"
+          :class="FORM_INPUT_CLASS"
           placeholder="例如：130"
           required
         />
@@ -892,6 +895,7 @@ watch(isDeleteDishDialogOpen, (open) => {
           type="number"
           min="1"
           step="1"
+          :class="FORM_INPUT_CLASS"
           placeholder="例如：1"
           required
         />
@@ -903,6 +907,7 @@ watch(isDeleteDishDialogOpen, (open) => {
           id="edit-dish-name"
           v-model="editDishForm.dishName"
           maxlength="64"
+          :class="FORM_INPUT_CLASS"
           placeholder="例如：雙倍叉燒拉麵"
           required
         />
@@ -916,6 +921,7 @@ watch(isDeleteDishDialogOpen, (open) => {
           type="number"
           min="0"
           step="1"
+          :class="FORM_INPUT_CLASS"
           placeholder="例如：180"
           required
         />

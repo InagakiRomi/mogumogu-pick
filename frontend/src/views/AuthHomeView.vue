@@ -16,6 +16,14 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 
 type AuthTab = 'login' | 'register'
 
+const authLabelClass = 'font-bold text-muted-foreground'
+
+const authFieldClass =
+  'h-[42px] rounded-md border-border bg-muted/90 px-2.5 py-0 text-base text-popover-foreground shadow-[inset_0_1px_2px_rgba(121,73,52,0.12)] placeholder:text-[rgba(118,78,60,0.72)] focus-visible:border-[rgba(168,98,68,0.75)] focus-visible:bg-[rgba(255,239,227,0.95)] focus-visible:shadow-[0_0_0_3px_rgba(238,175,143,0.26),inset_0_1px_3px_rgba(121,73,52,0.14)]'
+
+const authTabsTriggerClass =
+  'h-auto min-h-0 cursor-pointer select-none px-3 py-2 text-sm font-semibold text-[rgba(118,78,60,0.58)] hover:text-[rgba(95,57,41,0.78)] data-active:rounded-md data-active:border data-active:border-[rgba(186,118,88,0.55)] data-active:bg-linear-to-br data-active:from-white data-active:to-[rgba(255,225,205,0.98)] data-active:text-[rgba(78,42,28,0.95)] data-active:shadow-[0_2px_10px_rgba(95,57,41,0.22)]'
+
 const router = useRouter()
 const activeTab = ref<AuthTab>('login')
 const isLoading = ref(false)
@@ -62,14 +70,6 @@ async function handleLogin() {
   await router.push({ name: hasGroup() ? 'random-restaurant' : 'no-group' })
   isLoading.value = false
 }
-
-const authLabelClass = 'font-bold text-muted-foreground'
-
-const authFieldClass =
-  'h-[42px] rounded-md border-border bg-muted/90 px-2.5 py-0 text-base text-popover-foreground shadow-[inset_0_1px_2px_rgba(121,73,52,0.12)] placeholder:text-[rgba(118,78,60,0.72)] focus-visible:border-[rgba(168,98,68,0.75)] focus-visible:bg-[rgba(255,239,227,0.95)] focus-visible:shadow-[0_0_0_3px_rgba(238,175,143,0.26),inset_0_1px_3px_rgba(121,73,52,0.14)]'
-
-const authTabsTriggerClass =
-  'h-auto min-h-0 cursor-pointer select-none px-3 py-2 text-sm font-semibold text-[rgba(118,78,60,0.58)] hover:text-[rgba(95,57,41,0.78)] data-active:rounded-md data-active:border data-active:border-[rgba(186,118,88,0.55)] data-active:bg-linear-to-br data-active:from-white data-active:to-[rgba(255,225,205,0.98)] data-active:text-[rgba(78,42,28,0.95)] data-active:shadow-[0_2px_10px_rgba(95,57,41,0.22)]'
 
 async function handleRegister() {
   clearFeedback()

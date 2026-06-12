@@ -7,8 +7,6 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
-const WIDE_ALERT_DIALOG_CONTENT_CLASS =
-  'max-w-[min(92vw,768px)]! data-[size=default]:max-w-[min(92vw,768px)]! data-[size=default]:sm:max-w-[min(92vw,768px)]! border-border bg-card text-card-foreground'
 
 const FORM_DIALOG_FOOTER_BUTTON_CLASS = 'h-11 min-w-[120px] flex-1 sm:flex-none'
 
@@ -40,7 +38,9 @@ const emit = defineEmits<{
 
 <template>
   <AlertDialog :open="open" @update:open="emit('update:open', $event)">
-    <AlertDialogContent :class="WIDE_ALERT_DIALOG_CONTENT_CLASS">
+    <AlertDialogContent
+      class="max-w-[min(92vw,768px)]! data-[size=default]:max-w-[min(92vw,768px)]! data-[size=default]:sm:max-w-[min(92vw,768px)]! border-border bg-card text-card-foreground"
+    >
       <AlertDialogHeader>
         <AlertDialogTitle>{{ title }}</AlertDialogTitle>
       </AlertDialogHeader>

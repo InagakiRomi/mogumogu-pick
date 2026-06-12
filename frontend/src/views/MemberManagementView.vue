@@ -4,43 +4,48 @@ import { useRouter } from 'vue-router'
 import type { components } from '@/api/schema'
 import client from '@/api/client'
 import FormAlertDialog from '@/components/feedback/FormAlertDialog.vue'
+import FormSelectField from '@/components/form/FormSelectField.vue'
+import ListPagePanel from '@/components/form/ListPagePanel.vue'
+import ListSection from '@/components/form/ListSection.vue'
+import ListTable, {
+  ListTableActions,
+  ListTableCell,
+  ListTableHead,
+  ListTableRow,
+} from '@/components/form/ListTable.vue'
 import WarmButton from '@/components/warm/WarmButton.vue'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table'
 import { useFeedbackDialog } from '@/composables/useFeedbackDialog'
 import { getApiErrorMessage } from '@/lib/apiErrorMessage'
 import { authSession } from '@/lib/authSession'
 import { getRoleLabel, isGroupAdmin } from '@/lib/userRole'
+
+const FORM_LABEL_CLASS = 'font-bold text-muted-foreground'
+const FORM_INPUT_CLASS =
+  'h-10 px-2.5 text-sm rounded-md border border-border bg-muted/90 text-popover-foreground'
+const FORM_TOOLBAR_CLASS = 'flex flex-wrap items-end gap-3'
+const DEFAULT_SORT_OPTIONS = [
+  { label: '小到大', value: 'ASC' as const },
+  { label: '大到小', value: 'DESC' as const },
+]
 
 type GroupProfile = components['schemas']['GroupProfileResponse']
 type GroupMember = components['schemas']['GroupMemberResponse']
 type MemberOrderBy = 'USER_ID' | 'DISPLAY_ORDER_ID'
 type SortOrder = 'ASC' | 'DESC'
 
-const orderByOptions: Array<{ label: string; value: MemberOrderBy }> = [
-  { label: 'ID', value: 'USER_ID' },
-  { label: '排序 ID', value: 'DISPLAY_ORDER_ID' },
-]
-
-const sortOptions: Array<{ label: string; value: SortOrder }> = [
-  { label: '小到大', value: 'ASC' },
-  { label: '大到小', value: 'DESC' },
-]
+const memberListForm = {
+  defaultOrderBy: 'DISPLAY_ORDER_ID' as MemberOrderBy,
+  defaultSort: 'ASC' as SortOrder,
+  orderByOptions: [
+    { label: 'ID', value: 'USER_ID' as const },
+    { label: '排序 ID', value: 'DISPLAY_ORDER_ID' as const },
+  ],
+  sortOptions: DEFAULT_SORT_OPTIONS,
+  loadingText: '載入資料中...',
+  emptyText: '目前沒有成員資料',
+}
 
 const router = useRouter()
 const { showFeedback, clearFeedback } = useFeedbackDialog()
@@ -53,8 +58,8 @@ const groupProfile = ref<GroupProfile | null>(null)
 const members = ref<GroupMember[]>([])
 const groupNameInput = ref('')
 const targetEmailInput = ref('')
-const orderBy = ref<MemberOrderBy>('DISPLAY_ORDER_ID')
-const sort = ref<SortOrder>('ASC')
+const orderBy = ref<MemberOrderBy>(memberListForm.defaultOrderBy)
+const sort = ref<SortOrder>(memberListForm.defaultSort)
 
 const currentUsername = computed(() => authSession.value?.username ?? '')
 const currentUserId = computed(() => authSession.value?.userId ?? null)
@@ -291,13 +296,8 @@ onMounted(() => {
 </script>
 
 <template>
-  <main
-    class="min-h-screen bg-[linear-gradient(rgba(255,255,255,0.24),rgba(255,255,255,0.24)),url('/images/homeBg.jpg')] bg-fixed bg-cover bg-center bg-no-repeat px-4 py-6 md:px-6"
-  >
-    <div
-      class="relative z-10 mx-auto mt-6 w-full rounded-[10px] border border-[rgba(226,164,136,0.52)] bg-linear-to-br from-[rgba(255,248,241,0.9)] to-[rgba(255,233,219,0.84)] px-[30px] pt-[30px] pb-8 shadow-[0_14px_32px_rgba(95,57,41,0.24),inset_0_1px_0_rgba(255,255,255,0.55)] backdrop-blur-sm max-lg:mt-5 max-lg:px-6 max-lg:pt-6 max-lg:pb-7 max-md:mt-4 max-md:rounded-lg max-md:px-4 max-md:pt-4 max-md:pb-6"
-    >
-      <div class="space-y-6">
+  <ListPagePanel>
+    <div class="space-y-6">
         <section class="space-y-3 rounded-lg border border-border bg-card/70 p-4">
           <div class="flex flex-wrap items-center justify-between gap-3">
             <p class="text-lg font-bold text-card-foreground">
@@ -313,55 +313,31 @@ onMounted(() => {
           </div>
         </section>
 
-        <section class="space-y-4 rounded-lg border border-border bg-card/70 p-4">
-          <div class="flex flex-wrap items-center justify-between gap-2">
-            <h2 class="text-lg font-bold text-card-foreground">成員列表</h2>
-            <p class="text-sm text-muted-foreground">共 {{ members.length }} 位成員</p>
+        <ListSection title="成員列表" :summary="`共 ${members.length} 位成員`">
+          <div :class="FORM_TOOLBAR_CLASS">
+            <FormSelectField
+              v-model="orderBy"
+              label="排序欄位"
+              :options="memberListForm.orderByOptions"
+              placeholder="選擇排序欄位"
+            />
+            <FormSelectField
+              v-model="sort"
+              label="排序方向"
+              :options="memberListForm.sortOptions"
+              placeholder="選擇排序方向"
+            />
           </div>
 
-          <div class="flex flex-wrap items-end gap-3">
-            <div class="w-[180px] space-y-2">
-              <Label class="font-bold text-muted-foreground">排序欄位</Label>
-              <Select v-model="orderBy">
-                <SelectTrigger
-                  class="h-10 w-full rounded-md border border-border bg-muted/90 px-3 text-left text-sm text-popover-foreground"
-                >
-                  <SelectValue placeholder="選擇排序欄位" />
-                </SelectTrigger>
-                <SelectContent class="border-border bg-card text-popover-foreground">
-                  <SelectItem v-for="option in orderByOptions" :key="option.value" :value="option.value">
-                    {{ option.label }}
-                  </SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div class="w-[180px] space-y-2">
-              <Label class="font-bold text-muted-foreground">排序方向</Label>
-              <Select v-model="sort">
-                <SelectTrigger
-                  class="h-10 w-full rounded-md border border-border bg-muted/90 px-3 text-left text-sm text-popover-foreground"
-                >
-                  <SelectValue placeholder="選擇排序方向" />
-                </SelectTrigger>
-                <SelectContent class="border-border bg-card text-popover-foreground">
-                  <SelectItem v-for="option in sortOptions" :key="option.value" :value="option.value">
-                    {{ option.label }}
-                  </SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-
-          <div v-if="canManageMembers" class="flex flex-wrap items-end gap-3">
+          <div v-if="canManageMembers" :class="FORM_TOOLBAR_CLASS">
             <div class="min-w-[240px] grow space-y-2">
-              <Label for="target-email" class="font-bold text-muted-foreground">新增成員（電子郵件）</Label>
+              <Label for="target-email" :class="FORM_LABEL_CLASS">新增成員（電子郵件）</Label>
               <Input
                 id="target-email"
                 v-model="targetEmailInput"
                 type="email"
                 autocomplete="email"
-                class="h-10"
+                :class="FORM_INPUT_CLASS"
                 placeholder="輸入要加入的電子郵件"
                 @keyup.enter="addMemberByEmail"
               />
@@ -374,88 +350,75 @@ onMounted(() => {
             </WarmButton>
           </div>
 
-          <Table class="table-fixed rounded-md border border-border bg-card">
-            <TableHeader>
-              <TableRow>
-                <TableHead class="w-[84px] text-center">ID</TableHead>
-                <TableHead class="w-[80px] text-center">排序 ID</TableHead>
-                <TableHead class="text-center">名稱</TableHead>
-                <TableHead class="w-[120px] text-center">角色</TableHead>
-                <TableHead class="w-[300px] text-center">操作</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              <TableRow v-if="isLoading">
-                <TableCell colspan="5" class="py-8 text-center text-muted-foreground">
-                  載入資料中...
-                </TableCell>
-              </TableRow>
-              <TableRow v-else-if="sortedMembers.length === 0">
-                <TableCell colspan="5" class="py-8 text-center text-muted-foreground">
-                  目前沒有成員資料
-                </TableCell>
-              </TableRow>
-              <TableRow
-                v-for="member in sortedMembers"
-                :key="member.userId ?? member.username"
-                class="h-[52px]"
-              >
-                <TableCell class="h-[52px] py-2 text-center">{{ member.userId ?? '-' }}</TableCell>
-                <TableCell class="h-[52px] py-2 text-center">{{ member.displayOrderId ?? '-' }}</TableCell>
-                <TableCell
-                  class="h-[52px] truncate py-2 text-center"
-                  :title="member.username ?? undefined"
-                >
-                  {{ member.username ?? '-' }}
-                </TableCell>
-                <TableCell class="h-[52px] py-2 text-center">
-                  {{ getRoleLabel(member.role) }}
-                </TableCell>
-                <TableCell class="h-[52px] py-2 text-center">
-                  <div class="flex h-9 items-center justify-center gap-2">
-                    <template v-if="canManageMembers">
-                      <template v-if="isCurrentUser(member)">
-                        <span class="inline-flex h-9 items-center text-sm text-muted-foreground">-</span>
-                      </template>
-                      <template v-else>
-                        <WarmButton
-                          variant="outline-standard"
-                          class="h-9 px-3 text-sm"
-                          :disabled="member.role === 0"
-                          @click="transferAdmin(member)"
-                        >
-                          轉移管理員
-                        </WarmButton>
-                        <WarmButton
-                          variant="outline-standard"
-                          class="h-9 px-3 text-sm"
-                          @click="removeMember(member)"
-                        >
-                          刪除成員
-                        </WarmButton>
-                      </template>
+          <ListTable
+            :is-loading="isLoading"
+            :is-empty="sortedMembers.length === 0"
+            :column-count="5"
+            :loading-text="memberListForm.loadingText"
+            :empty-text="memberListForm.emptyText"
+          >
+            <template #header>
+              <ListTableHead class="w-[84px]">ID</ListTableHead>
+              <ListTableHead class="w-[80px]">排序 ID</ListTableHead>
+              <ListTableHead>名稱</ListTableHead>
+              <ListTableHead class="w-[120px]">角色</ListTableHead>
+              <ListTableHead class="w-[300px]">操作</ListTableHead>
+            </template>
+
+            <ListTableRow
+              v-for="member in sortedMembers"
+              :key="member.userId ?? member.username"
+            >
+              <ListTableCell>{{ member.userId ?? '-' }}</ListTableCell>
+              <ListTableCell>{{ member.displayOrderId ?? '-' }}</ListTableCell>
+              <ListTableCell truncate :title="member.username ?? undefined">
+                {{ member.username ?? '-' }}
+              </ListTableCell>
+              <ListTableCell>{{ getRoleLabel(member.role) }}</ListTableCell>
+              <ListTableCell>
+                <ListTableActions>
+                  <template v-if="canManageMembers">
+                    <template v-if="isCurrentUser(member)">
+                      <span class="inline-flex h-9 items-center text-sm text-muted-foreground">-</span>
                     </template>
                     <template v-else>
                       <WarmButton
-                        v-if="isCurrentUser(member)"
                         variant="outline-standard"
                         class="h-9 px-3 text-sm"
-                        @click="leaveGroup"
+                        :disabled="member.role === 0"
+                        @click="transferAdmin(member)"
                       >
-                        退出群組
+                        轉移管理員
                       </WarmButton>
-                      <span v-else class="inline-flex h-9 items-center text-sm text-muted-foreground">-</span>
+                      <WarmButton
+                        variant="outline-standard"
+                        class="h-9 px-3 text-sm"
+                        @click="removeMember(member)"
+                      >
+                        刪除成員
+                      </WarmButton>
                     </template>
-                  </div>
-                </TableCell>
-              </TableRow>
-            </TableBody>
-          </Table>
-        </section>
-      </div>
+                  </template>
+                  <template v-else>
+                    <WarmButton
+                      v-if="isCurrentUser(member)"
+                      variant="outline-standard"
+                      class="h-9 px-3 text-sm"
+                      @click="leaveGroup"
+                    >
+                      退出群組
+                    </WarmButton>
+                    <span v-else class="inline-flex h-9 items-center text-sm text-muted-foreground">-</span>
+                  </template>
+                </ListTableActions>
+              </ListTableCell>
+            </ListTableRow>
+          </ListTable>
+        </ListSection>
     </div>
 
-    <FormAlertDialog
+    <template #overlay>
+      <FormAlertDialog
       :open="isGroupNameDialogOpen"
       title="更新團隊名稱"
       submit-label="更新"
@@ -467,15 +430,16 @@ onMounted(() => {
       @cancel="closeGroupNameDialog"
     >
       <div class="space-y-2">
-        <Label for="group-name-dialog" class="font-bold text-muted-foreground">團隊名稱</Label>
+        <Label for="group-name-dialog" :class="FORM_LABEL_CLASS">團隊名稱</Label>
         <Input
           id="group-name-dialog"
           v-model="groupNameInput"
           maxlength="64"
-          class="h-10"
+          :class="FORM_INPUT_CLASS"
           placeholder="輸入團隊名稱"
         />
       </div>
-    </FormAlertDialog>
-  </main>
+      </FormAlertDialog>
+    </template>
+  </ListPagePanel>
 </template>
