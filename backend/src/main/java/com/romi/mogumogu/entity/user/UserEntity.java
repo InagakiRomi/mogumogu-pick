@@ -43,7 +43,7 @@ public class UserEntity {
     private Integer displayOrderId;
 
     @Enumerated(EnumType.ORDINAL)
-    @Comment("使用者角色（0=系統管理員、1=群組管理員、2=一般使用者）")
+    @Comment("使用者角色（0=群組管理員、1=一般使用者）")
     @Column(nullable = false)
     private UserRole roles;
 

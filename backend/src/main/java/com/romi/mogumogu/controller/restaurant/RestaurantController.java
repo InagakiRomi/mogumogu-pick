@@ -7,7 +7,6 @@ import com.romi.mogumogu.dto.CreateRestaurantDto;
 import com.romi.mogumogu.dto.GetRestaurantQuery;
 import com.romi.mogumogu.dto.GetSelectionHistoryQuery;
 import com.romi.mogumogu.dto.UpdateRestaurantDto;
-import com.romi.mogumogu.security.SecurityUtils;
 import com.romi.mogumogu.service.restaurant.RestaurantService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -38,12 +37,9 @@ public class RestaurantController {
     }
 
     @GetMapping("")
-    @Operation(summary = "取得餐廳清單（mine=true 限自己所屬群組；否則需 SYSTEM_ADMIN）")
+    @Operation(summary = "取得自己所屬群組的餐廳清單")
     public RestaurantListResponse<RestaurantResponse> getRestaurants(
             @Valid @ModelAttribute @ParameterObject GetRestaurantQuery queryParams) {
-        if (!Boolean.TRUE.equals(queryParams.getMine())) {
-            SecurityUtils.requireSystemAdmin();
-        }
         return restaurantService.getRestaurants(queryParams);
     }
 

@@ -15,7 +15,6 @@ import io.swagger.v3.oas.annotations.parameters.RequestBody;
 @Target(ElementType.METHOD)
 @Retention(RetentionPolicy.RUNTIME)
 @RequestBody(required = true, content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE, schema = @Schema(implementation = LoginRequest.class), examples = {
-                @ExampleObject(name = "Super", value = "{\"email\":\"super@test.com\",\"password\":\"123\"}"),
                 @ExampleObject(name = "GroupAdmin", value = "{\"email\":\"groupadmin@test.com\",\"password\":\"123\"}"),
                 @ExampleObject(name = "User", value = "{\"email\":\"user@test.com\",\"password\":\"123\"}")
 }))

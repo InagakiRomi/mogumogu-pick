@@ -154,7 +154,6 @@ async function fetchRestaurants() {
 
   try {
     const query: RestaurantListQuery = {
-      mine: true,
       search: searchInput.value.trim() || undefined,
       categoryId: resolveCategoryId(selectedCategory.value),
       isArchived: false,

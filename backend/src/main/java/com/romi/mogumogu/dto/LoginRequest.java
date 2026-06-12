@@ -10,7 +10,7 @@ import lombok.Setter;
 @Setter
 public class LoginRequest {
 
-    @Schema(description = "電子郵件", example = "super@test.com")
+    @Schema(description = "電子郵件", example = "groupadmin@test.com")
     @NotBlank
     @Email
     private String email;

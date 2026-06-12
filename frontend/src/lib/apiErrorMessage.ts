@@ -6,7 +6,6 @@ const API_ERROR_MESSAGES: Record<string, string> = {
   'Invalid email or password': '電子郵件或密碼錯誤',
   'Invalid role': '角色無效',
   'This email is already registered': '此電子郵件已被註冊',
-  'SYSTEM_ADMIN already exists': '系統管理員已存在',
   'Validation failed': '資料驗證失敗',
   'email is required': '請輸入電子郵件',
   'password is required': '請輸入密碼',
@@ -57,7 +56,6 @@ const API_ERROR_MESSAGES: Record<string, string> = {
   'Target user is not in your group': '目標使用者不在您的群組中',
   'Cannot remove current group admin': '無法移除目前的群組管理員',
   'Target user is already group admin': '目標使用者已是群組管理員',
-  'Target user is a system admin': '目標使用者是系統管理員',
   'Please transfer group admin before leaving': '請先移轉群組管理權再退出',
   'Only group admin can perform this action': '只有群組管理員可以執行此操作',
 }

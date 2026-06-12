@@ -52,9 +52,8 @@ INSERT INTO restaurant
 
 INSERT INTO `user`
 (user_id, group_id, display_order_id, roles, username, email, user_password, created_at, updated_at) VALUES
-(1, 1, 1, 0, 'Super', 'super@test.com', '$2a$10$FUJ8U5tUUcso8KXDFqcNSufkPq/XeHah8N9mUmyJMLKiODmQOZbaS', '2026-05-13 00:06:53', '2026-05-13 00:06:53'),
-(2, 1, 2, 1, 'GroupAdmin', 'groupadmin@test.com', '$2a$10$FUJ8U5tUUcso8KXDFqcNSufkPq/XeHah8N9mUmyJMLKiODmQOZbaS', '2026-05-13 00:06:53', '2026-05-13 00:06:53'),
-(3, 1, 3, 2, 'user', 'user@test.com', '$2a$10$FUJ8U5tUUcso8KXDFqcNSufkPq/XeHah8N9mUmyJMLKiODmQOZbaS', '2026-05-13 00:06:53', '2026-05-13 00:06:53');
+(1, 1, 1, 0, 'GroupAdmin', 'groupadmin@test.com', '$2a$10$FUJ8U5tUUcso8KXDFqcNSufkPq/XeHah8N9mUmyJMLKiODmQOZbaS', '2026-05-13 00:06:53', '2026-05-13 00:06:53'),
+(2, 1, 2, 1, 'user', 'user@test.com', '$2a$10$FUJ8U5tUUcso8KXDFqcNSufkPq/XeHah8N9mUmyJMLKiODmQOZbaS', '2026-05-13 00:06:53', '2026-05-13 00:06:53');
 
 INSERT INTO dish
 (dish_id, restaurant_id, display_order_id, price, dish_name) VALUES

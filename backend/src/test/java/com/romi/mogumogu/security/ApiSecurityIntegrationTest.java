@@ -72,39 +72,14 @@ class ApiSecurityIntegrationTest {
     }
 
     @Test
-    void getRestaurants_asUser_returns403() throws Exception {
+    void getRestaurants_asUser_returns401WhenUserNotInDatabase() throws Exception {
         mockMvc.perform(get("/restaurants").header(HttpHeaders.AUTHORIZATION, bearerToken(UserRole.USER)))
-                .andExpect(status().isForbidden())
-                .andExpect(jsonPath("$.statusCode").value(403))
-                .andExpect(jsonPath("$.code").value("FORBIDDEN"));
+                .andExpect(status().isUnauthorized());
     }
 
     @Test
-    void getRestaurants_asGroupAdmin_returns403() throws Exception {
+    void getRestaurants_asGroupAdmin_returns401WhenUserNotInDatabase() throws Exception {
         mockMvc.perform(get("/restaurants").header(HttpHeaders.AUTHORIZATION, bearerToken(UserRole.GROUP_ADMIN)))
-                .andExpect(status().isForbidden());
-    }
-
-    @Test
-    void getRestaurants_asSystemAdmin_returns200() throws Exception {
-        mockMvc.perform(
-                        get("/restaurants").header(HttpHeaders.AUTHORIZATION, bearerToken(UserRole.SYSTEM_ADMIN)))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data").isArray())
-                .andExpect(jsonPath("$.page").exists());
-    }
-
-    @Test
-    void getMyGroupRestaurants_withoutToken_returns401() throws Exception {
-        mockMvc.perform(get("/restaurants").param("mine", "true"))
-                .andExpect(status().isUnauthorized())
-                .andExpect(jsonPath("$.code").value("UNAUTHORIZED"));
-    }
-
-    @Test
-    void getMyGroupRestaurants_asUser_returns401WhenUserNotInDatabase() throws Exception {
-        mockMvc.perform(get("/restaurants").param("mine", "true")
-                        .header(HttpHeaders.AUTHORIZATION, bearerToken(UserRole.USER)))
                 .andExpect(status().isUnauthorized());
     }
 

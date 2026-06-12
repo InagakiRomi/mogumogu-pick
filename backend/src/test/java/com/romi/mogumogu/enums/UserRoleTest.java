@@ -12,7 +12,7 @@ import org.junit.jupiter.params.provider.ValueSource;
 class UserRoleTest {
 
     @ParameterizedTest
-    @ValueSource(strings = {"SYSTEM_ADMIN", "GROUP_ADMIN", "USER"})
+    @ValueSource(strings = {"GROUP_ADMIN", "USER"})
     @DisplayName("合法名稱可解析")
     void fromName_validNames(String name) {
         assertThat(UserRole.fromName(name)).isPresent();

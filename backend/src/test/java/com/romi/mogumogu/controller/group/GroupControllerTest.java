@@ -445,17 +445,6 @@ class GroupControllerTest {
         }
 
         @Test
-        void targetIsSystemAdmin_returns400() throws Exception {
-            when(groupService.transferGroupAdmin(any(TransferGroupAdminDto.class)))
-                    .thenThrow(new ResponseStatusException(HttpStatus.BAD_REQUEST, "Target user is a system admin"));
-
-            assertErrorResponse(performTransferAdmin(TransferGroupAdminDto.builder().targetUserId(20).build()),
-                    HttpStatus.BAD_REQUEST, GROUPS_MY_TRANSFER_ADMIN_PATH, "Target user is a system admin");
-
-            verify(groupService).transferGroupAdmin(any(TransferGroupAdminDto.class));
-        }
-
-        @Test
         void serviceThrowsUnexpectedException_returns500() throws Exception {
             when(groupService.transferGroupAdmin(any(TransferGroupAdminDto.class)))
                     .thenThrow(new RuntimeException("Transfer group admin failed"));

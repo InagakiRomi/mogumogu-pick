@@ -159,7 +159,6 @@ class JwtTokenProviderTest {
 
         static Stream<Arguments> allRoles() {
             return Stream.of(
-                    Arguments.of(UserRole.SYSTEM_ADMIN, "SYSTEM_ADMIN"),
                     Arguments.of(UserRole.GROUP_ADMIN, "GROUP_ADMIN"),
                     Arguments.of(UserRole.USER, "USER"));
         }
@@ -344,7 +343,7 @@ class JwtTokenProviderTest {
         @Test
         @DisplayName("Bearer token 回傳 Authentication 與 ROLE_ 前綴")
         void bearerToken_returnsAuthenticationWithRole() {
-            UserEntity admin = user(7, "admin@example.com", 1, UserRole.SYSTEM_ADMIN);
+            UserEntity admin = user(7, "admin@example.com", 1, UserRole.GROUP_ADMIN);
             String header = "Bearer " + accessToken(TTL_DEFAULT_MS, admin);
 
             var authOpt = provider(TTL_DEFAULT_MS).resolveAuthentication(header);
@@ -352,7 +351,7 @@ class JwtTokenProviderTest {
             assertThat(authOpt.get().getPrincipal()).isEqualTo("7");
             assertThat(authOpt.get().getAuthorities())
                     .extracting("authority")
-                    .containsExactly("ROLE_SYSTEM_ADMIN");
+                    .containsExactly("ROLE_GROUP_ADMIN");
         }
 
         @Test

@@ -97,11 +97,6 @@ public class AuthService {
             requestedRole = roleOpt.get();
         }
 
-        // 如果系統管理員存在，則不能註冊為系統管理員
-        if (requestedRole == UserRole.SYSTEM_ADMIN && userRepository.existsByRole(UserRole.SYSTEM_ADMIN)) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT, "SYSTEM_ADMIN already exists");
-        }
-
         // 建立新使用者
         Date now = new Date();
         UserEntity newUser = UserEntity.builder()

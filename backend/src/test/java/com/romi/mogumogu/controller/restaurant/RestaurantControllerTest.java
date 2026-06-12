@@ -88,7 +88,7 @@ class RestaurantControllerTest {
 
     @BeforeEach
     void setUpSecurityContext() {
-        authenticateAsSystemAdmin();
+        authenticateAsGroupAdmin();
     }
 
     @AfterEach
@@ -96,12 +96,12 @@ class RestaurantControllerTest {
         SecurityContextHolder.clearContext();
     }
 
-    private void authenticateAsSystemAdmin() {
+    private void authenticateAsGroupAdmin() {
         SecurityContextHolder.getContext().setAuthentication(
                 new UsernamePasswordAuthenticationToken(
                         "1",
                         null,
-                        List.of(new SimpleGrantedAuthority("ROLE_" + UserRole.SYSTEM_ADMIN.name()))));
+                        List.of(new SimpleGrantedAuthority("ROLE_" + UserRole.GROUP_ADMIN.name()))));
     }
 
     private void authenticateAsUser() {
@@ -158,7 +158,6 @@ class RestaurantControllerTest {
                     buildRestaurantListResponse(List.of(filtered), 1, 20, 1L));
 
             performGetRestaurants(Map.of(
-                            "groupId", "2",
                             "categoryId", "21",
                             "isArchived", "false",
                             "search", "牛排"))
@@ -1324,13 +1323,11 @@ class RestaurantControllerTest {
     }
 
     private ResultActions performGetMyGroupRestaurants() throws Exception {
-        return mockMvc.perform(get(RESTAURANTS_PATH).param("mine", "true"));
+        return performGetRestaurants();
     }
 
     private ResultActions performGetMyGroupRestaurants(Map<String, String> queryParams) throws Exception {
-        var requestBuilder = get(RESTAURANTS_PATH).param("mine", "true");
-        queryParams.forEach(requestBuilder::param);
-        return mockMvc.perform(requestBuilder);
+        return performGetRestaurants(queryParams);
     }
 
     private ResultActions performGetRandomMyGroupRestaurant() throws Exception {
@@ -1409,7 +1406,6 @@ class RestaurantControllerTest {
                 null,
                 null,
                 null,
-                null,
                 RestaurantSort.SortBy.RESTAURANT_ID,
                 RestaurantSort.SortOrder.ASC,
                 1,
@@ -1419,7 +1415,6 @@ class RestaurantControllerTest {
     private static java.util.function.Predicate<GetRestaurantQuery> matchesFilteredListQuery() {
         return p -> matchesListQuery(
                 p,
-                2,
                 21,
                 false,
                 "牛排",
@@ -1434,16 +1429,7 @@ class RestaurantControllerTest {
     }
 
     private static java.util.function.Predicate<GetRestaurantQuery> matchesMyGroupFilteredListQuery() {
-        return withMyGroupScope(p -> matchesListQuery(
-                p,
-                null,
-                21,
-                false,
-                "牛排",
-                RestaurantSort.SortBy.RESTAURANT_ID,
-                RestaurantSort.SortOrder.ASC,
-                1,
-                20));
+        return matchesFilteredListQuery();
     }
 
     private static java.util.function.Predicate<GetRestaurantQuery> matchesMyGroupSortedListQuery() {
@@ -1456,12 +1442,11 @@ class RestaurantControllerTest {
 
     private static java.util.function.Predicate<GetRestaurantQuery> withMyGroupScope(
             java.util.function.Predicate<GetRestaurantQuery> matcher) {
-        return p -> Boolean.TRUE.equals(p.getMine()) && matcher.test(p);
+        return matcher;
     }
 
     private static java.util.function.Predicate<GetRestaurantQuery> matchesMyGroupCategoriesListQuery() {
-        return p -> Boolean.TRUE.equals(p.getMine())
-                && Boolean.TRUE.equals(p.getIncludeCategories())
+        return p -> Boolean.TRUE.equals(p.getIncludeCategories())
                 && Objects.equals(p.getLimit(), 1)
                 && Objects.equals(p.getPage(), 1);
     }
@@ -1469,7 +1454,6 @@ class RestaurantControllerTest {
     private static java.util.function.Predicate<GetRestaurantQuery> matchesSortedListQuery() {
         return p -> matchesListQuery(
                 p,
-                null,
                 null,
                 null,
                 null,
@@ -1482,7 +1466,6 @@ class RestaurantControllerTest {
     private static java.util.function.Predicate<GetRestaurantQuery> matchesPagedListQuery() {
         return p -> matchesListQuery(
                 p,
-                null,
                 null,
                 null,
                 null,
@@ -1505,7 +1488,6 @@ class RestaurantControllerTest {
 
     private static boolean matchesListQuery(
             GetRestaurantQuery p,
-            Integer groupId,
             Integer categoryId,
             Boolean isArchived,
             String search,
@@ -1513,8 +1495,7 @@ class RestaurantControllerTest {
             RestaurantSort.SortOrder sort,
             Integer page,
             Integer limit) {
-        return Objects.equals(p.getGroupId(), groupId)
-                && Objects.equals(p.getCategoryId(), categoryId)
+        return Objects.equals(p.getCategoryId(), categoryId)
                 && Objects.equals(p.getIsArchived(), isArchived)
                 && Objects.equals(p.getSearch(), search)
                 && p.getOrderBy() == orderBy

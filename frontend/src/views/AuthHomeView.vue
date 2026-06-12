@@ -30,7 +30,7 @@ const registerForm = ref({
   username: '',
   email: '',
   password: '',
-  role: '2',
+  role: '1',
 })
 
 async function handleLogin() {
@@ -205,8 +205,8 @@ async function handleRegister() {
                   <SelectValue placeholder="選擇帳號類型" />
                 </WarmSelectTrigger>
                 <SelectContent class="border-border bg-card text-popover-foreground">
-                  <SelectItem value="2"> 一般使用者 </SelectItem>
-                  <SelectItem value="1"> 群組管理員 </SelectItem>
+                  <SelectItem value="1"> 一般使用者 </SelectItem>
+                  <SelectItem value="0"> 群組管理員 </SelectItem>
                 </SelectContent>
               </Select>
             </div>

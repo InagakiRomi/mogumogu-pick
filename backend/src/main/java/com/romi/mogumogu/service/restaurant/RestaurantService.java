@@ -70,16 +70,12 @@ public class RestaurantService {
         this.dishService = dishService;
     }
 
-    /** 取得餐廳清單（可依群組、分類、封存狀態等條件篩選） */
+    /** 取得目前登入使用者所屬群組的餐廳清單 */
     public RestaurantListResponse<RestaurantResponse> getRestaurants(GetRestaurantQuery queryParams) {
-        if (Boolean.TRUE.equals(queryParams.getMine())) {
-            queryParams.setGroupId(resolveCurrentUserGroupId());
-            if (queryParams.getIsArchived() == null) {
-                queryParams.setIsArchived(false);
-            }
+        Integer groupId = resolveCurrentUserGroupId();
+        if (queryParams.getIsArchived() == null) {
+            queryParams.setIsArchived(false);
         }
-
-        Integer groupId = queryParams.getGroupId();
         Integer categoryId = queryParams.getCategoryId();
         Boolean isArchived = queryParams.getIsArchived();
         String search = queryParams.getSearch();

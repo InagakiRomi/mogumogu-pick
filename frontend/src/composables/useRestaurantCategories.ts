@@ -37,7 +37,6 @@ export function useRestaurantCategories() {
       const { data, error } = await client.GET('/restaurants', {
         params: {
           query: {
-            mine: true,
             includeCategories: true,
             limit: 1,
             page: 1,

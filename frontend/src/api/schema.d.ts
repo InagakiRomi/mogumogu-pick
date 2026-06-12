@@ -11,7 +11,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** 取得餐廳清單（mine=true 限自己所屬群組；否則需 SYSTEM_ADMIN） */
+        /** 取得自己所屬群組的餐廳清單 */
         get: operations["getRestaurants"];
         put?: never;
         /** 新增餐廳 */
@@ -502,7 +502,7 @@ export interface components {
         LoginRequest: {
             /**
              * @description 電子郵件
-             * @example super@test.com
+             * @example groupadmin@test.com
              */
             email: string;
             /**
@@ -644,10 +644,6 @@ export interface operations {
     getRestaurants: {
         parameters: {
             query?: {
-                /** @description 群組 ID */
-                groupId?: number;
-                /** @description 是否限定為目前登入使用者所屬群組（false 或未帶時需 SYSTEM_ADMIN） */
-                mine?: boolean;
                 /** @description 是否一併回傳分類清單 */
                 includeCategories?: boolean;
                 /** @description 分類 ID */

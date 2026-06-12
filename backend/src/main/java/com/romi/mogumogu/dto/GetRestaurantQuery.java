@@ -17,13 +17,6 @@ import lombok.Setter;
 @NoArgsConstructor
 @AllArgsConstructor
 public class GetRestaurantQuery {
-    @Schema(description = "群組 ID")
-    private Integer groupId;
-
-    @Schema(description = "是否限定為目前登入使用者所屬群組（false 或未帶時需 SYSTEM_ADMIN）")
-    @Default
-    private Boolean mine = false;
-
     @Schema(description = "是否一併回傳分類清單")
     private Boolean includeCategories;
 

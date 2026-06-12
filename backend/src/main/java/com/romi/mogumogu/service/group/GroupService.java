@@ -137,11 +137,6 @@ public class GroupService {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Target user is already group admin");
         }
 
-        // 檢查目標使用者是否為系統管理員
-        if (targetUser.getRoles() == UserRole.SYSTEM_ADMIN) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Target user is a system admin");
-        }
-
         // 移轉群組管理權
         Date now = new Date();
         currentUser.setRoles(UserRole.USER);

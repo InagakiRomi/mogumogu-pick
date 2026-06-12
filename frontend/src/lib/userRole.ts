@@ -1,7 +1,6 @@
 const ROLE_LABELS: Record<number, string> = {
-  0: '系統管理員',
-  1: '群組管理員',
-  2: '一般使用者',
+  0: '群組管理員',
+  1: '一般使用者',
 }
 
 export function getRoleLabel(role?: number | null) {
@@ -13,9 +12,9 @@ export function getRoleLabel(role?: number | null) {
 }
 
 export function isRegularUser(role?: number | null) {
-  return role === 2
+  return role === 1
 }
 
 export function isGroupAdmin(role?: number | null) {
-  return role === 1
+  return role === 0
 }

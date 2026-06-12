@@ -251,7 +251,7 @@ async function transferAdmin(member: GroupMember) {
     if (authSession.value) {
       authSession.value = {
         ...authSession.value,
-        role: 2,
+        role: 1,
       }
     }
 
@@ -424,7 +424,7 @@ onMounted(() => {
                         <WarmButton
                           variant="outline-standard"
                           class="h-9 px-3 text-sm"
-                          :disabled="member.role === 1"
+                          :disabled="member.role === 0"
                           @click="transferAdmin(member)"
                         >
                           轉移管理員
