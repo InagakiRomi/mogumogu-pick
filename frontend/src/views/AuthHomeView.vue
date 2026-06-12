@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import client from '@/api/client'
 import { AUTH_FEEDBACK_MESSAGES, getApiErrorMessage } from '@/lib/apiErrorMessage'
@@ -8,6 +8,7 @@ import { authToken } from '@/lib/authToken'
 import WarmButton from '@/components/warm/WarmButton.vue'
 import WarmPanel from '@/components/warm/WarmPanel.vue'
 import { useFeedbackDialog } from '@/composables/useFeedbackDialog'
+import { useServerConnection } from '@/composables/useServerConnection'
 import WarmSelectTrigger from '@/components/warm/WarmSelectTrigger.vue'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -28,6 +29,31 @@ const router = useRouter()
 const activeTab = ref<AuthTab>('login')
 const isLoading = ref(false)
 const { showFeedback, clearFeedback } = useFeedbackDialog()
+const { status: serverStatus, checkConnection } = useServerConnection()
+
+const serverStatusMessage = computed(() => {
+  switch (serverStatus.value) {
+    case 'checking':
+      return '正在連接伺服器...'
+    case 'connected':
+      return '伺服器連線成功'
+    case 'disconnected':
+    default:
+      return '伺服器連線中斷，請稍後等待伺服器啟動並重新檢查'
+  }
+})
+
+const serverStatusClass = computed(() => {
+  switch (serverStatus.value) {
+    case 'checking':
+      return 'border-[rgba(186,134,88,0.45)] bg-[rgba(255,244,228,0.92)] text-[rgba(95,57,41,0.88)]'
+    case 'connected':
+      return 'border-[rgba(168,138,98,0.4)] bg-[rgba(255,247,238,0.92)] text-[rgba(92,68,48,0.9)]'
+    case 'disconnected':
+    default:
+      return 'border-[rgba(186,88,88,0.45)] bg-[rgba(255,236,232,0.94)] text-[rgba(120,42,36,0.94)]'
+  }
+})
 
 const loginForm = ref({
   email: '',
@@ -106,6 +132,32 @@ async function handleRegister() {
         src="/images/logo.png"
         alt="MoguMogu"
       />
+    </div>
+
+    <div
+      class="relative z-10 mx-auto mt-4 flex w-full max-w-[600px] items-center justify-center gap-3 rounded-lg border px-4 py-2.5 text-center text-sm font-semibold shadow-[0_6px_16px_rgba(95,57,41,0.12)] backdrop-blur-sm max-lg:max-w-[90%] max-md:max-w-[calc(100%-24px)] max-md:text-xs"
+      :class="serverStatusClass"
+      role="status"
+      aria-live="polite"
+    >
+      <span
+        class="inline-block size-2.5 shrink-0 translate-y-0.5 rounded-full"
+        :class="{
+          'animate-pulse bg-[rgba(186,134,88,0.75)]': serverStatus === 'checking',
+          'bg-[rgba(64,158,84,0.95)]': serverStatus === 'connected',
+          'bg-[rgba(186,72,72,0.9)]': serverStatus === 'disconnected',
+        }"
+        aria-hidden="true"
+      />
+      <span>{{ serverStatusMessage }}</span>
+      <button
+        v-if="serverStatus === 'disconnected'"
+        type="button"
+        class="shrink-0 rounded-md border border-current/30 px-2 py-0.5 text-xs font-semibold transition-colors hover:bg-black/5"
+        @click="checkConnection"
+      >
+        重新檢查
+      </button>
     </div>
 
     <WarmPanel>
