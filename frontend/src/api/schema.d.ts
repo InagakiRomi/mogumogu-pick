@@ -39,6 +39,24 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/restaurant-categories": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 取得自己所屬群組的餐廳分類清單 */
+        get: operations["getMyGroupCategories"];
+        put?: never;
+        /** 新增餐廳分類 */
+        post: operations["createCategory"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/groups/my/transfer-admin": {
         parameters: {
             query?: never;
@@ -176,6 +194,24 @@ export interface paths {
         head?: never;
         /** 確認選擇餐廳並重置抽籤池 */
         patch: operations["chooseMyGroupRestaurant"];
+        trace?: never;
+    };
+    "/restaurant-categories/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** 刪除餐廳分類 */
+        delete: operations["deleteCategory"];
+        options?: never;
+        head?: never;
+        /** 修改餐廳分類 */
+        patch: operations["updateCategory"];
         trace?: never;
     };
     "/groups/my": {
@@ -411,6 +447,38 @@ export interface components {
              */
             dishTotal?: number;
         };
+        CreateRestaurantCategoryDto: {
+            /**
+             * @description 分類名稱
+             * @example 甜點
+             */
+            categoryName: string;
+        };
+        RestaurantCategoryResponse: {
+            /**
+             * Format: int32
+             * @description 分類 ID
+             * @example 1
+             */
+            categoryId?: number;
+            /**
+             * @description 分類名稱
+             * @example 主食
+             */
+            categoryName?: string;
+            /**
+             * Format: int32
+             * @description 群組內顯示排序 ID
+             * @example 1
+             */
+            displayOrderId?: number;
+            /**
+             * Format: int64
+             * @description 使用此分類的未封存餐廳數量
+             * @example 3
+             */
+            restaurantCount?: number;
+        };
         TransferGroupAdminDto: {
             /**
              * Format: int32
@@ -552,6 +620,19 @@ export interface components {
              */
             lastSelectedAt?: string;
         };
+        UpdateRestaurantCategoryDto: {
+            /**
+             * @description 分類名稱
+             * @example 甜點
+             */
+            categoryName?: string;
+            /**
+             * Format: int32
+             * @description 群組內顯示排序 ID
+             * @example 1
+             */
+            displayOrderId?: number;
+        };
         UpdateGroupNameDto: {
             /**
              * @description 群組名稱
@@ -583,25 +664,6 @@ export interface components {
              */
             price: number;
         };
-        RestaurantCategoryResponse: {
-            /**
-             * Format: int32
-             * @description 分類 ID
-             * @example 1
-             */
-            categoryId?: number;
-            /**
-             * @description 分類名稱
-             * @example 主食
-             */
-            categoryName?: string;
-            /**
-             * Format: int32
-             * @description 群組內顯示排序 ID
-             * @example 1
-             */
-            displayOrderId?: number;
-        };
         RestaurantListResponseRestaurantResponse: {
             data?: components["schemas"]["RestaurantResponse"][];
             /** Format: int32 */
@@ -610,7 +672,6 @@ export interface components {
             limit?: number;
             /** Format: int64 */
             total?: number;
-            categories?: components["schemas"]["RestaurantCategoryResponse"][];
         };
         RestaurantListResponseSelectionHistoryResponse: {
             data?: components["schemas"]["SelectionHistoryResponse"][];
@@ -620,7 +681,6 @@ export interface components {
             limit?: number;
             /** Format: int64 */
             total?: number;
-            categories?: components["schemas"]["RestaurantCategoryResponse"][];
         };
         SelectionHistoryResponse: {
             /** Format: int32 */
@@ -644,8 +704,6 @@ export interface operations {
     getRestaurants: {
         parameters: {
             query?: {
-                /** @description 是否一併回傳分類清單 */
-                includeCategories?: boolean;
                 /** @description 分類 ID */
                 categoryId?: number;
                 /** @description 是否已刪除 */
@@ -717,6 +775,50 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+        };
+    };
+    getMyGroupCategories: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["RestaurantCategoryResponse"][];
+                };
+            };
+        };
+    };
+    createCategory: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateRestaurantCategoryDto"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["RestaurantCategoryResponse"];
+                };
             };
         };
     };
@@ -968,6 +1070,52 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["RestaurantResponse"];
+                };
+            };
+        };
+    };
+    deleteCategory: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    updateCategory: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateRestaurantCategoryDto"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["RestaurantCategoryResponse"];
                 };
             };
         };

@@ -25,4 +25,10 @@ public interface RestaurantRepository
     /** 取得群組內指定未封存餐廳 */
     Optional<RestaurantEntity> findByRestaurantIdAndGroupIdAndIsArchivedFalse(
             Integer restaurantId, Integer groupId);
+
+    /** 檢查群組內是否有未封存餐廳使用指定分類 */
+    boolean existsByGroupIdAndCategoryId_CategoryIdAndIsArchivedFalse(Integer groupId, Integer categoryId);
+
+    /** 統計群組內使用指定分類的未封存餐廳數量 */
+    long countByGroupIdAndCategoryId_CategoryIdAndIsArchivedFalse(Integer groupId, Integer categoryId);
 }

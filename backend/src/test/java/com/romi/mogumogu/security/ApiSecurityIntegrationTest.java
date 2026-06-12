@@ -26,8 +26,11 @@ import com.romi.mogumogu.entity.restaurant.RestaurantCategoryEntity;
 import com.romi.mogumogu.entity.user.UserEntity;
 import com.romi.mogumogu.enums.UserRole;
 import com.romi.mogumogu.repository.restaurant.RestaurantCategoryRepository;
+import com.romi.mogumogu.repository.user.UserRepository;
 import com.romi.mogumogu.testsupport.IntegrationTestFixtures;
 import com.romi.mogumogu.testsupport.MemH2DataSourceProperties;
+
+import static org.assertj.core.api.Assertions.assertThat;
 
 @SpringBootTest
 @AutoConfigureMockMvc
@@ -51,6 +54,9 @@ class ApiSecurityIntegrationTest {
 
     @Autowired
     private RestaurantCategoryRepository restaurantCategoryRepository;
+
+    @Autowired
+    private UserRepository userRepository;
 
     private String bearerToken(UserRole role) {
         UserEntity user = UserEntity.builder()
@@ -143,5 +149,34 @@ class ApiSecurityIntegrationTest {
     @Test
     void swaggerUi_withoutToken_isPermitted() throws Exception {
         mockMvc.perform(get("/swagger-ui.html")).andExpect(status().is3xxRedirection());
+    }
+
+    @Test
+    void getRestaurantCategories_withoutToken_returns401() throws Exception {
+        mockMvc.perform(get("/restaurant-categories"))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void register_asGroupAdmin_seedsDefaultCategories() throws Exception {
+        RegisterRequest body = new RegisterRequest();
+        body.setUsername("admin-seed");
+        body.setEmail("admin-seed-categories@example.com");
+        body.setPassword("password123");
+        body.setRole(UserRole.GROUP_ADMIN.ordinal());
+
+        mockMvc.perform(post("/auth/register")
+                        .contentType(Objects.requireNonNull(MediaType.APPLICATION_JSON))
+                        .content(Objects.requireNonNull(objectMapper.writeValueAsString(body))))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.groupId").isNumber());
+
+        var savedUser = userRepository.findByEmailIgnoreCase("admin-seed-categories@example.com").orElseThrow();
+        var categories = restaurantCategoryRepository.findByGroupIdOrderByDisplayOrderIdAsc(savedUser.getGroupId());
+
+        assertThat(categories).hasSize(3);
+        assertThat(categories.get(0).getCategoryName()).isEqualTo("主食");
+        assertThat(categories.get(1).getCategoryName()).isEqualTo("輕食");
+        assertThat(categories.get(2).getCategoryName()).isEqualTo("飲料");
     }
 }

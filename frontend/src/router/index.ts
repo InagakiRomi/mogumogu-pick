@@ -5,6 +5,7 @@ import AppLayout from '@/layouts/AppLayout.vue'
 import AuthHomeView from '@/views/AuthHomeView.vue'
 import NoGroupView from '@/views/NoGroupView.vue'
 import MemberManagementView from '@/views/MemberManagementView.vue'
+import CategoryManagementView from '@/views/CategoryManagementView.vue'
 import RandomRestaurantView from '@/views/RandomRestaurantView.vue'
 import RestaurantHistoryView from '@/views/RestaurantHistoryView.vue'
 import RestaurantDetailView from '@/views/RestaurantDetailView.vue'
@@ -57,6 +58,12 @@ const router = createRouter({
           name: 'member-management',
           component: MemberManagementView,
           meta: { requiresAuth: true, requiresGroup: true, pageTitle: '成員管理' },
+        },
+        {
+          path: 'categories',
+          name: 'category-management',
+          component: CategoryManagementView,
+          meta: { requiresAuth: true, requiresGroup: true, pageTitle: '分類管理' },
         },
       ],
     },

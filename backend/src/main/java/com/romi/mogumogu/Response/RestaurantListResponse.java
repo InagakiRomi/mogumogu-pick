@@ -24,30 +24,12 @@ public class RestaurantListResponse<T> {
     /** 總筆數 */
     private Long total;
 
-    /** 分類清單 */
-    private List<RestaurantCategoryResponse> categories;
-
     public static <T> RestaurantListResponse<T> of(List<T> data, int page, int limit, long total) {
         return RestaurantListResponse.<T>builder()
                 .data(data)
                 .page(page)
                 .limit(limit)
                 .total(total)
-                .build();
-    }
-
-    public static <T> RestaurantListResponse<T> of(
-            List<T> data,
-            int page,
-            int limit,
-            long total,
-            List<RestaurantCategoryResponse> categories) {
-        return RestaurantListResponse.<T>builder()
-                .data(data)
-                .page(page)
-                .limit(limit)
-                .total(total)
-                .categories(categories)
                 .build();
     }
 }

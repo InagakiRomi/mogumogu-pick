@@ -1,7 +1,6 @@
 package com.romi.mogumogu.service.restaurant;
 
 import com.romi.mogumogu.Response.DishListResponse;
-import com.romi.mogumogu.Response.RestaurantCategoryResponse;
 import com.romi.mogumogu.Response.RestaurantListResponse;
 import com.romi.mogumogu.Response.RestaurantResponse;
 import com.romi.mogumogu.Response.SelectionHistoryResponse;
@@ -151,12 +150,6 @@ public class RestaurantService {
         List<RestaurantResponse> restaurantResponses = pageResult.getContent().stream()
                 .map(RestaurantResponse::restaurantResponse)
                 .toList();
-
-        if (Boolean.TRUE.equals(queryParams.getIncludeCategories()) && groupId != null) {
-            List<RestaurantCategoryResponse> categories = findRestaurantCategories(groupId);
-            return RestaurantListResponse.of(
-                    restaurantResponses, page, limit, pageResult.getTotalElements(), categories);
-        }
 
         return RestaurantListResponse.of(restaurantResponses, page, limit, pageResult.getTotalElements());
     }
@@ -438,13 +431,6 @@ public class RestaurantService {
         }
 
         return restaurant;
-    }
-
-    /** 取得群組內所有分類（依顯示排序） */
-    private List<RestaurantCategoryResponse> findRestaurantCategories(Integer groupId) {
-        return restaurantCategoryRepository.findByGroupIdOrderByDisplayOrderIdAsc(groupId).stream()
-                .map(RestaurantCategoryResponse::from)
-                .toList();
     }
 
     /** 檢查分類是否存在 */

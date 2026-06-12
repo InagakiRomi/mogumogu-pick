@@ -20,6 +20,7 @@ import com.romi.mogumogu.entity.user.UserEntity;
 import com.romi.mogumogu.enums.UserRole;
 import com.romi.mogumogu.repository.group.GroupRepository;
 import com.romi.mogumogu.repository.user.UserRepository;
+import com.romi.mogumogu.service.restaurant.RestaurantCategoryService;
 
 @Service
 public class AuthService {
@@ -28,15 +29,18 @@ public class AuthService {
 
     private final UserRepository userRepository;
     private final GroupRepository groupRepository;
+    private final RestaurantCategoryService restaurantCategoryService;
     private final JwtTokenProvider jwtTokenProvider;
     private final BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
 
     public AuthService(
             UserRepository userRepository,
             GroupRepository groupRepository,
+            RestaurantCategoryService restaurantCategoryService,
             JwtTokenProvider jwtTokenProvider) {
         this.userRepository = userRepository;
         this.groupRepository = groupRepository;
+        this.restaurantCategoryService = restaurantCategoryService;
         this.jwtTokenProvider = jwtTokenProvider;
     }
 
@@ -140,6 +144,7 @@ public class AuthService {
                 .updatedAt(now)
                 .build();
         GroupEntity savedGroup = Objects.requireNonNull(groupRepository.save(Objects.requireNonNull(newGroup)));
+        restaurantCategoryService.seedDefaultCategories(savedGroup.getGroupId());
 
         // 設定使用者所屬群組
         admin.setGroupId(savedGroup.getGroupId());

@@ -17,9 +17,6 @@ import lombok.Setter;
 @NoArgsConstructor
 @AllArgsConstructor
 public class GetRestaurantQuery {
-    @Schema(description = "是否一併回傳分類清單")
-    private Boolean includeCategories;
-
     @Schema(description = "分類 ID")
     private Integer categoryId;
 

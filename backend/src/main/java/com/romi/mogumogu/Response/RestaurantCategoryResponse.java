@@ -21,11 +21,15 @@ public class RestaurantCategoryResponse {
     @Schema(description = "群組內顯示排序 ID", example = "1")
     private Integer displayOrderId;
 
-    public static RestaurantCategoryResponse from(RestaurantCategoryEntity entity) {
+    @Schema(description = "使用此分類的未封存餐廳數量", example = "3")
+    private Long restaurantCount;
+
+    public static RestaurantCategoryResponse from(RestaurantCategoryEntity entity, long restaurantCount) {
         return RestaurantCategoryResponse.builder()
                 .categoryId(entity.getCategoryId())
                 .categoryName(entity.getCategoryName())
                 .displayOrderId(entity.getDisplayOrderId())
+                .restaurantCount(restaurantCount)
                 .build();
     }
 }

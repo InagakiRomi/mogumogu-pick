@@ -34,21 +34,13 @@ export function useRestaurantCategories() {
     errorMessage.value = null
 
     try {
-      const { data, error } = await client.GET('/restaurants', {
-        params: {
-          query: {
-            includeCategories: true,
-            limit: 1,
-            page: 1,
-          },
-        },
-      })
+      const { data, error } = await client.GET('/restaurant-categories')
 
       if (error) {
         throw error
       }
 
-      categories.value = (data?.categories ?? []).map(toCategoryOption)
+      categories.value = (data ?? []).map(toCategoryOption)
     } catch (error) {
       categories.value = []
       errorMessage.value = '取得餐廳分類失敗'

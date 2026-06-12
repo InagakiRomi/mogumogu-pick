@@ -3,7 +3,6 @@ package com.romi.mogumogu.controller.restaurant;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.romi.mogumogu.Response.DishResponse;
-import com.romi.mogumogu.Response.RestaurantCategoryResponse;
 import com.romi.mogumogu.Response.RestaurantListResponse;
 import com.romi.mogumogu.Response.RestaurantResponse;
 import com.romi.mogumogu.Response.SelectionHistoryResponse;
@@ -398,32 +397,6 @@ class RestaurantControllerTest {
             verifyNoInteractions(restaurantService);
         }
 
-        @Test
-        void withIncludeCategories_returnsCategoryList() throws Exception {
-            stubGetRestaurants(
-                    matchesMyGroupCategoriesListQuery(),
-                    RestaurantListResponse.<RestaurantResponse>builder()
-                            .data(List.of())
-                            .page(1)
-                            .limit(1)
-                            .total(0L)
-                            .categories(List.of(
-                                    RestaurantCategoryResponse.builder().categoryId(1).categoryName("主食")
-                                            .displayOrderId(1).build(),
-                                    RestaurantCategoryResponse.builder().categoryId(2).categoryName("輕食")
-                                            .displayOrderId(2).build()))
-                            .build());
-
-            performGetMyGroupRestaurants(Map.of("includeCategories", "true", "limit", "1"))
-                    .andExpect(status().isOk())
-                    .andExpect(jsonPath("$.categories.length()").value(2))
-                    .andExpect(jsonPath("$.categories[0].categoryId").value(1))
-                    .andExpect(jsonPath("$.categories[0].categoryName").value("主食"))
-                    .andExpect(jsonPath("$.categories[1].categoryId").value(2))
-                    .andExpect(jsonPath("$.categories[1].categoryName").value("輕食"));
-
-            verifyGetRestaurantsCalled(matchesMyGroupCategoriesListQuery());
-        }
     }
 
     @Nested
@@ -1443,12 +1416,6 @@ class RestaurantControllerTest {
     private static java.util.function.Predicate<GetRestaurantQuery> withMyGroupScope(
             java.util.function.Predicate<GetRestaurantQuery> matcher) {
         return matcher;
-    }
-
-    private static java.util.function.Predicate<GetRestaurantQuery> matchesMyGroupCategoriesListQuery() {
-        return p -> Boolean.TRUE.equals(p.getIncludeCategories())
-                && Objects.equals(p.getLimit(), 1)
-                && Objects.equals(p.getPage(), 1);
     }
 
     private static java.util.function.Predicate<GetRestaurantQuery> matchesSortedListQuery() {

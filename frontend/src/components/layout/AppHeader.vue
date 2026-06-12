@@ -38,6 +38,7 @@ const navItems = [
   { label: '抽餐廳', name: 'random-restaurant' },
   { label: '餐廳一覽', name: 'list-restaurant' },
   { label: '歷史紀錄', name: 'restaurant-history' },
+  { label: '分類管理', name: 'category-management' },
   { label: '成員管理', name: 'member-management' },
 ] as const
 
