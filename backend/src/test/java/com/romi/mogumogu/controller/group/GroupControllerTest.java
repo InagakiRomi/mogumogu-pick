@@ -117,6 +117,28 @@ class GroupControllerTest {
 
             verify(groupService).getMyGroupMembers();
         }
+
+        @Test
+        void userNotFound_returns401() throws Exception {
+            when(groupService.getMyGroupMembers())
+                    .thenThrow(new ResponseStatusException(HttpStatus.UNAUTHORIZED, "User not found"));
+
+            assertErrorResponse(mockMvc.perform(get(GROUPS_MY_MEMBERS_PATH)),
+                    HttpStatus.UNAUTHORIZED, GROUPS_MY_MEMBERS_PATH, "User not found");
+
+            verify(groupService).getMyGroupMembers();
+        }
+
+        @Test
+        void serviceThrowsUnexpectedException_returns500() throws Exception {
+            when(groupService.getMyGroupMembers())
+                    .thenThrow(new RuntimeException("Get group members failed"));
+
+            assertErrorResponse(mockMvc.perform(get(GROUPS_MY_MEMBERS_PATH)),
+                    HttpStatus.INTERNAL_SERVER_ERROR, GROUPS_MY_MEMBERS_PATH, "Get group members failed");
+
+            verify(groupService).getMyGroupMembers();
+        }
     }
 
     @Nested

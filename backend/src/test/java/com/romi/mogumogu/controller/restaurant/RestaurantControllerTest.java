@@ -671,6 +671,27 @@ class RestaurantControllerTest {
         }
 
         @Test
+        void invalidSort_returns400AndSkipsServiceCall() throws Exception {
+            assertErrorResponseContains(performGetMyGroupSelectionHistory(Map.of("sort", "INVALID_SORT_ORDER")),
+                    400, CODE_BAD_REQUEST, RESTAURANTS_SELECTION_HISTORY_PATH, "sort is invalid");
+
+            verifyNoInteractions(restaurantService);
+        }
+
+        @Test
+        void serviceThrowsResponseStatusException_returns503() throws Exception {
+            when(restaurantService.getMyGroupSelectionHistory(any(GetSelectionHistoryQuery.class)))
+                    .thenThrow(new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE,
+                            "Selection history temporarily unavailable"));
+
+            assertErrorResponse(performGetMyGroupSelectionHistory(),
+                    HttpStatus.SERVICE_UNAVAILABLE, RESTAURANTS_SELECTION_HISTORY_PATH,
+                    "Selection history temporarily unavailable");
+
+            verify(restaurantService).getMyGroupSelectionHistory(any(GetSelectionHistoryQuery.class));
+        }
+
+        @Test
         void serviceThrowsUnexpectedException_returns500() throws Exception {
             when(restaurantService.getMyGroupSelectionHistory(any(GetSelectionHistoryQuery.class)))
                     .thenThrow(new RuntimeException("Selection history query failed"));
@@ -690,6 +711,28 @@ class RestaurantControllerTest {
         void success_returns204() throws Exception {
             performClearMyGroupRandomPool()
                     .andExpect(status().isNoContent());
+
+            verify(restaurantService).clearMyGroupRandomPool();
+        }
+
+        @Test
+        void notInGroup_returns400() throws Exception {
+            doThrow(new ResponseStatusException(HttpStatus.BAD_REQUEST, "User is not in a group"))
+                    .when(restaurantService).clearMyGroupRandomPool();
+
+            assertErrorResponse(performClearMyGroupRandomPool(),
+                    HttpStatus.BAD_REQUEST, RESTAURANTS_RANDOM_CLEAR_PATH, "User is not in a group");
+
+            verify(restaurantService).clearMyGroupRandomPool();
+        }
+
+        @Test
+        void userNotFound_returns401() throws Exception {
+            doThrow(new ResponseStatusException(HttpStatus.UNAUTHORIZED, "User not found"))
+                    .when(restaurantService).clearMyGroupRandomPool();
+
+            assertErrorResponse(performClearMyGroupRandomPool(),
+                    HttpStatus.UNAUTHORIZED, RESTAURANTS_RANDOM_CLEAR_PATH, "User not found");
 
             verify(restaurantService).clearMyGroupRandomPool();
         }
@@ -883,6 +926,16 @@ class RestaurantControllerTest {
                     "groupId is required",
                     "categoryId is required",
                     "restaurantName is required");
+
+            verifyNoInteractions(restaurantService);
+        }
+
+        @Test
+        void negativeCategoryId_returns400AndSkipsServiceCall() throws Exception {
+            CreateRestaurantDto request = buildCreateRequest(1, -1, "負數分類");
+
+            assertBadRequestValidation(performPostRestaurants(request),
+                    "categoryId must be greater than or equal to the minimum value");
 
             verifyNoInteractions(restaurantService);
         }

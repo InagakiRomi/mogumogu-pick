@@ -315,6 +315,23 @@ class DishControllerTest {
         }
 
         @Test
+        void duplicateDisplayOrderId_returns400() throws Exception {
+            UpdateDishDto request = UpdateDishDto.builder()
+                    .displayOrderId(2)
+                    .dishName("排序衝突")
+                    .price(120)
+                    .build();
+            when(dishService.updateDish(eq(10), any(UpdateDishDto.class)))
+                    .thenThrow(new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                            "displayOrderId already exists in this restaurant"));
+
+            assertErrorResponse(performUpdateDish(10, request),
+                    HttpStatus.BAD_REQUEST, "/dishes/10", "displayOrderId already exists in this restaurant");
+
+            verify(dishService).updateDish(eq(10), any(UpdateDishDto.class));
+        }
+
+        @Test
         void invalidPathVariable_returns500AndSkipsServiceCall() throws Exception {
             UpdateDishDto request = UpdateDishDto.builder()
                     .displayOrderId(1)
