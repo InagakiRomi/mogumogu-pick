@@ -1,0 +1,23 @@
+services:
+  - type: web
+    name: mogumogu-backend
+    runtime: docker
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: ./backend
+    plan: free
+    healthCheckPath: /v3/api-docs
+    disk:
+      name: mogumogu-data
+      mountPath: /app/data
+      sizeGB: 1
+    envVars:
+      - key: SPRING_PROFILES_ACTIVE
+        value: h2
+      - key: SPRING_H2_CONSOLE_ENABLED
+        value: "false"
+      - key: JWT_SECRET_KEY
+        generateValue: true
+      - key: CORS_ORIGINS
+        value: https://inagakiromi.github.io
+      - key: MOGUMOGU_SEED_DB
+        value: if-empty
