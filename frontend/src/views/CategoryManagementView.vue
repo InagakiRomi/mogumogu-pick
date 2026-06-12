@@ -130,21 +130,22 @@ async function createCategory() {
   clearFeedback()
   isCreating.value = true
 
-  const { error } = await client.POST('/restaurant-categories', {
-    body: { categoryName },
-  })
+  try {
+    const { error } = await client.POST('/restaurant-categories', {
+      body: { categoryName },
+    })
 
-  if (error) {
+    if (error) {
+      showFeedback(getApiErrorMessage(error, '新增分類失敗'))
+      return
+    }
+
+    showFeedback('新增分類成功', 'success')
+    await fetchCategories()
+  } finally {
     closeCreateDialog()
-    showFeedback(getApiErrorMessage(error, '新增分類失敗'))
     isCreating.value = false
-    return
   }
-
-  closeCreateDialog()
-  showFeedback('新增分類成功', 'success')
-  await fetchCategories()
-  isCreating.value = false
 }
 
 async function updateCategory() {
@@ -168,26 +169,28 @@ async function updateCategory() {
   clearFeedback()
   isUpdating.value = true
 
-  const { error } = await client.PATCH('/restaurant-categories/{id}', {
-    params: {
-      path: { id: categoryId },
-    },
-    body: {
-      categoryName,
-      displayOrderId,
-    },
-  })
+  try {
+    const { error } = await client.PATCH('/restaurant-categories/{id}', {
+      params: {
+        path: { id: categoryId },
+      },
+      body: {
+        categoryName,
+        displayOrderId,
+      },
+    })
 
-  if (error) {
-    showFeedback(getApiErrorMessage(error, '更新分類失敗'))
+    if (error) {
+      showFeedback(getApiErrorMessage(error, '更新分類失敗'))
+      return
+    }
+
+    showFeedback('更新分類成功', 'success')
+    await fetchCategories()
+  } finally {
+    closeEditDialog()
     isUpdating.value = false
-    return
   }
-
-  closeEditDialog()
-  showFeedback('更新分類成功', 'success')
-  await fetchCategories()
-  isUpdating.value = false
 }
 
 function openDeleteDialog(category: RestaurantCategory) {
@@ -220,25 +223,25 @@ async function handleDeleteCategory() {
   clearFeedback()
   isDeleting.value = true
 
-  const { error } = await client.DELETE('/restaurant-categories/{id}', {
-    params: {
-      path: { id: categoryId },
-    },
-  })
+  try {
+    const { error } = await client.DELETE('/restaurant-categories/{id}', {
+      params: {
+        path: { id: categoryId },
+      },
+    })
 
-  if (error) {
+    if (error) {
+      showFeedback(getApiErrorMessage(error, '刪除分類失敗'))
+      return
+    }
+
+    showFeedback('刪除分類成功', 'success')
+    await fetchCategories()
+  } finally {
     isDeleteDialogOpen.value = false
     deletingCategory.value = null
-    showFeedback(getApiErrorMessage(error, '刪除分類失敗'))
     isDeleting.value = false
-    return
   }
-
-  isDeleteDialogOpen.value = false
-  deletingCategory.value = null
-  showFeedback('刪除分類成功', 'success')
-  await fetchCategories()
-  isDeleting.value = false
 }
 
 onMounted(() => {

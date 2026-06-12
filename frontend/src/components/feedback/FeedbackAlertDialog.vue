@@ -20,17 +20,21 @@ const confirmButtonClass =
 <template>
   <AlertDialog :open="open" @update:open="onOpenChange">
     <WarmAlertDialogShell>
-      <AlertDialogTitle class="w-full text-center text-2xl font-bold text-[#5e3a28]">
-        {{ title }}
-      </AlertDialogTitle>
+      <template #title>
+        <AlertDialogTitle class="w-full text-center text-2xl font-bold text-[#5e3a28]">
+          {{ title }}
+        </AlertDialogTitle>
+      </template>
       <AlertDialogDescription
-        class="w-full text-center text-xl font-semibold tracking-wide text-[#5e3a28]/90"
+        class="w-full text-pretty wrap-break-word text-center text-xl font-semibold tracking-wide text-[#5e3a28]/90"
       >
         {{ message }}
       </AlertDialogDescription>
-      <AlertDialogAction :class="confirmButtonClass" @click="onOpenChange(false)">
-        確定
-      </AlertDialogAction>
+      <template #actions>
+        <AlertDialogAction :class="confirmButtonClass" @click="onOpenChange(false)">
+          確定
+        </AlertDialogAction>
+      </template>
     </WarmAlertDialogShell>
   </AlertDialog>
 </template>

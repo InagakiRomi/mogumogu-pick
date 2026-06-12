@@ -401,26 +401,30 @@ async function handleChooseRestaurant() {
 
     <AlertDialog :open="isPostChooseDialogOpen" @update:open="isPostChooseDialogOpen = $event">
       <WarmAlertDialogShell>
-        <AlertDialogTitle class="w-full text-center text-2xl font-bold text-[#5e3a28]">
-          選擇成功！
-        </AlertDialogTitle>
+        <template #title>
+          <AlertDialogTitle class="w-full text-center text-2xl font-bold text-[#5e3a28]">
+            選擇成功！
+          </AlertDialogTitle>
+        </template>
         <AlertDialogDescription
-          class="w-full text-center text-xl font-semibold tracking-wide text-[#5e3a28]/90"
+          class="w-full text-pretty wrap-break-word text-center text-xl font-semibold tracking-wide text-[#5e3a28]/90"
         >
           {{ RESTAURANT_FEEDBACK_MESSAGES.choose.success(chosenRestaurantName) }}
         </AlertDialogDescription>
-        <div class="flex flex-wrap items-center justify-center gap-3">
-          <WarmButton
-            class="min-w-[120px]"
-            variant="outline-standard"
-            @click="handleClosePostChooseDialog"
-          >
-            關閉
-          </WarmButton>
-          <WarmButton class="min-w-[120px]" @click="handleViewChosenRestaurantDetail">
-            查看詳細
-          </WarmButton>
-        </div>
+        <template #actions>
+          <div class="flex flex-wrap items-center justify-center gap-3">
+            <WarmButton
+              class="min-w-[120px]"
+              variant="outline-standard"
+              @click="handleClosePostChooseDialog"
+            >
+              關閉
+            </WarmButton>
+            <WarmButton class="min-w-[120px]" @click="handleViewChosenRestaurantDetail">
+              查看詳細
+            </WarmButton>
+          </div>
+        </template>
       </WarmAlertDialogShell>
     </AlertDialog>
   </main>

@@ -40,26 +40,30 @@ const cancelButtonClass =
 <template>
   <AlertDialog :open="open" @update:open="open = $event">
     <WarmAlertDialogShell>
-      <AlertDialogTitle class="w-full text-center text-2xl font-bold text-[#5e3a28]">
-        {{ title }}
-      </AlertDialogTitle>
+      <template #title>
+        <AlertDialogTitle class="w-full text-center text-2xl font-bold text-[#5e3a28]">
+          {{ title }}
+        </AlertDialogTitle>
+      </template>
       <AlertDialogDescription
-        class="w-full text-center text-xl font-semibold tracking-wide text-[#5e3a28]/90"
+        class="w-full text-pretty wrap-break-word text-center text-xl font-semibold tracking-wide text-[#5e3a28]/90"
       >
         <slot />
       </AlertDialogDescription>
-      <div class="flex flex-wrap items-center justify-center gap-3">
-        <AlertDialogCancel :disabled="loading" :class="cancelButtonClass">
-          {{ cancelLabel }}
-        </AlertDialogCancel>
-        <AlertDialogAction
-          :disabled="loading"
-          :class="confirmButtonClass"
-          @click="emit('confirm')"
-        >
-          {{ loading ? loadingLabel : confirmLabel }}
-        </AlertDialogAction>
-      </div>
+      <template #actions>
+        <div class="flex flex-wrap items-center justify-center gap-3">
+          <AlertDialogCancel :disabled="loading" :class="cancelButtonClass">
+            {{ cancelLabel }}
+          </AlertDialogCancel>
+          <AlertDialogAction
+            :disabled="loading"
+            :class="confirmButtonClass"
+            @click="emit('confirm')"
+          >
+            {{ loading ? loadingLabel : confirmLabel }}
+          </AlertDialogAction>
+        </div>
+      </template>
     </WarmAlertDialogShell>
   </AlertDialog>
 </template>

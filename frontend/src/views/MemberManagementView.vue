@@ -149,22 +149,24 @@ async function updateGroupName() {
   clearFeedback()
   isSavingGroupName.value = true
 
-  const { error } = await client.PATCH('/groups/my', {
-    body: { groupName },
-  })
+  try {
+    const { error } = await client.PATCH('/groups/my', {
+      body: { groupName },
+    })
 
-  if (error) {
-    showFeedback(getApiErrorMessage(error, '載入成員資料失敗'))
+    if (error) {
+      showFeedback(getApiErrorMessage(error, '載入成員資料失敗'))
+      return
+    }
+
+    if (groupProfile.value) {
+      groupProfile.value.groupName = groupName
+    }
+    showFeedback('團隊名稱已更新', 'success')
+  } finally {
+    closeGroupNameDialog()
     isSavingGroupName.value = false
-    return
   }
-
-  if (groupProfile.value) {
-    groupProfile.value.groupName = groupName
-  }
-  closeGroupNameDialog()
-  showFeedback('團隊名稱已更新', 'success')
-  isSavingGroupName.value = false
 }
 
 async function addMemberByEmail() {
@@ -177,20 +179,22 @@ async function addMemberByEmail() {
   clearFeedback()
   isAddingMember.value = true
 
-  const { error } = await client.POST('/groups/my/members', {
-    body: { email },
-  })
+  try {
+    const { error } = await client.POST('/groups/my/members', {
+      body: { email },
+    })
 
-  if (error) {
-    showFeedback(getApiErrorMessage(error, '新增成員失敗'))
+    if (error) {
+      showFeedback(getApiErrorMessage(error, '新增成員失敗'))
+      return
+    }
+
+    targetEmailInput.value = ''
+    showFeedback('成員已加入', 'success')
+    await fetchMembers()
+  } finally {
     isAddingMember.value = false
-    return
   }
-
-  targetEmailInput.value = ''
-  showFeedback('成員已加入', 'success')
-  await fetchMembers()
-  isAddingMember.value = false
 }
 
 async function removeMember(member: GroupMember) {

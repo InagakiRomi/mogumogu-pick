@@ -196,32 +196,33 @@ async function handleCreateRestaurant() {
   clearFeedback()
   isCreating.value = true
 
-  const { error } = await client.POST('/restaurants', {
-    body: {
-      groupId,
-      categoryId: Number(createForm.value.categoryId),
-      restaurantName,
-      note: createForm.value.note.trim() || undefined,
-      imageUrl: createForm.value.imageUrl.trim() || undefined,
-    },
-  })
+  try {
+    const { error } = await client.POST('/restaurants', {
+      body: {
+        groupId,
+        categoryId: Number(createForm.value.categoryId),
+        restaurantName,
+        note: createForm.value.note.trim() || undefined,
+        imageUrl: createForm.value.imageUrl.trim() || undefined,
+      },
+    })
 
-  if (error) {
-    showFeedback(getApiErrorMessage(error, '新增餐廳失敗'))
+    if (error) {
+      showFeedback(getApiErrorMessage(error, '新增餐廳失敗'))
+      return
+    }
+
+    showFeedback('新增餐廳成功', 'success')
+
+    if (page.value !== 1) {
+      page.value = 1
+    } else {
+      await fetchRestaurants()
+    }
+  } finally {
+    handleCreateDialogOpenChange(false)
     isCreating.value = false
-    return
   }
-
-  isCreateDialogOpen.value = false
-  resetCreateForm()
-  showFeedback('新增餐廳成功', 'success')
-
-  if (page.value !== 1) {
-    page.value = 1
-  } else {
-    await fetchRestaurants()
-  }
-  isCreating.value = false
 }
 
 function handleSearch() {

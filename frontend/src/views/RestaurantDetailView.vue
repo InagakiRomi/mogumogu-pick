@@ -369,27 +369,28 @@ async function handleSaveRestaurant() {
     lastSelectedAt,
   }
 
-  const { data, error } = await client.PATCH('/restaurants/{id}', {
-    params: {
-      path: {
-        id: restaurantId.value,
+  try {
+    const { data, error } = await client.PATCH('/restaurants/{id}', {
+      params: {
+        path: {
+          id: restaurantId.value,
+        },
       },
-    },
-    body: payload,
-  })
+      body: payload,
+    })
 
-  if (error) {
-    showFeedback(getApiErrorMessage(error, RESTAURANT_UPDATE_FEEDBACK_MESSAGES.fallback))
+    if (error) {
+      showFeedback(getApiErrorMessage(error, RESTAURANT_UPDATE_FEEDBACK_MESSAGES.fallback))
+      return
+    }
+
+    restaurant.value = data ?? restaurant.value
+    failedImage.value = false
+    showFeedback(RESTAURANT_UPDATE_FEEDBACK_MESSAGES.success, 'success')
+  } finally {
     closeEditRestaurantDialog()
     isSaving.value = false
-    return
   }
-
-  restaurant.value = data ?? restaurant.value
-  failedImage.value = false
-  showFeedback(RESTAURANT_UPDATE_FEEDBACK_MESSAGES.success, 'success')
-  closeEditRestaurantDialog()
-  isSaving.value = false
 }
 
 function openEditDialog() {
@@ -440,25 +441,27 @@ async function handleDeleteRestaurant() {
   clearFeedback()
   isDeleting.value = true
 
-  const { error } = await client.DELETE('/restaurants/{id}', {
-    params: {
-      path: {
-        id: restaurantId.value,
+  try {
+    const { error } = await client.DELETE('/restaurants/{id}', {
+      params: {
+        path: {
+          id: restaurantId.value,
+        },
       },
-    },
-  })
+    })
 
-  if (error) {
-    showFeedback(getApiErrorMessage(error, '刪除餐廳失敗'))
+    if (error) {
+      showFeedback(getApiErrorMessage(error, '刪除餐廳失敗'))
+      return
+    }
+
+    showFeedback('刪除餐廳成功', 'success', () => {
+      void router.push({ name: 'list-restaurant' })
+    })
+  } finally {
+    isDeleteDialogOpen.value = false
     isDeleting.value = false
-    return
   }
-
-  isDeleteDialogOpen.value = false
-  showFeedback('刪除餐廳成功', 'success', () => {
-    void router.push({ name: 'list-restaurant' })
-  })
-  isDeleting.value = false
 }
 
 function backToList() {
@@ -499,25 +502,26 @@ async function handleCreateDish() {
   clearFeedback()
   isCreatingDish.value = true
 
-  const { error } = await client.POST('/dishes', {
-    body: {
-      restaurantId: id,
-      dishName,
-      price,
-    },
-  })
+  try {
+    const { error } = await client.POST('/dishes', {
+      body: {
+        restaurantId: id,
+        dishName,
+        price,
+      },
+    })
 
-  if (error) {
-    showFeedback(getApiErrorMessage(error, '新增餐點失敗'))
+    if (error) {
+      showFeedback(getApiErrorMessage(error, '新增餐點失敗'))
+      return
+    }
+
+    showFeedback('新增餐點成功', 'success')
+    await fetchDishes(id)
+  } finally {
+    handleCreateDishDialogOpenChange(false)
     isCreatingDish.value = false
-    return
   }
-
-  isCreateDishDialogOpen.value = false
-  resetCreateDishForm()
-  showFeedback('新增餐點成功', 'success')
-  await fetchDishes(id)
-  isCreatingDish.value = false
 }
 
 function openEditDishDialog(dish: Dish) {
@@ -585,24 +589,25 @@ async function handleSaveDish() {
     price,
   }
 
-  const { error } = await client.PATCH('/dishes/{id}', {
-    params: {
-      path: { id: dishId },
-    },
-    body: payload,
-  })
+  try {
+    const { error } = await client.PATCH('/dishes/{id}', {
+      params: {
+        path: { id: dishId },
+      },
+      body: payload,
+    })
 
-  if (error) {
-    showFeedback(getApiErrorMessage(error, '修改餐點失敗'))
+    if (error) {
+      showFeedback(getApiErrorMessage(error, '修改餐點失敗'))
+      return
+    }
+
+    showFeedback('修改餐點成功', 'success')
+    await fetchDishes(id)
+  } finally {
     closeEditDishDialog()
     isSavingDish.value = false
-    return
   }
-
-  showFeedback('修改餐點成功', 'success')
-  await fetchDishes(id)
-  closeEditDishDialog()
-  isSavingDish.value = false
 }
 
 function openDeleteDishDialog(dish: Dish) {
@@ -631,23 +636,25 @@ async function handleDeleteDish() {
   clearFeedback()
   isDeletingDish.value = true
 
-  const { error } = await client.DELETE('/dishes/{id}', {
-    params: {
-      path: { id: dishId },
-    },
-  })
+  try {
+    const { error } = await client.DELETE('/dishes/{id}', {
+      params: {
+        path: { id: dishId },
+      },
+    })
 
-  if (error) {
-    showFeedback(getApiErrorMessage(error, '刪除餐點失敗'))
+    if (error) {
+      showFeedback(getApiErrorMessage(error, '刪除餐點失敗'))
+      return
+    }
+
+    showFeedback('刪除餐點成功', 'success')
+    await fetchDishes(id)
+  } finally {
+    isDeleteDishDialogOpen.value = false
+    deletingDish.value = null
     isDeletingDish.value = false
-    return
   }
-
-  isDeleteDishDialogOpen.value = false
-  deletingDish.value = null
-  showFeedback('刪除餐點成功', 'success')
-  await fetchDishes(id)
-  isDeletingDish.value = false
 }
 
 watch(
