@@ -4,7 +4,7 @@ export type ServerConnectionStatus = 'checking' | 'connected' | 'disconnected'
 
 const SERVER_CHECK_PATH = '/v3/api-docs'
 const SERVER_CHECK_TIMEOUT_MS = 5000
-const DISCONNECTED_RECHECK_INTERVAL_MS = 15_000
+const DISCONNECTED_RECHECK_INTERVAL_MS = 60_000
 
 const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || ''
 
