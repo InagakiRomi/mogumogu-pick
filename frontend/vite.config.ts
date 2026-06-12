@@ -11,6 +11,11 @@ export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '')
 
   return {
+    base: mode === 'production' ? '/mogumogu-pick/' : '/',
+    build: {
+      outDir: '../docs',
+      emptyOutDir: true,
+    },
     plugins: [vue(), vueDevTools(), tailwindcss()],
     resolve: {
       alias: {
