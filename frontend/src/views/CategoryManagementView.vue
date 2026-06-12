@@ -87,18 +87,16 @@ const sortedCategories = computed(() => {
 
 async function fetchCategories() {
   isLoading.value = true
-  try {
-    const { data, error } = await client.GET('/restaurant-categories')
-    if (error) {
-      throw error
-    }
-    categories.value = Array.isArray(data) ? data : []
-  } catch (error) {
+  const { data, error } = await client.GET('/restaurant-categories')
+  if (error) {
     categories.value = []
     showFeedback(getApiErrorMessage(error, '取得分類清單失敗'))
-  } finally {
     isLoading.value = false
+    return
   }
+
+  categories.value = Array.isArray(data) ? data : []
+  isLoading.value = false
 }
 
 function openCreateDialog() {
@@ -132,24 +130,21 @@ async function createCategory() {
   clearFeedback()
   isCreating.value = true
 
-  try {
-    const { error } = await client.POST('/restaurant-categories', {
-      body: { categoryName },
-    })
+  const { error } = await client.POST('/restaurant-categories', {
+    body: { categoryName },
+  })
 
-    if (error) {
-      throw error
-    }
-
-    closeCreateDialog()
-    showFeedback('新增分類成功', 'success')
-    await fetchCategories()
-  } catch (error) {
+  if (error) {
     closeCreateDialog()
     showFeedback(getApiErrorMessage(error, '新增分類失敗'))
-  } finally {
     isCreating.value = false
+    return
   }
+
+  closeCreateDialog()
+  showFeedback('新增分類成功', 'success')
+  await fetchCategories()
+  isCreating.value = false
 }
 
 async function updateCategory() {
@@ -173,29 +168,26 @@ async function updateCategory() {
   clearFeedback()
   isUpdating.value = true
 
-  try {
-    const { error } = await client.PATCH('/restaurant-categories/{id}', {
-      params: {
-        path: { id: categoryId },
-      },
-      body: {
-        categoryName,
-        displayOrderId,
-      },
-    })
+  const { error } = await client.PATCH('/restaurant-categories/{id}', {
+    params: {
+      path: { id: categoryId },
+    },
+    body: {
+      categoryName,
+      displayOrderId,
+    },
+  })
 
-    if (error) {
-      throw error
-    }
-
-    closeEditDialog()
-    showFeedback('更新分類成功', 'success')
-    await fetchCategories()
-  } catch (error) {
+  if (error) {
     showFeedback(getApiErrorMessage(error, '更新分類失敗'))
-  } finally {
     isUpdating.value = false
+    return
   }
+
+  closeEditDialog()
+  showFeedback('更新分類成功', 'success')
+  await fetchCategories()
+  isUpdating.value = false
 }
 
 function openDeleteDialog(category: RestaurantCategory) {
@@ -228,28 +220,25 @@ async function handleDeleteCategory() {
   clearFeedback()
   isDeleting.value = true
 
-  try {
-    const { error } = await client.DELETE('/restaurant-categories/{id}', {
-      params: {
-        path: { id: categoryId },
-      },
-    })
+  const { error } = await client.DELETE('/restaurant-categories/{id}', {
+    params: {
+      path: { id: categoryId },
+    },
+  })
 
-    if (error) {
-      throw error
-    }
-
-    isDeleteDialogOpen.value = false
-    deletingCategory.value = null
-    showFeedback('刪除分類成功', 'success')
-    await fetchCategories()
-  } catch (error) {
+  if (error) {
     isDeleteDialogOpen.value = false
     deletingCategory.value = null
     showFeedback(getApiErrorMessage(error, '刪除分類失敗'))
-  } finally {
     isDeleting.value = false
+    return
   }
+
+  isDeleteDialogOpen.value = false
+  deletingCategory.value = null
+  showFeedback('刪除分類成功', 'success')
+  await fetchCategories()
+  isDeleting.value = false
 }
 
 onMounted(() => {

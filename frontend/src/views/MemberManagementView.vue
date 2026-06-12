@@ -109,13 +109,21 @@ async function fetchMembers() {
 
 async function fetchPageData() {
   isLoading.value = true
-  try {
-    await Promise.all([fetchGroupProfile(), fetchMembers()])
-  } catch (error) {
-    showFeedback(getApiErrorMessage(error, '載入成員資料失敗'))
-  } finally {
+  const [groupProfileResult, membersResult] = await Promise.allSettled([
+    fetchGroupProfile(),
+    fetchMembers(),
+  ])
+  if (groupProfileResult.status === 'rejected') {
+    showFeedback(getApiErrorMessage(groupProfileResult.reason, '載入成員資料失敗'))
     isLoading.value = false
+    return
   }
+  if (membersResult.status === 'rejected') {
+    showFeedback(getApiErrorMessage(membersResult.reason, '載入成員資料失敗'))
+    isLoading.value = false
+    return
+  }
+  isLoading.value = false
 }
 
 function openGroupNameDialog() {
@@ -141,25 +149,22 @@ async function updateGroupName() {
   clearFeedback()
   isSavingGroupName.value = true
 
-  try {
-    const { error } = await client.PATCH('/groups/my', {
-      body: { groupName },
-    })
+  const { error } = await client.PATCH('/groups/my', {
+    body: { groupName },
+  })
 
-    if (error) {
-      throw error
-    }
-
-    if (groupProfile.value) {
-      groupProfile.value.groupName = groupName
-    }
-    closeGroupNameDialog()
-    showFeedback('團隊名稱已更新', 'success')
-  } catch (error) {
-    showFeedback(getApiErrorMessage(error, '更新團隊名稱失敗'))
-  } finally {
+  if (error) {
+    showFeedback(getApiErrorMessage(error, '載入成員資料失敗'))
     isSavingGroupName.value = false
+    return
   }
+
+  if (groupProfile.value) {
+    groupProfile.value.groupName = groupName
+  }
+  closeGroupNameDialog()
+  showFeedback('團隊名稱已更新', 'success')
+  isSavingGroupName.value = false
 }
 
 async function addMemberByEmail() {
@@ -172,23 +177,20 @@ async function addMemberByEmail() {
   clearFeedback()
   isAddingMember.value = true
 
-  try {
-    const { error } = await client.POST('/groups/my/members', {
-      body: { email },
-    })
+  const { error } = await client.POST('/groups/my/members', {
+    body: { email },
+  })
 
-    if (error) {
-      throw error
-    }
-
-    targetEmailInput.value = ''
-    showFeedback('成員已加入', 'success')
-    await fetchMembers()
-  } catch (error) {
+  if (error) {
     showFeedback(getApiErrorMessage(error, '新增成員失敗'))
-  } finally {
     isAddingMember.value = false
+    return
   }
+
+  targetEmailInput.value = ''
+  showFeedback('成員已加入', 'success')
+  await fetchMembers()
+  isAddingMember.value = false
 }
 
 async function removeMember(member: GroupMember) {
@@ -204,24 +206,21 @@ async function removeMember(member: GroupMember) {
     return
   }
 
-  try {
-    const { error } = await client.DELETE('/groups/my/members/{userId}', {
-      params: {
-        path: {
-          userId: memberUserId,
-        },
+  const { error } = await client.DELETE('/groups/my/members/{userId}', {
+    params: {
+      path: {
+        userId: memberUserId,
       },
-    })
+    },
+  })
 
-    if (error) {
-      throw error
-    }
-
-    showFeedback('成員已移出群組', 'success')
-    await fetchMembers()
-  } catch (error) {
+  if (error) {
     showFeedback(getApiErrorMessage(error, '移除成員失敗'))
+    return
   }
+
+  showFeedback('成員已移出群組', 'success')
+  await fetchMembers()
 }
 
 async function transferAdmin(member: GroupMember) {
@@ -237,29 +236,26 @@ async function transferAdmin(member: GroupMember) {
     return
   }
 
-  try {
-    const { error } = await client.POST('/groups/my/transfer-admin', {
-      body: {
-        targetUserId: memberUserId,
-      },
-    })
+  const { error } = await client.POST('/groups/my/transfer-admin', {
+    body: {
+      targetUserId: memberUserId,
+    },
+  })
 
-    if (error) {
-      throw error
-    }
-
-    if (authSession.value) {
-      authSession.value = {
-        ...authSession.value,
-        role: 1,
-      }
-    }
-
-    showFeedback('管理權已轉移', 'success')
-    await fetchMembers()
-  } catch (error) {
+  if (error) {
     showFeedback(getApiErrorMessage(error, '轉移管理權失敗'))
+    return
   }
+
+  if (authSession.value) {
+    authSession.value = {
+      ...authSession.value,
+      role: 1,
+    }
+  }
+
+  showFeedback('管理權已轉移', 'success')
+  await fetchMembers()
 }
 
 async function leaveGroup() {
@@ -268,24 +264,21 @@ async function leaveGroup() {
     return
   }
 
-  try {
-    const { error } = await client.POST('/groups/my/leave', {})
-    if (error) {
-      throw error
-    }
-
-    if (authSession.value) {
-      authSession.value = {
-        ...authSession.value,
-        groupId: null,
-      }
-    }
-
-    showFeedback('你已退出群組', 'success')
-    await router.push({ name: 'no-group' })
-  } catch (error) {
+  const { error } = await client.POST('/groups/my/leave', {})
+  if (error) {
     showFeedback(getApiErrorMessage(error, '退出群組失敗'))
+    return
   }
+
+  if (authSession.value) {
+    authSession.value = {
+      ...authSession.value,
+      groupId: null,
+    }
+  }
+
+  showFeedback('你已退出群組', 'success')
+  await router.push({ name: 'no-group' })
 }
 
 onMounted(() => {

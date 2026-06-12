@@ -205,39 +205,38 @@ async function handleCategoryChange(value: unknown) {
   chosenRestaurantName.value = ''
   clearFeedback()
 
-  try {
-    await resetRandomPool()
-    showFeedback(RESTAURANT_FEEDBACK_MESSAGES.clearPool.success, 'success')
-  } catch (error) {
+  const resetResult = await Promise.allSettled([resetRandomPool()])
+  if (resetResult[0].status === 'rejected') {
+    const error = resetResult[0].reason
     showFeedback(getApiErrorMessage(error, RESTAURANT_FEEDBACK_MESSAGES.clearPool.fallback))
+    return
   }
+
+  showFeedback(RESTAURANT_FEEDBACK_MESSAGES.clearPool.success, 'success')
 }
 
 async function handleRandomRestaurant() {
   clearFeedback()
   isRandomLoading.value = true
 
-  try {
-    const categoryId =
-      selectedCategory.value !== ALL_CATEGORIES_VALUE ? Number(selectedCategory.value) : undefined
-    const { data, error } = await client.GET('/restaurants/random', {
-      params: {
-        query: {
-          categoryId,
-        },
+  const categoryId =
+    selectedCategory.value !== ALL_CATEGORIES_VALUE ? Number(selectedCategory.value) : undefined
+  const { data, error } = await client.GET('/restaurants/random', {
+    params: {
+      query: {
+        categoryId,
       },
-    })
+    },
+  })
 
-    if (error) {
-      throw error
-    }
-
-    currentRestaurant.value = data ?? null
-  } catch (error) {
+  if (error) {
     showFeedback(getApiErrorMessage(error, RESTAURANT_FEEDBACK_MESSAGES.random.fallback))
-  } finally {
     isRandomLoading.value = false
+    return
   }
+
+  currentRestaurant.value = data ?? null
+  isRandomLoading.value = false
 }
 
 async function handleChooseRestaurant() {
@@ -249,29 +248,26 @@ async function handleChooseRestaurant() {
   clearFeedback()
   isChooseLoading.value = true
 
-  try {
-    const { error } = await client.PATCH('/restaurants/{id}/choose', {
-      params: {
-        path: {
-          id: currentRestaurant.value.restaurantId,
-        },
+  const { error } = await client.PATCH('/restaurants/{id}/choose', {
+    params: {
+      path: {
+        id: currentRestaurant.value.restaurantId,
       },
-    })
+    },
+  })
 
-    if (error) {
-      throw error
-    }
-
-    const chosenName = currentRestaurant.value.restaurantName ?? '這間'
-    chosenRestaurantId.value = currentRestaurant.value.restaurantId
-    chosenRestaurantName.value = chosenName
-    currentRestaurant.value = null
-    isPostChooseDialogOpen.value = true
-  } catch (error) {
+  if (error) {
     showFeedback(getApiErrorMessage(error, RESTAURANT_FEEDBACK_MESSAGES.choose.fallback))
-  } finally {
     isChooseLoading.value = false
+    return
   }
+
+  const chosenName = currentRestaurant.value.restaurantName ?? '這間'
+  chosenRestaurantId.value = currentRestaurant.value.restaurantId
+  chosenRestaurantName.value = chosenName
+  currentRestaurant.value = null
+  isPostChooseDialogOpen.value = true
+  isChooseLoading.value = false
 }
 </script>
 

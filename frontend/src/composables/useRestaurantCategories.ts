@@ -33,21 +33,17 @@ export function useRestaurantCategories() {
     isLoading.value = true
     errorMessage.value = null
 
-    try {
-      const { data, error } = await client.GET('/restaurant-categories')
-
-      if (error) {
-        throw error
-      }
-
-      categories.value = (data ?? []).map(toCategoryOption)
-    } catch (error) {
+  const { data, error } = await client.GET('/restaurant-categories')
+  if (error) {
       categories.value = []
       errorMessage.value = '取得餐廳分類失敗'
       console.error(error)
-    } finally {
       isLoading.value = false
+    return
     }
+
+  categories.value = (data ?? []).map(toCategoryOption)
+  isLoading.value = false
   }
 
   onMounted(() => {

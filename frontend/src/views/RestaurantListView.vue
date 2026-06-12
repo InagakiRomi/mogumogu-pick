@@ -152,35 +152,32 @@ function handleCreateDialogOpenChange(open: boolean) {
 async function fetchRestaurants() {
   isLoading.value = true
 
-  try {
-    const query: RestaurantListQuery = {
-      search: searchInput.value.trim() || undefined,
-      categoryId: resolveCategoryId(selectedCategory.value),
-      isArchived: false,
-      orderBy: orderBy.value,
-      sort: sort.value,
-      page: page.value,
-      limit: limit.value,
-    }
-
-    const { data, error } = await client.GET('/restaurants', {
-      params: {
-        query,
-      },
-    })
-
-    if (error) {
-      throw error
-    }
-
-    failedImageIds.value.clear()
-    restaurants.value = data?.data ?? []
-    total.value = Number(data?.total ?? 0)
-  } catch (error) {
-    showFeedback(getApiErrorMessage(error, RESTAURANT_FEEDBACK_MESSAGES.list.fallback))
-  } finally {
-    isLoading.value = false
+  const query: RestaurantListQuery = {
+    search: searchInput.value.trim() || undefined,
+    categoryId: resolveCategoryId(selectedCategory.value),
+    isArchived: false,
+    orderBy: orderBy.value,
+    sort: sort.value,
+    page: page.value,
+    limit: limit.value,
   }
+
+  const { data, error } = await client.GET('/restaurants', {
+    params: {
+      query,
+    },
+  })
+
+  if (error) {
+    showFeedback(getApiErrorMessage(error, RESTAURANT_FEEDBACK_MESSAGES.list.fallback))
+    isLoading.value = false
+    return
+  }
+
+  failedImageIds.value.clear()
+  restaurants.value = data?.data ?? []
+  total.value = Number(data?.total ?? 0)
+  isLoading.value = false
 }
 
 async function handleCreateRestaurant() {
@@ -199,35 +196,32 @@ async function handleCreateRestaurant() {
   clearFeedback()
   isCreating.value = true
 
-  try {
-    const { error } = await client.POST('/restaurants', {
-      body: {
-        groupId,
-        categoryId: Number(createForm.value.categoryId),
-        restaurantName,
-        note: createForm.value.note.trim() || undefined,
-        imageUrl: createForm.value.imageUrl.trim() || undefined,
-      },
-    })
+  const { error } = await client.POST('/restaurants', {
+    body: {
+      groupId,
+      categoryId: Number(createForm.value.categoryId),
+      restaurantName,
+      note: createForm.value.note.trim() || undefined,
+      imageUrl: createForm.value.imageUrl.trim() || undefined,
+    },
+  })
 
-    if (error) {
-      throw error
-    }
-
-    isCreateDialogOpen.value = false
-    resetCreateForm()
-    showFeedback('新增餐廳成功', 'success')
-
-    if (page.value !== 1) {
-      page.value = 1
-    } else {
-      await fetchRestaurants()
-    }
-  } catch (error) {
+  if (error) {
     showFeedback(getApiErrorMessage(error, '新增餐廳失敗'))
-  } finally {
     isCreating.value = false
+    return
   }
+
+  isCreateDialogOpen.value = false
+  resetCreateForm()
+  showFeedback('新增餐廳成功', 'success')
+
+  if (page.value !== 1) {
+    page.value = 1
+  } else {
+    await fetchRestaurants()
+  }
+  isCreating.value = false
 }
 
 function handleSearch() {

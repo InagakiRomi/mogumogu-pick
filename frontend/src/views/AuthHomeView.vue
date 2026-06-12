@@ -37,33 +37,30 @@ async function handleLogin() {
   clearFeedback()
   isLoading.value = true
 
-  try {
-    const { data, error } = await client.POST('/auth/login', {
-      body: {
-        email: loginForm.value.email.trim(),
-        password: loginForm.value.password,
-      },
-    })
+  const { data, error } = await client.POST('/auth/login', {
+    body: {
+      email: loginForm.value.email.trim(),
+      password: loginForm.value.password,
+    },
+  })
 
-    if (error) {
-      throw error
-    }
-
-    const token = data?.token?.trim()
-    if (!token) {
-      showFeedback(AUTH_FEEDBACK_MESSAGES.login.missingToken)
-      return
-    }
-
-    authToken.value = token
-    setAuthSession(data)
-
-    await router.push({ name: hasGroup() ? 'random-restaurant' : 'no-group' })
-  } catch (error) {
+  if (error) {
     showFeedback(getApiErrorMessage(error, AUTH_FEEDBACK_MESSAGES.login.fallback))
-  } finally {
     isLoading.value = false
+    return
   }
+
+  const token = data?.token?.trim()
+  if (!token) {
+    showFeedback(AUTH_FEEDBACK_MESSAGES.login.missingToken)
+    isLoading.value = false
+    return
+  }
+
+  authToken.value = token
+  setAuthSession(data)
+  await router.push({ name: hasGroup() ? 'random-restaurant' : 'no-group' })
+  isLoading.value = false
 }
 
 const authLabelClass = 'font-bold text-muted-foreground'
@@ -78,27 +75,24 @@ async function handleRegister() {
   clearFeedback()
   isLoading.value = true
 
-  try {
-    const { error } = await client.POST('/auth/register', {
-      body: {
-        username: registerForm.value.username.trim(),
-        email: registerForm.value.email.trim(),
-        password: registerForm.value.password,
-        role: Number(registerForm.value.role),
-      },
-    })
+  const { error } = await client.POST('/auth/register', {
+    body: {
+      username: registerForm.value.username.trim(),
+      email: registerForm.value.email.trim(),
+      password: registerForm.value.password,
+      role: Number(registerForm.value.role),
+    },
+  })
 
-    if (error) {
-      throw error
-    }
-
-    showFeedback(AUTH_FEEDBACK_MESSAGES.register.success, 'success')
-    activeTab.value = 'login'
-  } catch (error) {
+  if (error) {
     showFeedback(getApiErrorMessage(error, AUTH_FEEDBACK_MESSAGES.register.fallback))
-  } finally {
     isLoading.value = false
+    return
   }
+
+  showFeedback(AUTH_FEEDBACK_MESSAGES.register.success, 'success')
+  activeTab.value = 'login'
+  isLoading.value = false
 }
 </script>
 

@@ -271,27 +271,24 @@ function syncEditForm(data: Restaurant) {
 async function fetchDishes(id: number) {
   isDishesLoading.value = true
 
-  try {
-    const { data, error } = await client.GET('/restaurants/{id}', {
-      params: {
-        path: { id },
-        query: { includeDishes: true },
-      },
-    })
+  const { data, error } = await client.GET('/restaurants/{id}', {
+    params: {
+      path: { id },
+      query: { includeDishes: true },
+    },
+  })
 
-    if (error) {
-      throw error
-    }
-
-    dishes.value = data?.dishes ?? []
-    dishTotal.value = Number(data?.dishTotal ?? dishes.value.length)
-  } catch (error) {
+  if (error) {
     dishes.value = []
     dishTotal.value = 0
     showFeedback(getApiErrorMessage(error, '取得餐點清單失敗'))
-  } finally {
     isDishesLoading.value = false
+    return
   }
+
+  dishes.value = data?.dishes ?? []
+  dishTotal.value = Number(data?.dishTotal ?? dishes.value.length)
+  isDishesLoading.value = false
 }
 
 async function fetchRestaurantDetail() {
@@ -307,37 +304,37 @@ async function fetchRestaurantDetail() {
   dishes.value = []
   dishTotal.value = 0
 
-  try {
-    const { data: restaurantData, error: restaurantError } = await client.GET('/restaurants/{id}', {
-      params: {
-        path: { id },
-        query: { includeDishes: true },
-      },
-    })
+  const { data: restaurantData, error: restaurantError } = await client.GET('/restaurants/{id}', {
+    params: {
+      path: { id },
+      query: { includeDishes: true },
+    },
+  })
 
-    if (restaurantError) {
-      throw restaurantError
-    }
-
-    if (restaurantData?.isArchived) {
-      showArchivedRestaurantFeedback()
-      return
-    }
-
-    restaurant.value = restaurantData ?? null
-    dishes.value = restaurantData?.dishes ?? []
-    dishTotal.value = Number(restaurantData?.dishTotal ?? dishes.value.length)
-  } catch (error) {
+  if (restaurantError) {
+    const error = restaurantError
     if (isArchivedRestaurantError(error)) {
       showArchivedRestaurantFeedback()
+      isLoading.value = false
       return
     }
 
     restaurant.value = null
     showFeedback(getApiErrorMessage(error, '取得餐廳詳細資料失敗'), 'error', redirectToRestaurantList)
-  } finally {
     isLoading.value = false
+    return
   }
+
+  if (restaurantData?.isArchived) {
+    showArchivedRestaurantFeedback()
+    isLoading.value = false
+    return
+  }
+
+  restaurant.value = restaurantData ?? null
+  dishes.value = restaurantData?.dishes ?? []
+  dishTotal.value = Number(restaurantData?.dishTotal ?? dishes.value.length)
+  isLoading.value = false
 }
 
 async function handleSaveRestaurant() {
@@ -362,39 +359,37 @@ async function handleSaveRestaurant() {
   clearFeedback()
   isSaving.value = true
 
-  try {
-    const payload: components['schemas']['UpdateRestaurantDto'] = {
-      restaurantName,
-      categoryId: Number(editForm.value.categoryId),
-      displayOrderId,
-      selectedCount,
-      note: editForm.value.note.trim(),
-      imageUrl: editForm.value.imageUrl.trim(),
-      lastSelectedAt,
-    }
+  const payload: components['schemas']['UpdateRestaurantDto'] = {
+    restaurantName,
+    categoryId: Number(editForm.value.categoryId),
+    displayOrderId,
+    selectedCount,
+    note: editForm.value.note.trim(),
+    imageUrl: editForm.value.imageUrl.trim(),
+    lastSelectedAt,
+  }
 
-    const { data, error } = await client.PATCH('/restaurants/{id}', {
-      params: {
-        path: {
-          id: restaurantId.value,
-        },
+  const { data, error } = await client.PATCH('/restaurants/{id}', {
+    params: {
+      path: {
+        id: restaurantId.value,
       },
-      body: payload,
-    })
+    },
+    body: payload,
+  })
 
-    if (error) {
-      throw error
-    }
-
-    restaurant.value = data ?? restaurant.value
-    failedImage.value = false
-    showFeedback(RESTAURANT_UPDATE_FEEDBACK_MESSAGES.success, 'success')
-  } catch (error) {
+  if (error) {
     showFeedback(getApiErrorMessage(error, RESTAURANT_UPDATE_FEEDBACK_MESSAGES.fallback))
-  } finally {
     closeEditRestaurantDialog()
     isSaving.value = false
+    return
   }
+
+  restaurant.value = data ?? restaurant.value
+  failedImage.value = false
+  showFeedback(RESTAURANT_UPDATE_FEEDBACK_MESSAGES.success, 'success')
+  closeEditRestaurantDialog()
+  isSaving.value = false
 }
 
 function openEditDialog() {
@@ -445,28 +440,25 @@ async function handleDeleteRestaurant() {
   clearFeedback()
   isDeleting.value = true
 
-  try {
-    const { error } = await client.DELETE('/restaurants/{id}', {
-      params: {
-        path: {
-          id: restaurantId.value,
-        },
+  const { error } = await client.DELETE('/restaurants/{id}', {
+    params: {
+      path: {
+        id: restaurantId.value,
       },
-    })
+    },
+  })
 
-    if (error) {
-      throw error
-    }
-
-    isDeleteDialogOpen.value = false
-    showFeedback('刪除餐廳成功', 'success', () => {
-      void router.push({ name: 'list-restaurant' })
-    })
-  } catch (error) {
+  if (error) {
     showFeedback(getApiErrorMessage(error, '刪除餐廳失敗'))
-  } finally {
     isDeleting.value = false
+    return
   }
+
+  isDeleteDialogOpen.value = false
+  showFeedback('刪除餐廳成功', 'success', () => {
+    void router.push({ name: 'list-restaurant' })
+  })
+  isDeleting.value = false
 }
 
 function backToList() {
@@ -507,28 +499,25 @@ async function handleCreateDish() {
   clearFeedback()
   isCreatingDish.value = true
 
-  try {
-    const { error } = await client.POST('/dishes', {
-      body: {
-        restaurantId: id,
-        dishName,
-        price,
-      },
-    })
+  const { error } = await client.POST('/dishes', {
+    body: {
+      restaurantId: id,
+      dishName,
+      price,
+    },
+  })
 
-    if (error) {
-      throw error
-    }
-
-    isCreateDishDialogOpen.value = false
-    resetCreateDishForm()
-    showFeedback('新增餐點成功', 'success')
-    await fetchDishes(id)
-  } catch (error) {
+  if (error) {
     showFeedback(getApiErrorMessage(error, '新增餐點失敗'))
-  } finally {
     isCreatingDish.value = false
+    return
   }
+
+  isCreateDishDialogOpen.value = false
+  resetCreateDishForm()
+  showFeedback('新增餐點成功', 'success')
+  await fetchDishes(id)
+  isCreatingDish.value = false
 }
 
 function openEditDishDialog(dish: Dish) {
@@ -590,32 +579,30 @@ async function handleSaveDish() {
   clearFeedback()
   isSavingDish.value = true
 
-  try {
-    const payload: components['schemas']['UpdateDishDto'] = {
-      displayOrderId,
-      dishName,
-      price,
-    }
+  const payload: components['schemas']['UpdateDishDto'] = {
+    displayOrderId,
+    dishName,
+    price,
+  }
 
-    const { error } = await client.PATCH('/dishes/{id}', {
-      params: {
-        path: { id: dishId },
-      },
-      body: payload,
-    })
+  const { error } = await client.PATCH('/dishes/{id}', {
+    params: {
+      path: { id: dishId },
+    },
+    body: payload,
+  })
 
-    if (error) {
-      throw error
-    }
-
-    showFeedback('修改餐點成功', 'success')
-    await fetchDishes(id)
-  } catch (error) {
+  if (error) {
     showFeedback(getApiErrorMessage(error, '修改餐點失敗'))
-  } finally {
     closeEditDishDialog()
     isSavingDish.value = false
+    return
   }
+
+  showFeedback('修改餐點成功', 'success')
+  await fetchDishes(id)
+  closeEditDishDialog()
+  isSavingDish.value = false
 }
 
 function openDeleteDishDialog(dish: Dish) {
@@ -644,26 +631,23 @@ async function handleDeleteDish() {
   clearFeedback()
   isDeletingDish.value = true
 
-  try {
-    const { error } = await client.DELETE('/dishes/{id}', {
-      params: {
-        path: { id: dishId },
-      },
-    })
+  const { error } = await client.DELETE('/dishes/{id}', {
+    params: {
+      path: { id: dishId },
+    },
+  })
 
-    if (error) {
-      throw error
-    }
-
-    isDeleteDishDialogOpen.value = false
-    deletingDish.value = null
-    showFeedback('刪除餐點成功', 'success')
-    await fetchDishes(id)
-  } catch (error) {
+  if (error) {
     showFeedback(getApiErrorMessage(error, '刪除餐點失敗'))
-  } finally {
     isDeletingDish.value = false
+    return
   }
+
+  isDeleteDishDialogOpen.value = false
+  deletingDish.value = null
+  showFeedback('刪除餐點成功', 'success')
+  await fetchDishes(id)
+  isDeletingDish.value = false
 }
 
 watch(

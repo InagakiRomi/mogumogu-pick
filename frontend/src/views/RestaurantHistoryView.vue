@@ -66,28 +66,25 @@ const pagingText = computed(() => {
 async function fetchSelectionHistory() {
   isLoading.value = true
 
-  try {
-    const { data, error } = await client.GET('/restaurants/selection-history', {
-      params: {
-        query: {
-          sort: sort.value,
-          page: page.value,
-          limit: limit.value,
-        },
+  const { data, error } = await client.GET('/restaurants/selection-history', {
+    params: {
+      query: {
+        sort: sort.value,
+        page: page.value,
+        limit: limit.value,
       },
-    })
+    },
+  })
 
-    if (error) {
-      throw error
-    }
-
-    histories.value = data?.data ?? []
-    total.value = Number(data?.total ?? 0)
-  } catch (error) {
+  if (error) {
     showFeedback(getApiErrorMessage(error, RESTAURANT_FEEDBACK_MESSAGES.history.fallback))
-  } finally {
     isLoading.value = false
+    return
   }
+
+  histories.value = data?.data ?? []
+  total.value = Number(data?.total ?? 0)
+  isLoading.value = false
 }
 
 function goPrevPage() {

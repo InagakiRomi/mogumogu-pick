@@ -14,17 +14,22 @@ export type AuthSession = {
 
 const AUTH_SESSION_KEY = 'authSession'
 
+function isJsonObjectString(raw: string): boolean {
+  const trimmed = raw.trim()
+  return trimmed.startsWith('{') && trimmed.endsWith('}')
+}
+
 function readAuthSession(raw: string): AuthSession | null {
-  if (!raw || raw === '[object Object]') {
+  if (!raw || raw === '[object Object]' || !isJsonObjectString(raw)) {
     return null
   }
 
-  try {
-    const parsed: unknown = JSON.parse(raw)
-    return parsed && typeof parsed === 'object' ? (parsed as AuthSession) : null
-  } catch {
+  const parsed: unknown = JSON.parse(raw)
+  if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
     return null
   }
+
+  return parsed as AuthSession
 }
 
 export const authSession = useLocalStorage<AuthSession | null>(AUTH_SESSION_KEY, null, {
