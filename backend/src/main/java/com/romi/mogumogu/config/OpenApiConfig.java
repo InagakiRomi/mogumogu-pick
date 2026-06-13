@@ -27,7 +27,8 @@ public class OpenApiConfig {
             "groups",
             "restaurants",
             "restaurant-categories",
-            "dishes");
+            "dishes",
+            "health");
 
     /** 建立預設 OpenAPI 文件 */
     @Bean

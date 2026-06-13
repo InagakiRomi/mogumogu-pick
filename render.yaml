@@ -5,7 +5,7 @@ services:
     dockerfilePath: ./backend/Dockerfile
     dockerContext: ./backend
     plan: free
-    healthCheckPath: /v3/api-docs
+    healthCheckPath: /health
     disk:
       name: mogumogu-data
       mountPath: /app/data
