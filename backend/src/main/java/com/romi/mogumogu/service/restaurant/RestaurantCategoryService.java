@@ -15,6 +15,7 @@ import com.romi.mogumogu.dto.CreateRestaurantCategoryDto;
 import com.romi.mogumogu.dto.UpdateRestaurantCategoryDto;
 import com.romi.mogumogu.entity.restaurant.RestaurantCategoryEntity;
 import com.romi.mogumogu.entity.user.UserEntity;
+import com.romi.mogumogu.enums.UserRole;
 import com.romi.mogumogu.repository.restaurant.RestaurantCategoryRepository;
 import com.romi.mogumogu.repository.restaurant.RestaurantRepository;
 import com.romi.mogumogu.repository.user.UserRepository;
@@ -113,7 +114,9 @@ public class RestaurantCategoryService {
     /** 刪除分類 */
     @Transactional
     public void deleteCategory(Integer categoryId) {
-        Integer groupId = resolveCurrentUserGroupId();
+        UserEntity currentUser = resolveCurrentUser();
+        ensureGroupAdmin(currentUser);
+        Integer groupId = currentUser.getGroupId();
         RestaurantCategoryEntity category = findCategoryOrThrow(categoryId, groupId);
 
         // 檢查是否為最後一個分類
@@ -170,8 +173,8 @@ public class RestaurantCategoryService {
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "Category not found"));
     }
 
-    /** 取得目前登入使用者所屬群組 ID */
-    private Integer resolveCurrentUserGroupId() {
+    /** 取得目前登入使用者 */
+    private UserEntity resolveCurrentUser() {
         Integer userId = Objects.requireNonNull(SecurityUtils.getCurrentUserId());
         Optional<UserEntity> userOpt = userRepository.findById(userId);
         if (userOpt.isEmpty()) {
@@ -181,6 +184,18 @@ public class RestaurantCategoryService {
         if (user.getGroupId() == null) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "User is not in a group");
         }
-        return user.getGroupId();
+        return user;
+    }
+
+    /** 取得目前登入使用者所屬群組 ID */
+    private Integer resolveCurrentUserGroupId() {
+        return resolveCurrentUser().getGroupId();
+    }
+
+    /** 確認使用者為群組管理員，否則拋出 403 */
+    private void ensureGroupAdmin(UserEntity user) {
+        if (user.getRoles() != UserRole.GROUP_ADMIN) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Only group admin can perform this action");
+        }
     }
 }

@@ -1,6 +1,7 @@
 import { useLocalStorage } from '@vueuse/core'
 
 import type { components } from '@/api/schema'
+import { authToken } from '@/lib/authToken'
 
 type LoginResponse = components['schemas']['LoginResponse']
 
@@ -51,6 +52,11 @@ export function setAuthSession(data: LoginResponse) {
 
 export function clearAuthSession() {
   authSession.value = null
+}
+
+export function logoutAuth() {
+  authToken.value = null
+  clearAuthSession()
 }
 
 export function hasGroup(session: AuthSession | null = authSession.value) {

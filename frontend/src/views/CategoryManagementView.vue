@@ -18,6 +18,8 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { useFeedbackDialog } from '@/composables/useFeedbackDialog'
 import { getApiErrorMessage } from '@/lib/apiErrorMessage'
+import { authSession } from '@/lib/authSession'
+import { isGroupAdmin } from '@/lib/userRole'
 
 const FORM_LABEL_CLASS = 'font-bold text-muted-foreground'
 const FORM_INPUT_CLASS =
@@ -62,6 +64,7 @@ const orderBy = ref<CategoryOrderBy>(categoryListForm.defaultOrderBy)
 const sort = ref<SortOrder>(categoryListForm.defaultSort)
 
 const isLastCategoryRemaining = computed(() => categories.value.length <= 1)
+const canDeleteCategory = computed(() => isGroupAdmin(authSession.value?.role))
 
 const sortedCategories = computed(() => {
   const direction = sort.value === 'ASC' ? 1 : -1
@@ -198,6 +201,11 @@ async function updateCategory() {
 }
 
 function openDeleteDialog(category: RestaurantCategory) {
+  if (!canDeleteCategory.value) {
+    showFeedback('只有群組管理員可以刪除分類')
+    return
+  }
+
   if (category.categoryId == null) {
     showFeedback('找不到分類 ID')
     return
