@@ -104,6 +104,11 @@ public class DishService {
         return DishResponse.dishResponse(savedEntity);
     }
 
+    /** 刪除餐廳底下的所有餐點 */
+    public void deleteDishesByRestaurantId(Integer restaurantId) {
+        dishRepository.deleteByRestaurantId_RestaurantId(restaurantId);
+    }
+
     /** 刪除餐點 */
     @SuppressWarnings("null")
     public void deleteDish(Integer dishId) {

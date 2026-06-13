@@ -11,7 +11,6 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.util.Date;
-import java.util.List;
 
 @Getter
 @Setter
@@ -46,9 +45,6 @@ public class RestaurantResponse {
         @Schema(description = "圖片網址", example = "https://example.com/restaurant.jpg")
         private String imageUrl;
 
-        @Schema(description = "是否封存（軟刪除）", example = "false")
-        private Boolean isArchived;
-
         @Schema(description = "最後被選取時間", pattern = DateTimePatternConstants.STANDARD_DATE_TIME, example = "2026-05-03 14:58:57")
         private Date lastSelectedAt;
 
@@ -57,12 +53,6 @@ public class RestaurantResponse {
 
         @Schema(description = "更新時間", pattern = DateTimePatternConstants.STANDARD_DATE_TIME, example = "2026-05-03 14:58:57")
         private Date updatedAt;
-
-        @Schema(description = "餐點清單（僅在 includeDishes=true 時回傳）")
-        private List<DishResponse> dishes;
-
-        @Schema(description = "餐點總筆數（僅在 includeDishes=true 時回傳）")
-        private Integer dishTotal;
 
         public static RestaurantResponse restaurantResponse(RestaurantEntity entity) {
                 return RestaurantResponse.builder()
@@ -75,7 +65,6 @@ public class RestaurantResponse {
                                 .restaurantName(entity.getRestaurantName())
                                 .note(entity.getNote())
                                 .imageUrl(entity.getImageUrl())
-                                .isArchived(entity.getIsArchived())
                                 .lastSelectedAt(entity.getLastSelectedAt())
                                 .createdAt(entity.getCreatedAt())
                                 .updatedAt(entity.getUpdatedAt())

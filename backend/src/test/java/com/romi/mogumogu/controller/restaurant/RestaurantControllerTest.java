@@ -2,6 +2,7 @@ package com.romi.mogumogu.controller.restaurant;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.romi.mogumogu.Response.DishListResponse;
 import com.romi.mogumogu.Response.DishResponse;
 import com.romi.mogumogu.Response.RestaurantListResponse;
 import com.romi.mogumogu.Response.RestaurantResponse;
@@ -158,7 +159,6 @@ class RestaurantControllerTest {
 
             performGetRestaurants(Map.of(
                             "categoryId", "21",
-                            "isArchived", "false",
                             "search", "牛排"))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.data.length()").value(1))
@@ -290,7 +290,6 @@ class RestaurantControllerTest {
 
             performGetMyGroupRestaurants(Map.of(
                             "categoryId", "21",
-                            "isArchived", "false",
                             "search", "牛排"))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.data.length()").value(1))
@@ -526,17 +525,6 @@ class RestaurantControllerTest {
         }
 
         @Test
-        void archived_returns410() throws Exception {
-            when(restaurantService.chooseMyGroupRestaurant(7))
-                    .thenThrow(new ResponseStatusException(HttpStatus.GONE, "Restaurant is archived"));
-
-            assertErrorResponse(performChooseMyGroupRestaurant(7),
-                    HttpStatus.GONE, "/restaurants/7/choose", "Restaurant is archived");
-
-            verify(restaurantService).chooseMyGroupRestaurant(7);
-        }
-
-        @Test
         void invalidPathVariable_returns500AndSkipsServiceCall() throws Exception {
             assertErrorResponseContains(mockMvc.perform(patch("/restaurants/{id}/choose", "bad-id")),
                     HTTP_INTERNAL_SERVER_ERROR, CODE_INTERNAL_SERVER_ERROR, "/restaurants/bad-id/choose",
@@ -755,7 +743,7 @@ class RestaurantControllerTest {
         @Test
         void success_returnsRestaurant() throws Exception {
             RestaurantResponse restaurant = buildRestaurantResponse(5, 1, 2, "單筆查詢餐廳");
-            when(restaurantService.getRestaurant(5, false)).thenReturn(restaurant);
+            when(restaurantService.getRestaurant(5)).thenReturn(restaurant);
 
             mockMvc.perform(get("/restaurants/{id}", 5))
                     .andExpect(status().isOk())
@@ -764,82 +752,51 @@ class RestaurantControllerTest {
                     .andExpect(jsonPath("$.categoryId").value(2))
                     .andExpect(jsonPath("$.restaurantName").value("單筆查詢餐廳"));
 
-            verify(restaurantService).getRestaurant(5, false);
-        }
-
-        @Test
-        void withIncludeDishes_returnsRestaurantWithDishes() throws Exception {
-            DishResponse first = buildDishResponse(1, 100, 1, 120, "豚骨拉麵");
-            DishResponse second = buildDishResponse(2, 100, 2, 90, "炸蝦天婦羅");
-            RestaurantResponse restaurant = buildRestaurantResponse(100, 1, 2, "餐廳含餐點");
-            restaurant.setDishes(List.of(first, second));
-            restaurant.setDishTotal(2);
-            when(restaurantService.getRestaurant(100, true)).thenReturn(restaurant);
-
-            mockMvc.perform(get("/restaurants/{id}", 100).param("includeDishes", "true"))
-                    .andExpect(status().isOk())
-                    .andExpect(jsonPath("$.restaurantId").value(100))
-                    .andExpect(jsonPath("$.dishTotal").value(2))
-                    .andExpect(jsonPath("$.dishes.length()").value(2))
-                    .andExpect(jsonPath("$.dishes[0].dishName").value("豚骨拉麵"))
-                    .andExpect(jsonPath("$.dishes[1].dishName").value("炸蝦天婦羅"));
-
-            verify(restaurantService).getRestaurant(100, true);
+            verify(restaurantService).getRestaurant(5);
         }
 
         @Test
         void notFound_returns404() throws Exception {
-            when(restaurantService.getRestaurant(999, false))
+            when(restaurantService.getRestaurant(999))
                     .thenThrow(new ResponseStatusException(HttpStatus.NOT_FOUND, "Restaurant not found"));
 
             assertErrorResponse(mockMvc.perform(get("/restaurants/{id}", 999)),
                     HttpStatus.NOT_FOUND, "/restaurants/999", "Restaurant not found");
 
-            verify(restaurantService).getRestaurant(999, false);
+            verify(restaurantService).getRestaurant(999);
         }
 
         @Test
         void notInGroup_returns400() throws Exception {
-            when(restaurantService.getRestaurant(5, false))
+            when(restaurantService.getRestaurant(5))
                     .thenThrow(new ResponseStatusException(HttpStatus.BAD_REQUEST, "User is not in a group"));
 
             assertErrorResponse(mockMvc.perform(get("/restaurants/{id}", 5)),
                     HttpStatus.BAD_REQUEST, "/restaurants/5", "User is not in a group");
 
-            verify(restaurantService).getRestaurant(5, false);
+            verify(restaurantService).getRestaurant(5);
         }
 
         @Test
         void forbidden_returns403() throws Exception {
-            when(restaurantService.getRestaurant(5, false))
+            when(restaurantService.getRestaurant(5))
                     .thenThrow(new ResponseStatusException(HttpStatus.FORBIDDEN, "Restaurant belongs to another group"));
 
             assertErrorResponse(mockMvc.perform(get("/restaurants/{id}", 5)),
                     HttpStatus.FORBIDDEN, "/restaurants/5", "Restaurant belongs to another group");
 
-            verify(restaurantService).getRestaurant(5, false);
-        }
-
-        @Test
-        void archived_returns410() throws Exception {
-            when(restaurantService.getRestaurant(7, false))
-                    .thenThrow(new ResponseStatusException(HttpStatus.GONE, "Restaurant is archived"));
-
-            assertErrorResponse(mockMvc.perform(get("/restaurants/{id}", 7)),
-                    HttpStatus.GONE, "/restaurants/7", "Restaurant is archived");
-
-            verify(restaurantService).getRestaurant(7, false);
+            verify(restaurantService).getRestaurant(5);
         }
 
         @Test
         void serviceThrowsUnexpectedException_returns500() throws Exception {
-            when(restaurantService.getRestaurant(7, false))
+            when(restaurantService.getRestaurant(7))
                     .thenThrow(new RuntimeException("Get restaurant failed"));
 
             assertErrorResponse(mockMvc.perform(get("/restaurants/{id}", 7)),
                     HttpStatus.INTERNAL_SERVER_ERROR, "/restaurants/7", "Get restaurant failed");
 
-            verify(restaurantService).getRestaurant(7, false);
+            verify(restaurantService).getRestaurant(7);
         }
 
         @Test
@@ -849,6 +806,41 @@ class RestaurantControllerTest {
                     "Failed to convert value of type");
 
             verifyNoInteractions(restaurantService);
+        }
+    }
+
+    @Nested
+    class GetRestaurantDishes {
+
+        @Test
+        void success_returnsDishList() throws Exception {
+            DishResponse first = buildDishResponse(1, 100, 1, 120, "豚骨拉麵");
+            DishResponse second = buildDishResponse(2, 100, 2, 90, "炸蝦天婦羅");
+            DishListResponse dishList = DishListResponse.builder()
+                    .data(List.of(first, second))
+                    .total(2)
+                    .build();
+            when(restaurantService.getRestaurantDishes(100)).thenReturn(dishList);
+
+            mockMvc.perform(get("/restaurants/{id}/dishes", 100))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.total").value(2))
+                    .andExpect(jsonPath("$.data.length()").value(2))
+                    .andExpect(jsonPath("$.data[0].dishName").value("豚骨拉麵"))
+                    .andExpect(jsonPath("$.data[1].dishName").value("炸蝦天婦羅"));
+
+            verify(restaurantService).getRestaurantDishes(100);
+        }
+
+        @Test
+        void notFound_returns404() throws Exception {
+            when(restaurantService.getRestaurantDishes(999))
+                    .thenThrow(new ResponseStatusException(HttpStatus.NOT_FOUND, "Restaurant not found"));
+
+            assertErrorResponse(mockMvc.perform(get("/restaurants/{id}/dishes", 999)),
+                    HttpStatus.NOT_FOUND, "/restaurants/999/dishes", "Restaurant not found");
+
+            verify(restaurantService).getRestaurantDishes(999);
         }
     }
 
@@ -867,8 +859,7 @@ class RestaurantControllerTest {
                     .andExpect(jsonPath("$.restaurantId").value(100))
                     .andExpect(jsonPath("$.groupId").value(1))
                     .andExpect(jsonPath("$.categoryId").value(2))
-                    .andExpect(jsonPath("$.restaurantName").value("和食天國"))
-                    .andExpect(jsonPath("$.isArchived").value(false));
+                    .andExpect(jsonPath("$.restaurantName").value("和食天國"));
 
             verify(restaurantService).createRestaurant(any(CreateRestaurantDto.class));
         }
@@ -1159,15 +1150,14 @@ class RestaurantControllerTest {
     class DeleteRestaurant {
 
         @Test
-        void success_returns200AndArchivedRestaurant() throws Exception {
+        void success_returns200AndDeletedRestaurant() throws Exception {
             RestaurantResponse deleted = buildRestaurantResponse(10, 1, 2, "刪除前餐廳");
-            deleted.setIsArchived(true);
             when(restaurantService.deleteRestaurant(10)).thenReturn(deleted);
 
             performDeleteRestaurant(10)
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.restaurantId").value(10))
-                    .andExpect(jsonPath("$.isArchived").value(true));
+                    .andExpect(jsonPath("$.restaurantName").value("刪除前餐廳"));
 
             verify(restaurantService).deleteRestaurant(10);
         }
@@ -1285,7 +1275,6 @@ class RestaurantControllerTest {
                 .restaurantName(name)
                 .note("測試備註")
                 .imageUrl("https://example.com/image.jpg")
-                .isArchived(false)
                 .lastSelectedAt(now)
                 .createdAt(now)
                 .updatedAt(now)
@@ -1431,7 +1420,6 @@ class RestaurantControllerTest {
                 p,
                 null,
                 null,
-                null,
                 RestaurantSort.SortBy.RESTAURANT_ID,
                 RestaurantSort.SortOrder.ASC,
                 1,
@@ -1442,7 +1430,6 @@ class RestaurantControllerTest {
         return p -> matchesListQuery(
                 p,
                 21,
-                false,
                 "牛排",
                 RestaurantSort.SortBy.RESTAURANT_ID,
                 RestaurantSort.SortOrder.ASC,
@@ -1476,7 +1463,6 @@ class RestaurantControllerTest {
                 p,
                 null,
                 null,
-                null,
                 RestaurantSort.SortBy.SELECTED_COUNT,
                 RestaurantSort.SortOrder.DESC,
                 1,
@@ -1486,7 +1472,6 @@ class RestaurantControllerTest {
     private static java.util.function.Predicate<GetRestaurantQuery> matchesPagedListQuery() {
         return p -> matchesListQuery(
                 p,
-                null,
                 null,
                 null,
                 RestaurantSort.SortBy.RESTAURANT_ID,
@@ -1509,14 +1494,12 @@ class RestaurantControllerTest {
     private static boolean matchesListQuery(
             GetRestaurantQuery p,
             Integer categoryId,
-            Boolean isArchived,
             String search,
             RestaurantSort.SortBy orderBy,
             RestaurantSort.SortOrder sort,
             Integer page,
             Integer limit) {
         return Objects.equals(p.getCategoryId(), categoryId)
-                && Objects.equals(p.getIsArchived(), isArchived)
                 && Objects.equals(p.getSearch(), search)
                 && p.getOrderBy() == orderBy
                 && p.getSort() == sort

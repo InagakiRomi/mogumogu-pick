@@ -156,7 +156,6 @@ async function fetchRestaurants() {
   const query: RestaurantListQuery = {
     search: searchInput.value.trim() || undefined,
     categoryId: resolveCategoryId(selectedCategory.value),
-    isArchived: false,
     orderBy: orderBy.value,
     sort: sort.value,
     page: page.value,

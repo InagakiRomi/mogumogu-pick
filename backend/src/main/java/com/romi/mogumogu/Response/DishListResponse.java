@@ -1,5 +1,6 @@
 package com.romi.mogumogu.Response;
 
+import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -12,8 +13,9 @@ import java.util.List;
 @NoArgsConstructor
 @AllArgsConstructor
 public class DishListResponse {
-    /** 餐點列表 */
+    @Schema(description = "餐點列表")
     private List<DishResponse> data;
-    /** 總筆數 */
+
+    @Schema(description = "總筆數", example = "2")
     private Integer total;
 }

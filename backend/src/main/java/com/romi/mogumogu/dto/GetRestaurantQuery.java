@@ -20,9 +20,6 @@ public class GetRestaurantQuery {
     @Schema(description = "分類 ID")
     private Integer categoryId;
 
-    @Schema(description = "是否已刪除")
-    private Boolean isArchived;
-
     @Schema(description = "搜尋關鍵字")
     private String search;
 

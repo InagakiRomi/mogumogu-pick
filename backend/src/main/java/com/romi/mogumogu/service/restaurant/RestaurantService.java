@@ -21,6 +21,7 @@ import com.romi.mogumogu.logging.JulLoggerFactory;
 import com.romi.mogumogu.security.SecurityUtils;
 
 import org.springframework.http.HttpStatus;
+import org.springframework.lang.NonNull;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -72,11 +73,7 @@ public class RestaurantService {
     /** 取得目前登入使用者所屬群組的餐廳清單 */
     public RestaurantListResponse<RestaurantResponse> getRestaurants(GetRestaurantQuery queryParams) {
         Integer groupId = resolveCurrentUserGroupId();
-        if (queryParams.getIsArchived() == null) {
-            queryParams.setIsArchived(false);
-        }
         Integer categoryId = queryParams.getCategoryId();
-        Boolean isArchived = queryParams.getIsArchived();
         String search = queryParams.getSearch();
         RestaurantSort.SortBy orderBy = queryParams.getOrderBy();
         RestaurantSort.SortOrder sort = queryParams.getSort();
@@ -104,11 +101,6 @@ public class RestaurantService {
             // 檢查分類 ID
             if (categoryId != null) {
                 predicates.add(cb.equal(root.get("categoryId").get("categoryId"), categoryId));
-            }
-
-            // 檢查是否已刪除
-            if (isArchived != null) {
-                predicates.add(cb.equal(root.get("isArchived"), isArchived));
             }
 
             // 檢查餐廳名稱
@@ -154,17 +146,18 @@ public class RestaurantService {
         return RestaurantListResponse.of(restaurantResponses, page, limit, pageResult.getTotalElements());
     }
 
-    /** 依餐廳 ID 取得目前登入使用者所屬群組的單筆餐廳資訊（不含已封存） */
-    public RestaurantResponse getRestaurant(Integer restaurantId, boolean includeDishes) {
+    /** 依餐廳 ID 取得目前登入使用者所屬群組的單筆餐廳資訊 */
+    public RestaurantResponse getRestaurant(Integer restaurantId) {
         Integer groupId = resolveCurrentUserGroupId();
-        RestaurantEntity restaurant = findActiveRestaurantOrThrow(restaurantId, groupId);
-        RestaurantResponse response = RestaurantResponse.restaurantResponse(restaurant);
-        if (includeDishes) {
-            DishListResponse dishList = dishService.getRestaurantDishes(restaurantId);
-            response.setDishes(dishList.getData());
-            response.setDishTotal(dishList.getTotal());
-        }
-        return response;
+        RestaurantEntity restaurant = findRestaurantInGroupOrThrow(restaurantId, groupId);
+        return RestaurantResponse.restaurantResponse(restaurant);
+    }
+
+    /** 依餐廳 ID 取得目前登入使用者所屬群組的餐點清單 */
+    public DishListResponse getRestaurantDishes(Integer restaurantId) {
+        Integer groupId = resolveCurrentUserGroupId();
+        findRestaurantInGroupOrThrow(restaurantId, groupId);
+        return dishService.getRestaurantDishes(restaurantId);
     }
 
     /** 抽取目前登入使用者所屬群組的一間餐廳 */
@@ -182,9 +175,9 @@ public class RestaurantService {
                 || randomPool.restaurantIds().isEmpty()) {
             List<RestaurantEntity> restaurants;
             if (categoryId == null) {
-                restaurants = restaurantRepository.findByGroupIdAndIsArchivedFalse(groupId);
+                restaurants = restaurantRepository.findByGroupId(groupId);
             } else {
-                restaurants = restaurantRepository.findByGroupIdAndCategoryId_CategoryIdAndIsArchivedFalse(groupId,
+                restaurants = restaurantRepository.findByGroupIdAndCategoryId_CategoryId(groupId,
                         categoryId);
             }
 
@@ -241,8 +234,8 @@ public class RestaurantService {
         // 取得目前登入使用者的群組 ID
         Integer groupId = resolveCurrentUserGroupId();
 
-        // 檢查餐廳 ID 是否存在、屬於指定群組且未被封存
-        RestaurantEntity restaurant = findActiveRestaurantOrThrow(restaurantId, groupId);
+        // 檢查餐廳 ID 是否存在且屬於指定群組
+        RestaurantEntity restaurant = findRestaurantInGroupOrThrow(restaurantId, groupId);
 
         // 重置目前使用者的抽籤池
         clearMyGroupRandomPool();
@@ -298,7 +291,6 @@ public class RestaurantService {
                 .restaurantName(request.getRestaurantName())
                 .note(request.getNote())
                 .imageUrl(request.getImageUrl())
-                .isArchived(false)
                 .lastSelectedAt(null)
                 .createdAt(now)
                 .updatedAt(now)
@@ -369,15 +361,17 @@ public class RestaurantService {
         return RestaurantResponse.restaurantResponse(updatedEntity);
     }
 
-    /** 軟刪除餐廳 */
+    /** 刪除餐廳 */
+    @Transactional
     public RestaurantResponse deleteRestaurant(Integer restaurantId) {
-        // 檢查餐廳 ID 是否存在
         RestaurantEntity restaurant = findRestaurantOrThrow(restaurantId);
+        RestaurantResponse response = RestaurantResponse.restaurantResponse(restaurant);
 
-        restaurant.setIsArchived(true);
-        restaurant.setUpdatedAt(new Date());
-        RestaurantEntity deletedEntity = restaurantRepository.save(restaurant);
-        return RestaurantResponse.restaurantResponse(deletedEntity);
+        dishService.deleteDishesByRestaurantId(restaurantId);
+        selectionHistoryService.deleteByRestaurantId(restaurantId);
+        restaurantRepository.delete(restaurant);
+
+        return response;
     }
 
     /** 取得目前登入使用者的群組 ID */
@@ -407,17 +401,8 @@ public class RestaurantService {
         return restaurant;
     }
 
-    /** 檢查餐廳是否存在、屬於指定群組且未被封存 */
-    private RestaurantEntity findActiveRestaurantOrThrow(Integer restaurantId, Integer groupId) {
-        RestaurantEntity restaurant = findRestaurantInGroupOrThrow(restaurantId, groupId);
-
-        if (Boolean.TRUE.equals(restaurant.getIsArchived())) {
-            throw new ResponseStatusException(HttpStatus.GONE, "Restaurant is archived");
-        }
-        return restaurant;
-    }
-
     /** 檢查餐廳 ID 參數並取得餐廳實體 */
+    @NonNull
     private RestaurantEntity findRestaurantOrThrow(Integer restaurantId) {
         // 檢查餐廳 ID 是否為 null
         if (restaurantId == null) {

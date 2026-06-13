@@ -50,6 +50,12 @@ public class RestaurantSelectionHistoryService {
         historyRepository.save(entity);
     }
 
+    /** 刪除餐廳底下的所有選取歷史 */
+    @Transactional
+    public void deleteByRestaurantId(Integer restaurantId) {
+        historyRepository.deleteByRestaurant_RestaurantId(restaurantId);
+    }
+
     /** 取得自己所屬群組的餐廳抽選歷史紀錄 */
     public RestaurantListResponse<SelectionHistoryResponse> getMyGroupSelectionHistory(
             GetSelectionHistoryQuery queryParams) {

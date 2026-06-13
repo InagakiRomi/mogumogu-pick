@@ -1,5 +1,6 @@
 package com.romi.mogumogu.controller.restaurant;
 
+import com.romi.mogumogu.Response.DishListResponse;
 import com.romi.mogumogu.Response.RestaurantListResponse;
 import com.romi.mogumogu.Response.RestaurantResponse;
 import com.romi.mogumogu.Response.SelectionHistoryResponse;
@@ -70,11 +71,15 @@ public class RestaurantController {
     }
 
     @GetMapping("/{id}")
-    @Operation(summary = "依餐廳 ID 取得自己所屬群組的單筆餐廳資訊（不含已封存）")
-    public RestaurantResponse getRestaurant(
-            @PathVariable("id") Integer restaurantId,
-            @RequestParam(required = false, defaultValue = "false") boolean includeDishes) {
-        return restaurantService.getRestaurant(restaurantId, includeDishes);
+    @Operation(summary = "依餐廳 ID 取得自己所屬群組的單筆餐廳資訊")
+    public RestaurantResponse getRestaurant(@PathVariable("id") Integer restaurantId) {
+        return restaurantService.getRestaurant(restaurantId);
+    }
+
+    @GetMapping("/{id}/dishes")
+    @Operation(summary = "依餐廳 ID 取得自己所屬群組的餐點清單")
+    public DishListResponse getRestaurantDishes(@PathVariable("id") Integer restaurantId) {
+        return restaurantService.getRestaurantDishes(restaurantId);
     }
 
     @PostMapping("")
@@ -93,7 +98,7 @@ public class RestaurantController {
     }
 
     @DeleteMapping("/{id}")
-    @Operation(summary = "刪除餐廳（軟刪除）")
+    @Operation(summary = "刪除餐廳")
     @ResponseStatus(HttpStatus.OK)
     public RestaurantResponse deleteRestaurant(@PathVariable("id") Integer restaurantId) {
         return restaurantService.deleteRestaurant(restaurantId);

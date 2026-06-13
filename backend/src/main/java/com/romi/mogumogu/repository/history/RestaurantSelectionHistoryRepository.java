@@ -21,4 +21,7 @@ public interface RestaurantSelectionHistoryRepository
     @NonNull
     Page<RestaurantSelectionHistoryEntity> findAll(
             @Nullable Specification<RestaurantSelectionHistoryEntity> spec, @NonNull Pageable pageable);
+
+    /** 刪除餐廳底下的所有選取歷史 */
+    void deleteByRestaurant_RestaurantId(Integer restaurantId);
 }

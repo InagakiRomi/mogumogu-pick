@@ -121,8 +121,8 @@ public class RestaurantCategoryService {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Cannot delete the last category");
         }
 
-        // 檢查是否有未封存餐廳使用此分類
-        if (restaurantRepository.existsByGroupIdAndCategoryId_CategoryIdAndIsArchivedFalse(groupId, categoryId)) {
+        // 檢查是否有餐廳使用此分類
+        if (restaurantRepository.existsByGroupIdAndCategoryId_CategoryId(groupId, categoryId)) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Category is in use by restaurants");
         }
 
@@ -147,7 +147,7 @@ public class RestaurantCategoryService {
     /** 將分類實體轉換為分類回應 */
     private RestaurantCategoryResponse toResponse(Integer groupId, RestaurantCategoryEntity entity) {
         long restaurantCount = restaurantRepository
-                .countByGroupIdAndCategoryId_CategoryIdAndIsArchivedFalse(groupId, entity.getCategoryId());
+                .countByGroupIdAndCategoryId_CategoryId(groupId, entity.getCategoryId());
         return RestaurantCategoryResponse.from(entity, restaurantCount);
     }
 

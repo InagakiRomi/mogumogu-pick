@@ -21,9 +21,7 @@ import { useFeedbackDialog } from '@/composables/useFeedbackDialog'
 import { useRestaurantCategories } from '@/composables/useRestaurantCategories'
 import { authSession } from '@/lib/authSession'
 import {
-  ARCHIVED_RESTAURANT_MESSAGE,
   getApiErrorMessage,
-  isArchivedRestaurantError,
   RESTAURANT_UPDATE_FEEDBACK_MESSAGES,
 } from '@/lib/apiErrorMessage'
 import { isGroupAdmin } from '@/lib/userRole'
@@ -253,11 +251,6 @@ function redirectToRestaurantList() {
   void router.replace({ name: 'list-restaurant' })
 }
 
-function showArchivedRestaurantFeedback() {
-  restaurant.value = null
-  showFeedback(ARCHIVED_RESTAURANT_MESSAGE, 'error', redirectToRestaurantList)
-}
-
 function syncEditForm(data: Restaurant) {
   editForm.value = {
     restaurantName: data.restaurantName ?? '',
@@ -273,10 +266,9 @@ function syncEditForm(data: Restaurant) {
 async function fetchDishes(id: number) {
   isDishesLoading.value = true
 
-  const { data, error } = await client.GET('/restaurants/{id}', {
+  const { data, error } = await client.GET('/restaurants/{id}/dishes', {
     params: {
       path: { id },
-      query: { includeDishes: true },
     },
   })
 
@@ -288,8 +280,8 @@ async function fetchDishes(id: number) {
     return
   }
 
-  dishes.value = data?.dishes ?? []
-  dishTotal.value = Number(data?.dishTotal ?? dishes.value.length)
+  dishes.value = data?.data ?? []
+  dishTotal.value = Number(data?.total ?? dishes.value.length)
   isDishesLoading.value = false
 }
 
@@ -306,36 +298,36 @@ async function fetchRestaurantDetail() {
   dishes.value = []
   dishTotal.value = 0
 
-  const { data: restaurantData, error: restaurantError } = await client.GET('/restaurants/{id}', {
-    params: {
-      path: { id },
-      query: { includeDishes: true },
-    },
-  })
+  const [{ data: restaurantData, error: restaurantError }, { data: dishListData, error: dishListError }] =
+    await Promise.all([
+      client.GET('/restaurants/{id}', {
+        params: {
+          path: { id },
+        },
+      }),
+      client.GET('/restaurants/{id}/dishes', {
+        params: {
+          path: { id },
+        },
+      }),
+    ])
 
   if (restaurantError) {
-    const error = restaurantError
-    if (isArchivedRestaurantError(error)) {
-      showArchivedRestaurantFeedback()
-      isLoading.value = false
-      return
-    }
-
     restaurant.value = null
-    showFeedback(getApiErrorMessage(error, '取得餐廳詳細資料失敗'), 'error', redirectToRestaurantList)
-    isLoading.value = false
-    return
-  }
-
-  if (restaurantData?.isArchived) {
-    showArchivedRestaurantFeedback()
+    showFeedback(getApiErrorMessage(restaurantError, '取得餐廳詳細資料失敗'), 'error', redirectToRestaurantList)
     isLoading.value = false
     return
   }
 
   restaurant.value = restaurantData ?? null
-  dishes.value = restaurantData?.dishes ?? []
-  dishTotal.value = Number(restaurantData?.dishTotal ?? dishes.value.length)
+  if (dishListError) {
+    dishes.value = []
+    dishTotal.value = 0
+    showFeedback(getApiErrorMessage(dishListError, '取得餐點清單失敗'))
+  } else {
+    dishes.value = dishListData?.data ?? []
+    dishTotal.value = Number(dishListData?.total ?? dishes.value.length)
+  }
   isLoading.value = false
 }
 
@@ -837,7 +829,7 @@ watch(isDeleteDishDialogOpen, (open) => {
       :loading="isDeleting"
       @confirm="handleDeleteRestaurant"
     >
-      刪除後會封存此餐廳，確定要刪除「{{ restaurant?.restaurantName ?? '此餐廳' }}」嗎？
+      確定要刪除「{{ restaurant?.restaurantName ?? '此餐廳' }}」嗎？此操作無法復原。
     </ConfirmAlertDialog>
 
     <FormAlertDialog
