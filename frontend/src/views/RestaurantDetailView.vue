@@ -21,17 +21,16 @@ import { useFeedbackDialog } from '@/composables/useFeedbackDialog'
 import { useRestaurantCategories } from '@/composables/useRestaurantCategories'
 import { authSession } from '@/lib/authSession'
 import {
-  ARCHIVED_RESTAURANT_MESSAGE,
   getApiErrorMessage,
-  isArchivedRestaurantError,
   RESTAURANT_UPDATE_FEEDBACK_MESSAGES,
 } from '@/lib/apiErrorMessage'
 import { isGroupAdmin } from '@/lib/userRole'
+import { homeBgBackgroundStyle, publicAsset } from '@/lib/utils'
 
 const FORM_LABEL_CLASS = 'font-bold text-muted-foreground'
 const FORM_INPUT_CLASS =
   'h-10 px-2.5 text-sm rounded-md border border-border bg-muted/90 text-popover-foreground'
-const DEFAULT_RESTAURANT_IMAGE = '/images/defaultRestaurant.jpg'
+const DEFAULT_RESTAURANT_IMAGE = publicAsset('images/defaultRestaurant.jpg')
 
 type Restaurant = components['schemas']['RestaurantResponse']
 type Dish = components['schemas']['DishResponse']
@@ -252,11 +251,6 @@ function redirectToRestaurantList() {
   void router.replace({ name: 'list-restaurant' })
 }
 
-function showArchivedRestaurantFeedback() {
-  restaurant.value = null
-  showFeedback(ARCHIVED_RESTAURANT_MESSAGE, 'error', redirectToRestaurantList)
-}
-
 function syncEditForm(data: Restaurant) {
   editForm.value = {
     restaurantName: data.restaurantName ?? '',
@@ -272,10 +266,9 @@ function syncEditForm(data: Restaurant) {
 async function fetchDishes(id: number) {
   isDishesLoading.value = true
 
-  const { data, error } = await client.GET('/restaurants/{id}', {
+  const { data, error } = await client.GET('/restaurants/{id}/dishes', {
     params: {
       path: { id },
-      query: { includeDishes: true },
     },
   })
 
@@ -287,8 +280,8 @@ async function fetchDishes(id: number) {
     return
   }
 
-  dishes.value = data?.dishes ?? []
-  dishTotal.value = Number(data?.dishTotal ?? dishes.value.length)
+  dishes.value = data?.data ?? []
+  dishTotal.value = Number(data?.total ?? dishes.value.length)
   isDishesLoading.value = false
 }
 
@@ -305,36 +298,36 @@ async function fetchRestaurantDetail() {
   dishes.value = []
   dishTotal.value = 0
 
-  const { data: restaurantData, error: restaurantError } = await client.GET('/restaurants/{id}', {
-    params: {
-      path: { id },
-      query: { includeDishes: true },
-    },
-  })
+  const [{ data: restaurantData, error: restaurantError }, { data: dishListData, error: dishListError }] =
+    await Promise.all([
+      client.GET('/restaurants/{id}', {
+        params: {
+          path: { id },
+        },
+      }),
+      client.GET('/restaurants/{id}/dishes', {
+        params: {
+          path: { id },
+        },
+      }),
+    ])
 
   if (restaurantError) {
-    const error = restaurantError
-    if (isArchivedRestaurantError(error)) {
-      showArchivedRestaurantFeedback()
-      isLoading.value = false
-      return
-    }
-
     restaurant.value = null
-    showFeedback(getApiErrorMessage(error, '取得餐廳詳細資料失敗'), 'error', redirectToRestaurantList)
-    isLoading.value = false
-    return
-  }
-
-  if (restaurantData?.isArchived) {
-    showArchivedRestaurantFeedback()
+    showFeedback(getApiErrorMessage(restaurantError, '取得餐廳詳細資料失敗'), 'error', redirectToRestaurantList)
     isLoading.value = false
     return
   }
 
   restaurant.value = restaurantData ?? null
-  dishes.value = restaurantData?.dishes ?? []
-  dishTotal.value = Number(restaurantData?.dishTotal ?? dishes.value.length)
+  if (dishListError) {
+    dishes.value = []
+    dishTotal.value = 0
+    showFeedback(getApiErrorMessage(dishListError, '取得餐點清單失敗'))
+  } else {
+    dishes.value = dishListData?.data ?? []
+    dishTotal.value = Number(dishListData?.total ?? dishes.value.length)
+  }
   isLoading.value = false
 }
 
@@ -675,7 +668,8 @@ watch(isDeleteDishDialogOpen, (open) => {
 
 <template>
   <main
-    class="min-h-screen bg-[linear-gradient(rgba(255,255,255,0.24),rgba(255,255,255,0.24)),url('/images/homeBg.jpg')] bg-fixed bg-cover bg-center bg-no-repeat px-4 py-6 md:px-6"
+    class="min-h-screen bg-fixed bg-cover bg-center bg-no-repeat px-4 py-6 md:px-6"
+    :style="homeBgBackgroundStyle"
   >
     <div
       class="relative z-10 mx-auto mt-6 w-full max-w-4xl rounded-[10px] border border-[rgba(226,164,136,0.52)] bg-linear-to-br from-[rgba(255,248,241,0.9)] to-[rgba(255,233,219,0.84)] px-[30px] pt-[30px] pb-8 shadow-[0_14px_32px_rgba(95,57,41,0.24),inset_0_1px_0_rgba(255,255,255,0.55)] backdrop-blur-sm max-lg:mt-5 max-lg:px-6 max-lg:pt-6 max-lg:pb-7 max-md:mt-4 max-md:rounded-lg max-md:px-4 max-md:pt-4 max-md:pb-6"
@@ -835,7 +829,7 @@ watch(isDeleteDishDialogOpen, (open) => {
       :loading="isDeleting"
       @confirm="handleDeleteRestaurant"
     >
-      刪除後會封存此餐廳，確定要刪除「{{ restaurant?.restaurantName ?? '此餐廳' }}」嗎？
+      確定要刪除「{{ restaurant?.restaurantName ?? '此餐廳' }}」嗎？此操作無法復原。
     </ConfirmAlertDialog>
 
     <FormAlertDialog

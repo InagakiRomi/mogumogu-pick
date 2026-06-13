@@ -15,4 +15,7 @@ public interface DishRepository extends JpaRepository<DishEntity, Integer> {
     /** 檢查同一餐廳內是否已有其他餐點使用此 displayOrderId */
     boolean existsByRestaurantId_RestaurantIdAndDisplayOrderIdAndDishIdNot(
             Integer restaurantId, Integer displayOrderId, Integer dishId);
+
+    /** 刪除餐廳底下的所有餐點 */
+    void deleteByRestaurantId_RestaurantId(Integer restaurantId);
 }

@@ -16,7 +16,6 @@ const API_ERROR_MESSAGES: Record<string, string> = {
   'No available restaurants found for this filter': '此篩選條件下沒有可抽選的餐廳',
   'Restaurant not found': '找不到此餐廳',
   'Restaurant belongs to another group': '此餐廳不屬於您的群組',
-  'Restaurant is archived': '該餐廳已被刪除',
   'restaurantId must not be null': '餐廳 ID 不可為空',
   'User not found': '找不到使用者',
   'User is not in a group': '使用者未加入群組',
@@ -158,20 +157,3 @@ export function getApiErrorMessage(error: unknown, fallback: string): string {
 
   return translateApiErrorMessage(rawMessage)
 }
-
-export function isArchivedRestaurantError(error: unknown): boolean {
-  if (error && typeof error === 'object') {
-    const maybeError = error as {
-      message?: string
-      error?: { message?: string; statusCode?: number }
-    }
-    const message = maybeError.error?.message ?? maybeError.message
-    const statusCode = maybeError.error?.statusCode
-
-    return statusCode === 410 || message === 'Restaurant is archived'
-  }
-
-  return false
-}
-
-export const ARCHIVED_RESTAURANT_MESSAGE = '該餐廳已被刪除'

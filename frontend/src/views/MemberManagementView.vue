@@ -3,6 +3,7 @@ import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import type { components } from '@/api/schema'
 import client from '@/api/client'
+import ConfirmAlertDialog from '@/components/feedback/ConfirmAlertDialog.vue'
 import FormAlertDialog from '@/components/feedback/FormAlertDialog.vue'
 import FormSelectField from '@/components/form/FormSelectField.vue'
 import ListPagePanel from '@/components/form/ListPagePanel.vue'
@@ -18,7 +19,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { useFeedbackDialog } from '@/composables/useFeedbackDialog'
 import { getApiErrorMessage } from '@/lib/apiErrorMessage'
-import { authSession } from '@/lib/authSession'
+import { authSession, logoutAuth } from '@/lib/authSession'
 import { getRoleLabel, isGroupAdmin } from '@/lib/userRole'
 
 const FORM_LABEL_CLASS = 'font-bold text-muted-foreground'
@@ -53,7 +54,13 @@ const { showFeedback, clearFeedback } = useFeedbackDialog()
 const isLoading = ref(false)
 const isSavingGroupName = ref(false)
 const isGroupNameDialogOpen = ref(false)
+const isRemoveMemberDialogOpen = ref(false)
+const isTransferAdminDialogOpen = ref(false)
 const isAddingMember = ref(false)
+const isRemovingMember = ref(false)
+const isTransferringAdmin = ref(false)
+const removingMember = ref<GroupMember | null>(null)
+const transferTargetMember = ref<GroupMember | null>(null)
 const groupProfile = ref<GroupProfile | null>(null)
 const members = ref<GroupMember[]>([])
 const groupNameInput = ref('')
@@ -202,69 +209,90 @@ async function addMemberByEmail() {
   }
 }
 
-async function removeMember(member: GroupMember) {
-  const memberUserId = member.userId
-  if (memberUserId == null) {
+function openRemoveMemberDialog(member: GroupMember) {
+  if (member.userId == null) {
     showFeedback('找不到目標使用者 ID')
     return
   }
 
-  const memberName = member.username?.trim() || `ID ${memberUserId}`
-  const confirmed = window.confirm(`確定要將成員 ${memberName} 移出群組嗎？`)
-  if (!confirmed) {
-    return
-  }
-
-  const { error } = await client.DELETE('/groups/my/members/{userId}', {
-    params: {
-      path: {
-        userId: memberUserId,
-      },
-    },
-  })
-
-  if (error) {
-    showFeedback(getApiErrorMessage(error, '移除成員失敗'))
-    return
-  }
-
-  showFeedback('成員已移出群組', 'success')
-  await fetchMembers()
+  removingMember.value = member
+  isRemoveMemberDialogOpen.value = true
 }
 
-async function transferAdmin(member: GroupMember) {
-  const memberUserId = member.userId
+async function handleRemoveMember() {
+  const memberUserId = removingMember.value?.userId
   if (memberUserId == null) {
     showFeedback('找不到目標使用者 ID')
     return
   }
 
-  const memberName = member.username?.trim() || `ID ${memberUserId}`
-  const confirmed = window.confirm(`確定要將管理權轉移給 ${memberName} 嗎？`)
-  if (!confirmed) {
-    return
-  }
+  clearFeedback()
+  isRemovingMember.value = true
 
-  const { error } = await client.POST('/groups/my/transfer-admin', {
-    body: {
-      targetUserId: memberUserId,
-    },
-  })
+  try {
+    const { error } = await client.DELETE('/groups/my/members/{userId}', {
+      params: {
+        path: {
+          userId: memberUserId,
+        },
+      },
+    })
 
-  if (error) {
-    showFeedback(getApiErrorMessage(error, '轉移管理權失敗'))
-    return
-  }
-
-  if (authSession.value) {
-    authSession.value = {
-      ...authSession.value,
-      role: 1,
+    if (error) {
+      showFeedback(getApiErrorMessage(error, '移除成員失敗'))
+      return
     }
+
+    showFeedback('成員已移出群組', 'success')
+    await fetchMembers()
+  } finally {
+    isRemoveMemberDialogOpen.value = false
+    removingMember.value = null
+    isRemovingMember.value = false
+  }
+}
+
+function openTransferAdminDialog(member: GroupMember) {
+  if (member.userId == null) {
+    showFeedback('找不到目標使用者 ID')
+    return
   }
 
-  showFeedback('管理權已轉移', 'success')
-  await fetchMembers()
+  transferTargetMember.value = member
+  isTransferAdminDialogOpen.value = true
+}
+
+async function handleTransferAdmin() {
+  const memberUserId = transferTargetMember.value?.userId
+  if (memberUserId == null) {
+    showFeedback('找不到目標使用者 ID')
+    return
+  }
+
+  clearFeedback()
+  isTransferringAdmin.value = true
+
+  try {
+    const { error } = await client.POST('/groups/my/transfer-admin', {
+      body: {
+        targetUserId: memberUserId,
+      },
+    })
+
+    if (error) {
+      showFeedback(getApiErrorMessage(error, '轉移管理權失敗'))
+      return
+    }
+
+    logoutAuth()
+    showFeedback('管理權已轉移成功，將自動登出', 'success', () => {
+      void router.push({ name: 'home' })
+    })
+  } finally {
+    isTransferAdminDialogOpen.value = false
+    transferTargetMember.value = null
+    isTransferringAdmin.value = false
+  }
 }
 
 async function leaveGroup() {
@@ -386,14 +414,14 @@ onMounted(() => {
                         variant="outline-standard"
                         class="h-9 px-3 text-sm"
                         :disabled="member.role === 0"
-                        @click="transferAdmin(member)"
+                        @click="openTransferAdminDialog(member)"
                       >
                         轉移管理員
                       </WarmButton>
                       <WarmButton
                         variant="outline-standard"
                         class="h-9 px-3 text-sm"
-                        @click="removeMember(member)"
+                        @click="openRemoveMemberDialog(member)"
                       >
                         刪除成員
                       </WarmButton>
@@ -440,6 +468,32 @@ onMounted(() => {
         />
       </div>
       </FormAlertDialog>
+
+      <ConfirmAlertDialog
+        v-model:open="isRemoveMemberDialogOpen"
+        title="確認移出成員？"
+        confirm-label="確認移出"
+        loading-label="移出中..."
+        :loading="isRemovingMember"
+        @confirm="handleRemoveMember"
+      >
+        確定要將成員「{{
+          removingMember?.username?.trim() || `ID ${removingMember?.userId ?? ''}`
+        }}」移出群組嗎？
+      </ConfirmAlertDialog>
+
+      <ConfirmAlertDialog
+        v-model:open="isTransferAdminDialogOpen"
+        title="確認轉移管理權？"
+        confirm-label="確認轉移"
+        loading-label="轉移中..."
+        :loading="isTransferringAdmin"
+        @confirm="handleTransferAdmin"
+      >
+        確定要將管理權轉移給「{{
+          transferTargetMember?.username?.trim() || `ID ${transferTargetMember?.userId ?? ''}`
+        }}」嗎？
+      </ConfirmAlertDialog>
     </template>
   </ListPagePanel>
 </template>

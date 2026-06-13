@@ -62,10 +62,6 @@ public class RestaurantEntity {
     @Column(length = 512)
     private String imageUrl;
 
-    @Comment("是否封存（軟刪除）")
-    @Column(nullable = false)
-    private Boolean isArchived;
-
     @Comment("最後一次被選中的時間")
     private Date lastSelectedAt;
 

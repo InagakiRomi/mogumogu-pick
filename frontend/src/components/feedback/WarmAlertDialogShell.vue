@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import { AlertDialogContent } from '@/components/ui/alert-dialog'
-import { cn } from '@/lib/utils'
+import { cn, publicAsset } from '@/lib/utils'
 
-const alertBgImage = `${import.meta.env.BASE_URL}images/Alert.png`
+const alertBgImage = publicAsset('images/Alert.png')
 </script>
 
 <template>

@@ -54,6 +54,8 @@ public class SecurityConfig {
                                                                 "/swagger-ui.html")
                                                 .permitAll()
                                                 // permitAll：略過認證，匿名即可存取
+                                                .requestMatchers(HttpMethod.GET, "/health")
+                                                .permitAll()
                                                 .requestMatchers(HttpMethod.POST, "/auth/register", "/auth/login")
                                                 .permitAll()
                                                 // anyRequest：前述規則未涵蓋的請求，一律須已認證

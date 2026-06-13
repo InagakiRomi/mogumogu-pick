@@ -167,11 +167,11 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** 依餐廳 ID 取得自己所屬群組的單筆餐廳資訊（不含已封存） */
+        /** 依餐廳 ID 取得自己所屬群組的單筆餐廳資訊 */
         get: operations["getRestaurant"];
         put?: never;
         post?: never;
-        /** 刪除餐廳（軟刪除） */
+        /** 刪除餐廳 */
         delete: operations["deleteRestaurant"];
         options?: never;
         head?: never;
@@ -250,6 +250,23 @@ export interface paths {
         patch: operations["updateDish"];
         trace?: never;
     };
+    "/restaurants/{id}/dishes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 依餐廳 ID 取得自己所屬群組的餐點清單 */
+        get: operations["getRestaurantDishes"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/restaurants/selection-history": {
         parameters: {
             query?: never;
@@ -276,6 +293,23 @@ export interface paths {
         };
         /** 抽取自己所屬群組的一間餐廳 */
         get: operations["getRandomMyGroupRestaurant"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/health": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 喚醒服務 */
+        get: operations["wake"];
         put?: never;
         post?: never;
         delete?: never;
@@ -334,37 +368,6 @@ export interface components {
              */
             imageUrl?: string;
         };
-        DishResponse: {
-            /**
-             * Format: int32
-             * @description 餐點 ID
-             * @example 1
-             */
-            dishId?: number;
-            /**
-             * Format: int32
-             * @description 餐點對應餐廳編號
-             * @example 1
-             */
-            restaurantId?: number;
-            /**
-             * Format: int32
-             * @description 餐廳群組內順序 ID
-             * @example 1
-             */
-            displayOrderId?: number;
-            /**
-             * Format: int32
-             * @description 價格
-             * @example 120
-             */
-            price?: number;
-            /**
-             * @description 餐點名稱
-             * @example 豚骨拉麵
-             */
-            dishName?: string;
-        };
         RestaurantResponse: {
             /**
              * Format: int32
@@ -417,11 +420,6 @@ export interface components {
              */
             imageUrl?: string;
             /**
-             * @description 是否封存（軟刪除）
-             * @example false
-             */
-            isArchived?: boolean;
-            /**
              * Format: date-time
              * @description 最後被選取時間
              * @example 2026-05-03 14:58:57
@@ -439,13 +437,6 @@ export interface components {
              * @example 2026-05-03 14:58:57
              */
             updatedAt?: string;
-            /** @description 餐點清單（僅在 includeDishes=true 時回傳） */
-            dishes?: components["schemas"]["DishResponse"][];
-            /**
-             * Format: int32
-             * @description 餐點總筆數（僅在 includeDishes=true 時回傳）
-             */
-            dishTotal?: number;
         };
         CreateRestaurantCategoryDto: {
             /**
@@ -474,7 +465,7 @@ export interface components {
             displayOrderId?: number;
             /**
              * Format: int64
-             * @description 使用此分類的未封存餐廳數量
+             * @description 使用此分類的餐廳數量
              * @example 3
              */
             restaurantCount?: number;
@@ -528,6 +519,37 @@ export interface components {
              * @example 牛肉拉麵
              */
             dishName: string;
+        };
+        DishResponse: {
+            /**
+             * Format: int32
+             * @description 餐點 ID
+             * @example 1
+             */
+            dishId?: number;
+            /**
+             * Format: int32
+             * @description 餐點對應餐廳編號
+             * @example 1
+             */
+            restaurantId?: number;
+            /**
+             * Format: int32
+             * @description 餐廳群組內順序 ID
+             * @example 1
+             */
+            displayOrderId?: number;
+            /**
+             * Format: int32
+             * @description 價格
+             * @example 120
+             */
+            price?: number;
+            /**
+             * @description 餐點名稱
+             * @example 豚骨拉麵
+             */
+            dishName?: string;
         };
         RegisterRequest: {
             /**
@@ -673,6 +695,16 @@ export interface components {
             /** Format: int64 */
             total?: number;
         };
+        DishListResponse: {
+            /** @description 餐點列表 */
+            data?: components["schemas"]["DishResponse"][];
+            /**
+             * Format: int32
+             * @description 總筆數
+             * @example 2
+             */
+            total?: number;
+        };
         RestaurantListResponseSelectionHistoryResponse: {
             data?: components["schemas"]["SelectionHistoryResponse"][];
             /** Format: int32 */
@@ -692,6 +724,9 @@ export interface components {
             /** Format: date-time */
             selectedAt?: string;
         };
+        HealthResponse: {
+            status?: string;
+        };
     };
     responses: never;
     parameters: never;
@@ -706,8 +741,6 @@ export interface operations {
             query?: {
                 /** @description 分類 ID */
                 categoryId?: number;
-                /** @description 是否已刪除 */
-                isArchived?: boolean;
                 /** @description 搜尋關鍵字 */
                 search?: string;
                 /** @description 排序欄位 */
@@ -982,9 +1015,7 @@ export interface operations {
     };
     getRestaurant: {
         parameters: {
-            query?: {
-                includeDishes?: boolean;
-            };
+            query?: never;
             header?: never;
             path: {
                 id: number;
@@ -1210,6 +1241,28 @@ export interface operations {
             };
         };
     };
+    getRestaurantDishes: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["DishListResponse"];
+                };
+            };
+        };
+    };
     getMyGroupSelectionHistory: {
         parameters: {
             query?: {
@@ -1255,6 +1308,26 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["RestaurantResponse"];
+                };
+            };
+        };
+    };
+    wake: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["HealthResponse"];
                 };
             };
         };

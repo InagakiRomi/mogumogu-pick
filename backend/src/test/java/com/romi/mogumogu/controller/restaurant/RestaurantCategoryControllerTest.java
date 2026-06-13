@@ -449,6 +449,15 @@ class RestaurantCategoryControllerTest {
         }
 
         @Test
+        void notGroupAdmin_returns403() throws Exception {
+            doThrow(new ResponseStatusException(HttpStatus.FORBIDDEN, "Only group admin can perform this action"))
+                    .when(restaurantCategoryService).deleteCategory(1);
+
+            assertErrorResponse(performDeleteCategory(1), HttpStatus.FORBIDDEN, CATEGORIES_PATH + "/1",
+                    "Only group admin can perform this action");
+        }
+
+        @Test
         void invalidPathVariable_returns500AndSkipsServiceCall() throws Exception {
             assertErrorResponseContains(mockMvc.perform(delete(CATEGORIES_PATH + "/{id}", "bad-id")),
                     HTTP_INTERNAL_SERVER_ERROR, CODE_INTERNAL_SERVER_ERROR, CATEGORIES_PATH + "/bad-id",

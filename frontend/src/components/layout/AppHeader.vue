@@ -6,17 +6,18 @@ import { authSession, clearAuthSession, hasGroup } from '@/lib/authSession'
 import { authToken } from '@/lib/authToken'
 import { getRoleLabel } from '@/lib/userRole'
 import WarmButton from '@/components/warm/WarmButton.vue'
+import { publicAsset } from '@/lib/utils'
 
 const headerTiles = {
-  tl: '/images/header-patch/tl.png',
-  t: '/images/header-patch/t.png',
-  tr: '/images/header-patch/tr.png',
-  l: '/images/header-patch/l.png',
-  c: '/images/header-patch/c.png',
-  r: '/images/header-patch/r.png',
-  bl: '/images/header-patch/bl.png',
-  b: '/images/header-patch/b.png',
-  br: '/images/header-patch/br.png',
+  tl: publicAsset('images/header-patch/tl.png'),
+  t: publicAsset('images/header-patch/t.png'),
+  tr: publicAsset('images/header-patch/tr.png'),
+  l: publicAsset('images/header-patch/l.png'),
+  c: publicAsset('images/header-patch/c.png'),
+  r: publicAsset('images/header-patch/r.png'),
+  bl: publicAsset('images/header-patch/bl.png'),
+  b: publicAsset('images/header-patch/b.png'),
+  br: publicAsset('images/header-patch/br.png'),
 } as const
 
 const headerTileSize = 64

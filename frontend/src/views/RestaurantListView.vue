@@ -21,8 +21,9 @@ import RestaurantFormDialog from '@/components/restaurant/RestaurantFormDialog.v
 import { useFeedbackDialog } from '@/composables/useFeedbackDialog'
 import { ALL_CATEGORIES_VALUE, useRestaurantCategories } from '@/composables/useRestaurantCategories'
 import { getApiErrorMessage, RESTAURANT_FEEDBACK_MESSAGES } from '@/lib/apiErrorMessage'
+import { publicAsset } from '@/lib/utils'
 
-const DEFAULT_RESTAURANT_IMAGE = '/images/defaultRestaurant.jpg'
+const DEFAULT_RESTAURANT_IMAGE = publicAsset('images/defaultRestaurant.jpg')
 const DEFAULT_SORT_OPTIONS = [
   { label: '小到大', value: 'ASC' as const },
   { label: '大到小', value: 'DESC' as const },
@@ -155,7 +156,6 @@ async function fetchRestaurants() {
   const query: RestaurantListQuery = {
     search: searchInput.value.trim() || undefined,
     categoryId: resolveCategoryId(selectedCategory.value),
-    isArchived: false,
     orderBy: orderBy.value,
     sort: sort.value,
     page: page.value,

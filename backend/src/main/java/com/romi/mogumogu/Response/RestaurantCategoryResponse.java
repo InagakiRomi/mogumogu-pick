@@ -21,7 +21,7 @@ public class RestaurantCategoryResponse {
     @Schema(description = "群組內顯示排序 ID", example = "1")
     private Integer displayOrderId;
 
-    @Schema(description = "使用此分類的未封存餐廳數量", example = "3")
+    @Schema(description = "使用此分類的餐廳數量", example = "3")
     private Long restaurantCount;
 
     public static RestaurantCategoryResponse from(RestaurantCategoryEntity entity, long restaurantCount) {
