@@ -14,6 +14,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectValue } from '@/components/ui/select'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { homeBgBackgroundStyle, publicAsset } from '@/lib/utils'
 
 type AuthTab = 'login' | 'register'
 
@@ -124,12 +125,13 @@ async function handleRegister() {
 
 <template>
   <main
-    class="min-h-screen bg-[linear-gradient(rgba(255,255,255,0.24),rgba(255,255,255,0.24)),url('/images/homeBg.jpg')] bg-cover bg-center bg-no-repeat px-4 pt-5 pb-10 max-md:bg-top max-md:pt-3"
+    class="min-h-screen bg-cover bg-center bg-no-repeat px-4 pt-5 pb-10 max-md:bg-top max-md:pt-3"
+    :style="homeBgBackgroundStyle"
   >
     <div class="mx-auto w-fit text-center max-md:w-[calc(100%-24px)]">
       <img
         class="mx-auto block h-[146px] w-[480px] object-contain max-lg:h-auto max-lg:w-[min(420px,88vw)] max-md:h-auto max-md:w-[min(340px,100%)]"
-        src="/images/logo.png"
+        :src="publicAsset('images/logo.png')"
         alt="MoguMogu"
       />
     </div>

@@ -20,11 +20,12 @@ import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectValue } from '@/components/ui/select'
 import { Separator } from '@/components/ui/separator'
 import { getApiErrorMessage, RESTAURANT_FEEDBACK_MESSAGES } from '@/lib/apiErrorMessage'
+import { homeBgBackgroundStyle, publicAsset } from '@/lib/utils'
 
 type RestaurantResult = components['schemas']['RestaurantResponse']
 
-const START_IMAGE = '/images/start.jpg'
-const DEFAULT_RESTAURANT_IMAGE = '/images/defaultRestaurant.jpg'
+const START_IMAGE = publicAsset('images/start.jpg')
+const DEFAULT_RESTAURANT_IMAGE = publicAsset('images/defaultRestaurant.jpg')
 const FLIP_DURATION_MS = 700
 const cardClass =
   'border-[rgba(198,134,105,0.45)] bg-linear-to-br from-[rgba(255,248,241,0.92)] to-[rgba(255,233,219,0.86)] shadow-[0_12px_28px_rgba(95,57,41,0.2)]'
@@ -273,7 +274,8 @@ async function handleChooseRestaurant() {
 
 <template>
   <main
-    class="min-h-screen bg-[linear-gradient(rgba(255,255,255,0.24),rgba(255,255,255,0.24)),url('/images/homeBg.jpg')] bg-cover bg-center bg-no-repeat px-4 py-6"
+    class="min-h-screen bg-cover bg-center bg-no-repeat px-4 py-6"
+    :style="homeBgBackgroundStyle"
   >
     <WarmPanel>
       <div class="space-y-5">
