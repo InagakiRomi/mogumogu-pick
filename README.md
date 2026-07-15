@@ -54,12 +54,24 @@ backend/src/main/java/com/romi/mogumogu/
 
 ### 認證與授權
 
-- `POST /auth/register`：使用者註冊
-- `POST /auth/login`：使用者登入，成功後回傳 JWT Access Token
+| 端點 | 功能 |
+| --- | --- |
+| `POST /auth/register`	| 使用者註冊（管理員註冊時會自動建立群組並加入預設餐廳分類） |
+| `POST /auth/login` | 使用者登入，成功後回傳 JWT Access Token |
 - 後續請求需於 Header 帶入 `Authorization: Bearer <token>`
 - 角色分為 `GROUP_ADMIN`（群組管理員）與 `USER`（一般成員）
 
 ### 群組
+
+| 端點 | 功能 |
+| --- | --- |
+| `GET /groups/my`	| 取得目前群組名稱 |
+| `PATCH /groups/my`	| 修改目前群組名稱 |
+| `GET /groups/my/members`	| 取得自己所屬群組成員清單 |
+| `POST /groups/my/members`	| 新增群組成員 |
+| `DELETE /groups/my/members/{userId}`	| 刪除群組成員 |
+| `POST /groups/my/transfer-admin`	| 移轉群組管理權 |
+| `POST /groups/my/leave`	| 自行退出群組 |
 
 - 餐廳、分類、選取紀錄以群組（`group_id`）隔離
 - 以 `GROUP_ADMIN` 身分註冊時，系統會自動建立群組並加入預設餐廳分類
@@ -93,12 +105,16 @@ backend/src/main/java/com/romi/mogumogu/
 
 ### 餐廳分類與餐點
 
-- `/restaurant-categories`：餐廳分類 CRUD，群組內名稱不可重複
-- `/dishes`：餐點 CRUD，隸屬於指定餐廳
+| 端點 | 功能 |
+| --- | --- |
+| `/restaurant-categories` | 餐廳分類 CRUD，群組內名稱不可重複 |
+| `/dishes` | 餐點 CRUD，隸屬於指定餐廳 |
 
 ### 選取歷史
 
-- `GET /restaurants/selection-history`：分頁查詢群組選取紀錄
+| 端點 | 功能 |
+| --- | --- |
+| `GET /restaurants/selection-history` | 分頁查詢群組選取紀錄 |
 
 ### 錯誤處理
 
