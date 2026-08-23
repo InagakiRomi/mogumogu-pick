@@ -31,7 +31,7 @@ public class CorsConfig {
     /** 解析 CORS 來源白名單 */
     private static List<String> resolveCorsOrigins(String raw) {
         return Arrays.stream(raw.split(","))
-                .map(String::trim)
+                .map(origin -> origin.trim())
                 .filter(origin -> !origin.isEmpty())
                 .toList();
     }
