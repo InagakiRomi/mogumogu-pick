@@ -29,7 +29,6 @@ import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.HttpStatus;
-import org.springframework.lang.NonNull;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
@@ -520,7 +519,7 @@ class RestaurantCategoryControllerTest {
                                 "message should contain: " + messagePart + " but was: " + messageNode.asText());
         }
 
-        private void assertMissingJsonBodyError(@NonNull String path) throws Exception {
+        private void assertMissingJsonBodyError(String path) throws Exception {
                 assertErrorResponseContains(
                                 mockMvc.perform(post(path).contentType(CONTENT_TYPE_JSON)),
                                 HTTP_INTERNAL_SERVER_ERROR,
@@ -530,7 +529,7 @@ class RestaurantCategoryControllerTest {
                 verifyNoInteractions(restaurantCategoryService);
         }
 
-        private void assertJsonParseError(@NonNull String path, ResultActions truncatedJsonPost) throws Exception {
+        private void assertJsonParseError(String path, ResultActions truncatedJsonPost) throws Exception {
                 assertErrorResponseContains(
                                 truncatedJsonPost,
                                 HTTP_INTERNAL_SERVER_ERROR,

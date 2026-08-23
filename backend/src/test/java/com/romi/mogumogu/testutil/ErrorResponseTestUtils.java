@@ -4,7 +4,6 @@ import java.util.Objects;
 import java.util.regex.Pattern;
 
 import org.springframework.http.HttpStatus;
-import org.springframework.lang.NonNull;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.test.web.servlet.ResultMatcher;
@@ -19,7 +18,8 @@ public final class ErrorResponseTestUtils {
 
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
-    private ErrorResponseTestUtils() {}
+    private ErrorResponseTestUtils() {
+    }
 
     public static final String DEFAULT_TIMESTAMP_REGEX = "\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}:\\d{2}";
 
@@ -63,11 +63,10 @@ public final class ErrorResponseTestUtils {
                 .andExpect(errorTimestampMatchesDefaultPattern());
     }
 
-    @NonNull
     private static ResultMatcher errorMessageContains(String expectedPart) {
         return new ResultMatcher() {
             @Override
-            public void match(@NonNull MvcResult result) throws Exception {
+            public void match(MvcResult result) throws Exception {
                 JsonNode root = OBJECT_MAPPER.readTree(result.getResponse().getContentAsString());
                 String message = root.path("message").asText();
                 if (!message.contains(expectedPart)) {
@@ -78,12 +77,11 @@ public final class ErrorResponseTestUtils {
         };
     }
 
-    @NonNull
     private static ResultMatcher errorTimestampMatchesDefaultPattern() {
         Pattern pattern = Pattern.compile(DEFAULT_TIMESTAMP_REGEX);
         return new ResultMatcher() {
             @Override
-            public void match(@NonNull MvcResult result) throws Exception {
+            public void match(MvcResult result) throws Exception {
                 JsonNode root = OBJECT_MAPPER.readTree(result.getResponse().getContentAsString());
                 String timestamp = root.path("timestamp").asText();
                 if (!pattern.matcher(timestamp).matches()) {

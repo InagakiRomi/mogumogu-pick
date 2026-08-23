@@ -15,7 +15,6 @@ import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.HttpStatus;
-import org.springframework.lang.NonNull;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
@@ -447,7 +446,7 @@ class DishControllerTest {
                                 "message should contain: " + messagePart + " but was: " + messageNode.asText());
         }
 
-        private void assertMissingJsonBodyError(@NonNull String path) throws Exception {
+        private void assertMissingJsonBodyError(String path) throws Exception {
                 assertErrorResponseContains(
                                 mockMvc.perform(post(path).contentType(CONTENT_TYPE_JSON)),
                                 HTTP_INTERNAL_SERVER_ERROR,
@@ -457,7 +456,7 @@ class DishControllerTest {
                 verifyNoInteractions(dishService);
         }
 
-        private void assertJsonParseError(@NonNull String path, ResultActions truncatedJsonPost) throws Exception {
+        private void assertJsonParseError(String path, ResultActions truncatedJsonPost) throws Exception {
                 assertErrorResponseContains(
                                 truncatedJsonPost,
                                 HTTP_INTERNAL_SERVER_ERROR,
@@ -467,7 +466,7 @@ class DishControllerTest {
                 verifyNoInteractions(dishService);
         }
 
-        private void assertUnsupportedPlainTextPost(@NonNull String path, @NonNull String entityBody) throws Exception {
+        private void assertUnsupportedPlainTextPost(String path, String entityBody) throws Exception {
                 assertErrorResponseContains(
                                 mockMvc.perform(post(path)
                                                 .contentType(CONTENT_TYPE_TEXT_PLAIN)
