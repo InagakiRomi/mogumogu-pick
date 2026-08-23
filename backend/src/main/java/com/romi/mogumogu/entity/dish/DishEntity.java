@@ -14,7 +14,6 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
-import org.hibernate.annotations.Comment;
 
 @Entity
 @Getter
@@ -22,29 +21,24 @@ import org.hibernate.annotations.Comment;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@Comment("餐點表")
-@Table(name = "dish")
+@Table(comment = "餐點表", name = "dish")
 public class DishEntity {
 
-    @Comment("餐點 ID")
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(comment = "餐點 ID")
     private Integer dishId;
 
-    @Comment("餐點所屬餐廳 ID")
     @ManyToOne(optional = false)
-    @JoinColumn(name = "restaurant_id", nullable = false)
+    @JoinColumn(comment = "餐點所屬餐廳 ID", name = "restaurant_id", nullable = false)
     private RestaurantEntity restaurantId;
 
-    @Comment("餐廳群組內順序 ID")
-    @Column(nullable = false)
+    @Column(comment = "餐廳群組內順序 ID", nullable = false)
     private Integer displayOrderId;
 
-    @Comment("餐點價格")
-    @Column(nullable = false)
+    @Column(comment = "餐點價格", nullable = false)
     private Integer price;
 
-    @Comment("餐點名稱")
-    @Column(length = 64, nullable = false)
+    @Column(comment = "餐點名稱", length = 64, nullable = false)
     private String dishName;
 }

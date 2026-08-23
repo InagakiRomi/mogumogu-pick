@@ -1,5 +1,7 @@
 package com.romi.mogumogu.entity.restaurant;
 
+import java.util.Date;
+
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
@@ -14,60 +16,48 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
-import java.util.Date;
-
-import org.hibernate.annotations.Comment;
-
 @Entity
 @Getter
 @Setter
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@Comment("餐廳表")
-@Table(name = "restaurant")
+@Table(comment = "餐廳表", name = "restaurant")
 public class RestaurantEntity {
 
-    @Comment("餐廳 ID")
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(comment = "餐廳 ID")
     private Integer restaurantId;
 
-    @Comment("所屬群組 ID")
-    @Column(nullable = false)
+    @Column(comment = "所屬群組 ID", nullable = false)
     private Integer groupId;
 
-    @Comment("餐廳分類 ID")
     @ManyToOne(optional = false)
-    @JoinColumn(name = "category_id", nullable = false)
+    @JoinColumn(comment = "餐廳分類 ID", name = "category_id", nullable = false)
     private RestaurantCategoryEntity categoryId;
 
-    @Comment("群組內排序 ID")
-    @Column(nullable = false)
+    @Column(comment = "群組內排序 ID", nullable = false)
     private Integer displayOrderId;
 
-    @Comment("被選中的累計次數")
-    @Column(nullable = false, columnDefinition = "INT DEFAULT 0")
+    @Column(comment = "被選中的累計次數", nullable = false, columnDefinition = "INT DEFAULT 0")
     private Integer selectedCount;
 
-    @Comment("餐廳名稱")
-    @Column(length = 64, nullable = false)
+    @Column(comment = "餐廳名稱", length = 64, nullable = false)
     private String restaurantName;
 
-    @Comment("補充說明或備註")
-    @Column(length = 512)
+    @Column(comment = "補充說明或備註", length = 512)
     private String note;
 
-    @Comment("餐廳圖片URL")
-    @Column(length = 512)
+    @Column(comment = "餐廳圖片URL", length = 512)
     private String imageUrl;
 
-    @Comment("最後一次被選中的時間")
+    @Column(comment = "最後一次被選中的時間")
     private Date lastSelectedAt;
 
-    @Comment("資料建立時間")
+    @Column(comment = "資料建立時間")
     private Date createdAt;
 
-    @Comment("資料最後更新時間")
+    @Column(comment = "資料最後更新時間")
     private Date updatedAt;
 }

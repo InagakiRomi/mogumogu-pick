@@ -2,8 +2,6 @@ package com.romi.mogumogu.entity.restaurant;
 
 import java.util.Date;
 
-import org.hibernate.annotations.Comment;
-
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
@@ -22,27 +20,23 @@ import lombok.Setter;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@Comment("餐廳分類表")
-@Table(name = "restaurant_category")
+@Table(comment = "餐廳分類表", name = "restaurant_category")
 public class RestaurantCategoryEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Comment("分類 ID")
+    @Column(comment = "分類 ID")
     private Integer categoryId;
 
-    @Comment("所屬群組 ID")
-    @Column(nullable = false)
+    @Column(comment = "所屬群組 ID", nullable = false)
     private Integer groupId;
 
-    @Comment("群組內排序 ID")
-    @Column(nullable = false)
+    @Column(comment = "群組內排序 ID", nullable = false)
     private Integer displayOrderId;
 
-    @Comment("分類名稱")
-    @Column(length = 32, nullable = false)
+    @Column(comment = "分類名稱", length = 32, nullable = false)
     private String categoryName;
 
-    @Comment("資料建立時間")
+    @Column(comment = "資料建立時間")
     private Date createdAt;
 }
