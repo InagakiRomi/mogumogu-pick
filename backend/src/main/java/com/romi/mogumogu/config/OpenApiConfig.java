@@ -4,7 +4,6 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 import org.springdoc.core.customizers.OpenApiCustomizer;
 import org.springframework.context.annotation.Bean;
@@ -17,6 +16,10 @@ import io.swagger.v3.oas.models.security.SecurityRequirement;
 import io.swagger.v3.oas.models.security.SecurityScheme;
 import io.swagger.v3.oas.models.tags.Tag;
 
+/**
+ * OpenAPI 文件設定類別。
+ * 用於設定 Swagger 文件資訊、JWT 驗證方式，以及 API 標籤的顯示順序。
+ */
 @Configuration
 public class OpenApiConfig {
 
@@ -40,27 +43,49 @@ public class OpenApiConfig {
 
         return new OpenAPI()
                 .info(new Info().title("MoguMogu Pick API"))
-                .components(new Components().addSecuritySchemes(BEARER_JWT, bearerScheme))
-                .addSecurityItem(new SecurityRequirement().addList(BEARER_JWT));
+                .components(new Components()
+                        .addSecuritySchemes(BEARER_JWT, bearerScheme))
+                .addSecurityItem(
+                        new SecurityRequirement().addList(BEARER_JWT));
     }
 
-    /** SpringDoc 掃描 Controller 後會重排 tags，在此依指定順序還原 */
+    /** 依照預先定義的順序重新排列 Swagger 文件中的 API 標籤 */
     @Bean
     OpenApiCustomizer tagOrderCustomizer() {
         return openApi -> {
-            if (openApi.getTags() == null || openApi.getTags().isEmpty()) {
+            List<Tag> tags = openApi.getTags();
+
+            if (tags == null || tags.isEmpty()) {
                 return;
             }
-            Map<String, Tag> tagByName = openApi.getTags().stream()
-                    .collect(Collectors.toMap(Tag::getName, tag -> tag, (left, right) -> left, LinkedHashMap::new));
+
+            Map<String, Tag> tagByName = new LinkedHashMap<>();
+
+            for (Tag tag : tags) {
+                if (tag == null) {
+                    continue;
+                }
+
+                String name = tag.getName();
+                if (name == null) {
+                    continue;
+                }
+
+                tagByName.putIfAbsent(name, tag);
+            }
+
             List<Tag> ordered = new ArrayList<>();
+
             for (String name : TAG_ORDER) {
                 Tag tag = tagByName.remove(name);
+
                 if (tag != null) {
                     ordered.add(tag);
                 }
             }
+
             ordered.addAll(tagByName.values());
+
             openApi.setTags(ordered);
         };
     }
