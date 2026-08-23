@@ -226,8 +226,8 @@ class AuthControllerTest {
 
     @Test
     void register_unprocessableEntity_returns422AndErrorPayload() throws Exception {
-        stubRegisterThrows(new ResponseStatusException(HttpStatus.UNPROCESSABLE_ENTITY, "Policy not accepted"));
-        assertRegisterErrorResponse(defaultRegisterBody(), HttpStatus.UNPROCESSABLE_ENTITY, "Policy not accepted");
+        stubRegisterThrows(new ResponseStatusException(HttpStatus.UNPROCESSABLE_CONTENT, "Policy not accepted"));
+        assertRegisterErrorResponse(defaultRegisterBody(), HttpStatus.UNPROCESSABLE_CONTENT, "Policy not accepted");
     }
 
     @Test
