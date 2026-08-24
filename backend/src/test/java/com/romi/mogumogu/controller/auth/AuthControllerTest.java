@@ -616,10 +616,10 @@ class AuthControllerTest {
                 .getResponse()
                 .getContentAsString();
         JsonNode root = objectMapper.readTree(responseBody);
-        assertEquals("error", root.path("result"));
+        assertEquals("error", root.path("result").asString());
         assertEquals(HTTP_INTERNAL_SERVER_ERROR, root.path("statusCode").asInt());
-        assertEquals(CODE_INTERNAL_SERVER_ERROR, root.path("code"));
-        assertEquals(safePath, root.path("path"));
+        assertEquals(CODE_INTERNAL_SERVER_ERROR, root.path("code").asString());
+        assertEquals(safePath, root.path("path").asString());
         String message = root.path("message").asString();
         assertTrue(
                 message.contains("Content-Type 'text/plain;charset=UTF-8' is not supported")
