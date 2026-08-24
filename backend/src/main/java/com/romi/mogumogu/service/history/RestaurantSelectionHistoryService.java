@@ -66,12 +66,11 @@ public class RestaurantSelectionHistoryService {
         RestaurantSort.SortOrder safeSort = queryParams.getSort() != null
                 ? queryParams.getSort()
                 : RestaurantSort.SortOrder.DESC;
-
         Sort.Direction sortDirection = Objects.requireNonNull(safeSort.getSortDirection());
         Sort jpaSort = Sort.by(sortDirection, "selectedAt");
 
-        Specification<RestaurantSelectionHistoryEntity> spec = (root, query, cb) ->
-                cb.equal(root.get("groupId"), groupId);
+        Specification<RestaurantSelectionHistoryEntity> spec = (root, query, cb) -> cb.equal(root.get("groupId"),
+                groupId);
 
         // 建立分頁規則
         Pageable pageable = PageRequest.of(page - 1, limit, jpaSort);

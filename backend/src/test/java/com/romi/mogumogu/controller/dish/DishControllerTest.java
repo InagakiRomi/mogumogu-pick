@@ -1,7 +1,7 @@
 package com.romi.mogumogu.controller.dish;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ObjectMapper;
 import com.romi.mogumogu.Response.DishResponse;
 import com.romi.mogumogu.dto.CreateDishDto;
 import com.romi.mogumogu.dto.UpdateDishDto;
@@ -442,8 +442,8 @@ class DishControllerTest {
                 JsonNode rootNode = objectMapper.readTree(responseJson);
                 JsonNode messageNode = rootNode.get("message");
                 assertNotNull(messageNode, "message field should exist");
-                assertTrue(messageNode.asText().contains(messagePart),
-                                "message should contain: " + messagePart + " but was: " + messageNode.asText());
+                assertTrue(messageNode.asString().contains(messagePart),
+                                "message should contain: " + messagePart + " but was: " + messageNode);
         }
 
         private void assertMissingJsonBodyError(String path) throws Exception {

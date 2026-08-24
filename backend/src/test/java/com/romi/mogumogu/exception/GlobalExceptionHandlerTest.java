@@ -1,6 +1,6 @@
 package com.romi.mogumogu.exception;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.ObjectMapper;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
@@ -74,10 +74,10 @@ public class GlobalExceptionHandlerTest {
     @Test
     void testHandleMethodArgumentNotValidException_shouldReturn400AndEnglishMessages() throws Exception {
         CreateDto body = new CreateDto(
-                "",         // NotBlank -> name is required
-                "123456",   // Size -> code size is out of allowed range
+                "", // NotBlank -> name is required
+                "123456", // Size -> code size is out of allowed range
                 "notEmail", // Email -> email must be a valid email address
-                0           // Positive -> age must be greater than 0
+                0 // Positive -> age must be greater than 0
         );
 
         assertErrorResponseContains(
@@ -92,12 +92,12 @@ public class GlobalExceptionHandlerTest {
                         containsString("name is required"),
                         containsString("code size is out of allowed range"),
                         containsString("email must be a valid email address"),
-                        containsString("age must be greater than 0")
-                ))));
+                        containsString("age must be greater than 0")))));
     }
 
     @Test
-    void testHandleMethodArgumentNotValidException_emptyFieldErrors_shouldFallbackToValidationFailed() throws Exception {
+    void testHandleMethodArgumentNotValidException_emptyFieldErrors_shouldFallbackToValidationFailed()
+            throws Exception {
         assertErrorResponse(
                 mockMvc().perform(get("/test/manual-validation-empty-errors")),
                 HttpStatus.BAD_REQUEST,
@@ -118,10 +118,10 @@ public class GlobalExceptionHandlerTest {
     @Test
     void testHandleMethodArgumentNotValidException_moreValidationCodes_shouldMapToEnglish() throws Exception {
         MoreCodesDto body = new MoreCodesDto(
-                -1,         // PositiveOrZero -> count must be greater than or equal to 0
-                0,          // Min(1) -> minValue must be greater than or equal to the minimum value
-                101,        // Max(100) -> maxValue must be less than or equal to the maximum value
-                "abc"       // Pattern -> token format is invalid
+                -1, // PositiveOrZero -> count must be greater than or equal to 0
+                0, // Min(1) -> minValue must be greater than or equal to the minimum value
+                101, // Max(100) -> maxValue must be less than or equal to the maximum value
+                "abc" // Pattern -> token format is invalid
         );
 
         assertErrorResponseContains(
@@ -136,8 +136,7 @@ public class GlobalExceptionHandlerTest {
                         containsString("count must be greater than or equal to 0"),
                         containsString("minValue must be greater than or equal to the minimum value"),
                         containsString("maxValue must be less than or equal to the maximum value"),
-                        containsString("token format is invalid")
-                ))));
+                        containsString("token format is invalid")))));
     }
 
     @Test
@@ -150,8 +149,7 @@ public class GlobalExceptionHandlerTest {
                 "customField is invalid")
                 .andExpect(jsonPath("$.message").value(Objects.requireNonNull(allOf(
                         containsString("customField is invalid"),
-                        containsString("nullCodeField is invalid")
-                ))));
+                        containsString("nullCodeField is invalid")))));
     }
 
     @Test
@@ -221,26 +219,32 @@ public class GlobalExceptionHandlerTest {
 
         @GetMapping("/manual-validation-empty-errors")
         public String manualValidationEmptyErrors() throws Exception {
-            throw new MethodArgumentNotValidException(Objects.requireNonNull(methodParameter("validate")), new BeanPropertyBindingResult(new Object(), "dto"));
+            throw new MethodArgumentNotValidException(Objects.requireNonNull(methodParameter("validate")),
+                    new BeanPropertyBindingResult(new Object(), "dto"));
         }
 
         @GetMapping("/manual-validation-duplicate-messages")
         public String manualValidationDuplicateMessages() throws Exception {
             BindingResult bindingResult = new BeanPropertyBindingResult(new Object(), "dto");
             // 同一個 field + code 會映射成同一句英文訊息，handler 會 distinct 去重
-            bindingResult.addError(new FieldError("dto", "name", null, false, new String[]{"NotBlank"}, null, "ignored"));
-            bindingResult.addError(new FieldError("dto", "name", null, false, new String[]{"NotBlank"}, null, "ignored again"));
-            throw new MethodArgumentNotValidException(Objects.requireNonNull(methodParameter("validate")), bindingResult);
+            bindingResult
+                    .addError(new FieldError("dto", "name", null, false, new String[] { "NotBlank" }, null, "ignored"));
+            bindingResult.addError(
+                    new FieldError("dto", "name", null, false, new String[] { "NotBlank" }, null, "ignored again"));
+            throw new MethodArgumentNotValidException(Objects.requireNonNull(methodParameter("validate")),
+                    bindingResult);
         }
 
         @GetMapping("/manual-validation-unknown-and-null-code")
         public String manualValidationUnknownAndNullCode() throws Exception {
             BindingResult bindingResult = new BeanPropertyBindingResult(new Object(), "dto");
             // unknown code -> default 分支 -> "<field> is invalid"
-            bindingResult.addError(new FieldError("dto", "customField", null, false, new String[]{"TotallyUnknown"}, null, "ignored"));
+            bindingResult.addError(new FieldError("dto", "customField", null, false, new String[] { "TotallyUnknown" },
+                    null, "ignored"));
             // null code -> code 為空 -> "<field> is invalid"
             bindingResult.addError(new FieldError("dto", "nullCodeField", null, false, null, null, "ignored"));
-            throw new MethodArgumentNotValidException(Objects.requireNonNull(methodParameter("validate")), bindingResult);
+            throw new MethodArgumentNotValidException(Objects.requireNonNull(methodParameter("validate")),
+                    bindingResult);
         }
 
         private static MethodParameter methodParameter(String methodName) throws NoSuchMethodException {
@@ -253,15 +257,13 @@ public class GlobalExceptionHandlerTest {
             @NotBlank String name,
             @Size(min = 2, max = 5) String code,
             @Email String email,
-            @Positive Integer age
-    ) {
+            @Positive Integer age) {
     }
 
     record MoreCodesDto(
             @PositiveOrZero Integer count,
             @Min(1) Integer minValue,
             @Max(100) Integer maxValue,
-            @Pattern(regexp = "^[A-Z]{3}\\d{3}$") String token
-    ) {
+            @Pattern(regexp = "^[A-Z]{3}\\d{3}$") String token) {
     }
 }

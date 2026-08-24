@@ -19,7 +19,7 @@ import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.ObjectMapper;
 import com.romi.mogumogu.config.JwtTokenProvider;
 import com.romi.mogumogu.dto.RegisterRequest;
 import com.romi.mogumogu.entity.restaurant.RestaurantCategoryEntity;

@@ -36,8 +36,8 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.web.server.ResponseStatusException;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ObjectMapper;
 import com.romi.mogumogu.Response.LoginResponse;
 import com.romi.mogumogu.dto.LoginRequest;
 import com.romi.mogumogu.dto.RegisterRequest;
@@ -576,7 +576,7 @@ class AuthControllerTest {
                 .getResponse()
                 .getContentAsString();
         JsonNode root = objectMapper.readTree(responseBody);
-        String combined = root.path("message").asText();
+        String combined = root.path("message").asString();
         for (String part : substrings) {
             assertTrue(combined.contains(part));
         }
@@ -616,16 +616,16 @@ class AuthControllerTest {
                 .getResponse()
                 .getContentAsString();
         JsonNode root = objectMapper.readTree(responseBody);
-        assertEquals("error", root.path("result").asText());
+        assertEquals("error", root.path("result"));
         assertEquals(HTTP_INTERNAL_SERVER_ERROR, root.path("statusCode").asInt());
-        assertEquals(CODE_INTERNAL_SERVER_ERROR, root.path("code").asText());
-        assertEquals(safePath, root.path("path").asText());
-        String message = root.path("message").asText();
+        assertEquals(CODE_INTERNAL_SERVER_ERROR, root.path("code"));
+        assertEquals(safePath, root.path("path"));
+        String message = root.path("message").asString();
         assertTrue(
                 message.contains("Content-Type 'text/plain;charset=UTF-8' is not supported")
                         || message.contains("Content-Type 'text/plain' is not supported"),
                 () -> "unexpected message: " + message);
-        String timestamp = root.path("timestamp").asText();
+        String timestamp = root.path("timestamp").asString();
         assertTrue(
                 Pattern.compile(DEFAULT_TIMESTAMP_REGEX).matcher(timestamp).matches(),
                 () -> "unexpected timestamp: " + timestamp);
@@ -666,7 +666,7 @@ class AuthControllerTest {
         JsonNode messageNode = rootNode.get("message");
         assertNotNull(messageNode, "message field should exist");
         assertTrue(
-                messageNode.asText().contains(messagePart),
-                "message should contain: " + messagePart + " but was: " + messageNode.asText());
+                messageNode.asString().contains(messagePart),
+                "message should contain: " + messagePart + " but was: " + messageNode);
     }
 }

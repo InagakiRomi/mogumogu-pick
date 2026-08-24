@@ -35,8 +35,8 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.web.server.ResponseStatusException;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ObjectMapper;
 import com.romi.mogumogu.Response.RestaurantCategoryResponse;
 import com.romi.mogumogu.dto.CreateRestaurantCategoryDto;
 import com.romi.mogumogu.dto.UpdateRestaurantCategoryDto;
@@ -515,8 +515,8 @@ class RestaurantCategoryControllerTest {
                 JsonNode rootNode = objectMapper.readTree(responseJson);
                 JsonNode messageNode = rootNode.get("message");
                 assertNotNull(messageNode, "message field should exist");
-                assertTrue(messageNode.asText().contains(messagePart),
-                                "message should contain: " + messagePart + " but was: " + messageNode.asText());
+                assertTrue(messageNode.asString().contains(messagePart),
+                                "message should contain: " + messagePart + " but was: " + messageNode);
         }
 
         private void assertMissingJsonBodyError(String path) throws Exception {

@@ -8,8 +8,8 @@ import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.test.web.servlet.ResultMatcher;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ObjectMapper;
 
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -68,7 +68,7 @@ public final class ErrorResponseTestUtils {
             @Override
             public void match(MvcResult result) throws Exception {
                 JsonNode root = OBJECT_MAPPER.readTree(result.getResponse().getContentAsString());
-                String message = root.path("message").asText();
+                String message = root.path("message").asString();
                 if (!message.contains(expectedPart)) {
                     throw new AssertionError(
                             "expected $.message containing \"" + expectedPart + "\" but was: " + message);
@@ -83,7 +83,7 @@ public final class ErrorResponseTestUtils {
             @Override
             public void match(MvcResult result) throws Exception {
                 JsonNode root = OBJECT_MAPPER.readTree(result.getResponse().getContentAsString());
-                String timestamp = root.path("timestamp").asText();
+                String timestamp = root.path("timestamp").asString();
                 if (!pattern.matcher(timestamp).matches()) {
                     throw new AssertionError(
                             "expected $.timestamp matching "

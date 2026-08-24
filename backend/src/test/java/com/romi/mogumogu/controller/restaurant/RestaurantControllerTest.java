@@ -1,7 +1,7 @@
 package com.romi.mogumogu.controller.restaurant;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ObjectMapper;
 import com.romi.mogumogu.Response.DishListResponse;
 import com.romi.mogumogu.Response.DishResponse;
 import com.romi.mogumogu.Response.RestaurantListResponse;
@@ -1447,8 +1447,8 @@ class RestaurantControllerTest {
                 JsonNode rootNode = objectMapper.readTree(responseJson);
                 JsonNode messageNode = rootNode.get("message");
                 assertNotNull(messageNode, "message field should exist");
-                assertTrue(messageNode.asText().contains(messagePart),
-                                "message should contain: " + messagePart + " but was: " + messageNode.asText());
+                assertTrue(messageNode.asString().contains(messagePart),
+                                "message should contain: " + messagePart + " but was: " + messageNode);
         }
 
         private static java.util.function.Predicate<GetRestaurantQuery> matchesDefaultListQuery() {
