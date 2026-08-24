@@ -14,9 +14,9 @@ import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.access.AccessDeniedException;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.json.JsonMapper;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
 import com.romi.mogumogu.exception.ErrorResponseFactory;
 
 @DisplayName("RestAuthenticationEntryPoint")
@@ -43,11 +43,11 @@ class RestAuthenticationEntryPointTest {
         assertThat(response.getCharacterEncoding()).isEqualTo(StandardCharsets.UTF_8.name());
 
         JsonNode body = objectMapper.readTree(response.getContentAsByteArray());
-        assertThat(body.path("result").asText()).isEqualTo("error");
+        assertThat(body.path("result").asString()).isEqualTo("error");
         assertThat(body.path("statusCode").asInt()).isEqualTo(401);
-        assertThat(body.path("code").asText()).isEqualTo("UNAUTHORIZED");
-        assertThat(body.path("path").asText()).isEqualTo("/restaurants");
-        assertThat(body.path("message").asText()).isEqualTo("Bad credentials");
+        assertThat(body.path("code").asString()).isEqualTo("UNAUTHORIZED");
+        assertThat(body.path("path").asString()).isEqualTo("/restaurants");
+        assertThat(body.path("message").asString()).isEqualTo("Bad credentials");
     }
 
     @Test
@@ -62,8 +62,8 @@ class RestAuthenticationEntryPointTest {
 
         JsonNode body = objectMapper.readTree(response.getContentAsByteArray());
         assertThat(body.path("statusCode").asInt()).isEqualTo(403);
-        assertThat(body.path("code").asText()).isEqualTo("FORBIDDEN");
-        assertThat(body.path("message").asText()).isEqualTo("Access is denied");
+        assertThat(body.path("code").asString()).isEqualTo("FORBIDDEN");
+        assertThat(body.path("message").asString()).isEqualTo("Access is denied");
     }
 
     @Test
@@ -76,7 +76,7 @@ class RestAuthenticationEntryPointTest {
 
         JsonNode body = objectMapper.readTree(response.getContentAsByteArray());
         var expected = ErrorResponseFactory.create(HttpStatus.UNAUTHORIZED, "test", "/auth/login");
-        assertThat(body.path("result").asText()).isEqualTo(expected.getResult());
-        assertThat(body.path("code").asText()).isEqualTo(expected.getCode());
+        assertThat(body.path("result").asString()).isEqualTo(expected.getResult());
+        assertThat(body.path("code").asString()).isEqualTo(expected.getCode());
     }
 }

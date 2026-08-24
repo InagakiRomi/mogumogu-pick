@@ -7,12 +7,11 @@ import org.springframework.http.HttpMethod;
 import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
-import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.ObjectMapper;
 import com.romi.mogumogu.config.JwtTokenProvider;
 
 @Configuration
@@ -39,7 +38,7 @@ public class SecurityConfig {
                                 // 允許前端開發伺服器跨域呼叫 API
                                 .cors(Customizer.withDefaults())
                                 // 關閉 CSRF：REST API 以 Bearer token 驗證，不用表單與 Session
-                                .csrf(AbstractHttpConfigurer::disable)
+                                .csrf(csrf -> csrf.disable())
                                 // 不建立 Session；身分只靠每次請求帶來的 JWT
                                 .sessionManagement(session -> session
                                                 .sessionCreationPolicy(SessionCreationPolicy.STATELESS))

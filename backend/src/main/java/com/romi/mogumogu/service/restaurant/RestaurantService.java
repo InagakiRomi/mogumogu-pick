@@ -21,7 +21,6 @@ import com.romi.mogumogu.logging.JulLoggerFactory;
 import com.romi.mogumogu.security.SecurityUtils;
 
 import org.springframework.http.HttpStatus;
-import org.springframework.lang.NonNull;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -81,7 +80,7 @@ public class RestaurantService {
         Integer limit = queryParams.getLimit();
 
         String normalizedSearch = Optional.ofNullable(search)
-                .map(String::trim) // 去除前後空白
+                .map(origin -> origin.trim())// 去除前後空白
                 .filter(value -> !value.isEmpty()) // 去除空字串
                 .map(value -> value.toLowerCase(Locale.ROOT)) // 轉換為小寫
                 .orElse(null); // 如果為空則返回 null
@@ -402,7 +401,6 @@ public class RestaurantService {
     }
 
     /** 檢查餐廳 ID 參數並取得餐廳實體 */
-    @NonNull
     private RestaurantEntity findRestaurantOrThrow(Integer restaurantId) {
         // 檢查餐廳 ID 是否為 null
         if (restaurantId == null) {

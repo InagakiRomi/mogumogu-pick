@@ -9,7 +9,7 @@ import java.util.Objects;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
+import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
@@ -19,7 +19,7 @@ import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.ObjectMapper;
 import com.romi.mogumogu.config.JwtTokenProvider;
 import com.romi.mogumogu.dto.RegisterRequest;
 import com.romi.mogumogu.entity.restaurant.RestaurantCategoryEntity;
@@ -98,7 +98,7 @@ class ApiSecurityIntegrationTest {
     @Test
     void getRestaurants_withMalformedAuthorization_returns401() throws Exception {
         mockMvc.perform(get("/restaurants").header(HttpHeaders.AUTHORIZATION, jwtTokenProvider.generateAccessToken(
-                        UserEntity.builder().userId(1).groupId(1).roles(UserRole.USER).email("x@y.z").build())))
+                UserEntity.builder().userId(1).groupId(1).roles(UserRole.USER).email("x@y.z").build())))
                 .andExpect(status().isUnauthorized());
     }
 
@@ -110,8 +110,8 @@ class ApiSecurityIntegrationTest {
         body.setPassword("password123");
 
         mockMvc.perform(post("/auth/register")
-                        .contentType(Objects.requireNonNull(MediaType.APPLICATION_JSON))
-                        .content(Objects.requireNonNull(objectMapper.writeValueAsString(body))))
+                .contentType(Objects.requireNonNull(MediaType.APPLICATION_JSON))
+                .content(Objects.requireNonNull(objectMapper.writeValueAsString(body))))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.email").value("anon-security@example.com"));
     }
@@ -125,8 +125,8 @@ class ApiSecurityIntegrationTest {
                 """;
 
         mockMvc.perform(post("/restaurants")
-                        .contentType(Objects.requireNonNull(MediaType.APPLICATION_JSON))
-                        .content(payload))
+                .contentType(Objects.requireNonNull(MediaType.APPLICATION_JSON))
+                .content(payload))
                 .andExpect(status().isUnauthorized());
     }
 
@@ -139,9 +139,9 @@ class ApiSecurityIntegrationTest {
                 """.formatted(category.getCategoryId());
 
         mockMvc.perform(post("/restaurants")
-                        .header(HttpHeaders.AUTHORIZATION, bearerToken(UserRole.USER))
-                        .contentType(Objects.requireNonNull(MediaType.APPLICATION_JSON))
-                        .content(Objects.requireNonNull(payload)))
+                .header(HttpHeaders.AUTHORIZATION, bearerToken(UserRole.USER))
+                .contentType(Objects.requireNonNull(MediaType.APPLICATION_JSON))
+                .content(Objects.requireNonNull(payload)))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.restaurantName").value("已認證新增"));
     }
@@ -166,8 +166,8 @@ class ApiSecurityIntegrationTest {
         body.setRole(UserRole.GROUP_ADMIN.ordinal());
 
         mockMvc.perform(post("/auth/register")
-                        .contentType(Objects.requireNonNull(MediaType.APPLICATION_JSON))
-                        .content(Objects.requireNonNull(objectMapper.writeValueAsString(body))))
+                .contentType(Objects.requireNonNull(MediaType.APPLICATION_JSON))
+                .content(Objects.requireNonNull(objectMapper.writeValueAsString(body))))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.groupId").isNumber());
 

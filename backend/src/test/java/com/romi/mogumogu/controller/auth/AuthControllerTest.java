@@ -26,8 +26,8 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
-import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
+import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.HttpStatus;
 import org.springframework.test.context.ActiveProfiles;
@@ -36,8 +36,8 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.web.server.ResponseStatusException;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ObjectMapper;
 import com.romi.mogumogu.Response.LoginResponse;
 import com.romi.mogumogu.dto.LoginRequest;
 import com.romi.mogumogu.dto.RegisterRequest;
@@ -49,7 +49,7 @@ import com.romi.mogumogu.testsupport.TestSecurityConfig;
 @WebMvcTest(controllers = AuthController.class)
 @ActiveProfiles("test")
 @AutoConfigureMockMvc(addFilters = false)
-@Import({GlobalExceptionHandler.class, TestSecurityConfig.class})
+@Import({ GlobalExceptionHandler.class, TestSecurityConfig.class })
 class AuthControllerTest {
 
     private static final String AUTH_LOGIN_PATH = "/auth/login";
@@ -101,7 +101,8 @@ class AuthControllerTest {
                 !objectMapper.readTree(registerJson).hasNonNull("token"),
                 "註冊回應不應帶有非 null 的 token");
 
-        verify(authService).register(argThat(req -> "\u65b0\u4f7f\u7528\u8005".equals(req.getUsername()) && "new@example.com".equals(req.getEmail()) && "password123".equals(req.getPassword())));
+        verify(authService).register(argThat(req -> "\u65b0\u4f7f\u7528\u8005".equals(req.getUsername())
+                && "new@example.com".equals(req.getEmail()) && "password123".equals(req.getPassword())));
     }
 
     @Test
@@ -152,7 +153,7 @@ class AuthControllerTest {
     }
 
     @ParameterizedTest
-    @ValueSource(strings = {"no-at-sign", "@nodomain", "spaces in@mail.com"})
+    @ValueSource(strings = { "no-at-sign", "@nodomain", "spaces in@mail.com" })
     void register_invalidEmailVariants_returns400(String badEmail) throws Exception {
         assertBadRequestValidationRegister(
                 registerRequest("u", badEmail, "password123"),
@@ -206,7 +207,8 @@ class AuthControllerTest {
 
     @Test
     void register_invalidJson_returns500AndSkipsService() throws Exception {
-        assertJsonParseError(AUTH_REGISTER_PATH, performRegisterRaw("{\"username\":\"a\",\"email\":\"a@b.com\",\"password\":\"x\""));
+        assertJsonParseError(AUTH_REGISTER_PATH,
+                performRegisterRaw("{\"username\":\"a\",\"email\":\"a@b.com\",\"password\":\"x\""));
     }
 
     @Test
@@ -224,8 +226,8 @@ class AuthControllerTest {
 
     @Test
     void register_unprocessableEntity_returns422AndErrorPayload() throws Exception {
-        stubRegisterThrows(new ResponseStatusException(HttpStatus.UNPROCESSABLE_ENTITY, "Policy not accepted"));
-        assertRegisterErrorResponse(defaultRegisterBody(), HttpStatus.UNPROCESSABLE_ENTITY, "Policy not accepted");
+        stubRegisterThrows(new ResponseStatusException(HttpStatus.UNPROCESSABLE_CONTENT, "Policy not accepted"));
+        assertRegisterErrorResponse(defaultRegisterBody(), HttpStatus.UNPROCESSABLE_CONTENT, "Policy not accepted");
     }
 
     @Test
@@ -446,7 +448,7 @@ class AuthControllerTest {
     }
 
     @ParameterizedTest
-    @ValueSource(strings = {"no-at-sign", "@nodomain", "bad space@x.com"})
+    @ValueSource(strings = { "no-at-sign", "@nodomain", "bad space@x.com" })
     void login_invalidEmailVariants_returns400(String badEmail) throws Exception {
         assertBadRequestValidation(loginRequest(badEmail, "password123"), "email must be a valid email address");
     }
@@ -574,7 +576,7 @@ class AuthControllerTest {
                 .getResponse()
                 .getContentAsString();
         JsonNode root = objectMapper.readTree(responseBody);
-        String combined = root.path("message").asText();
+        String combined = root.path("message").asString();
         for (String part : substrings) {
             assertTrue(combined.contains(part));
         }
@@ -607,23 +609,23 @@ class AuthControllerTest {
         final String safePath = Objects.requireNonNull(path, "path");
         final String safeBody = Objects.requireNonNull(entityBody, "entityBody");
         String responseBody = mockMvc.perform(post(safePath)
-                        .contentType(CONTENT_TYPE_TEXT_PLAIN)
-                        .content(safeBody))
+                .contentType(CONTENT_TYPE_TEXT_PLAIN)
+                .content(safeBody))
                 .andExpect(status().is(HTTP_INTERNAL_SERVER_ERROR))
                 .andReturn()
                 .getResponse()
                 .getContentAsString();
         JsonNode root = objectMapper.readTree(responseBody);
-        assertEquals("error", root.path("result").asText());
+        assertEquals("error", root.path("result").asString());
         assertEquals(HTTP_INTERNAL_SERVER_ERROR, root.path("statusCode").asInt());
-        assertEquals(CODE_INTERNAL_SERVER_ERROR, root.path("code").asText());
-        assertEquals(safePath, root.path("path").asText());
-        String message = root.path("message").asText();
+        assertEquals(CODE_INTERNAL_SERVER_ERROR, root.path("code").asString());
+        assertEquals(safePath, root.path("path").asString());
+        String message = root.path("message").asString();
         assertTrue(
                 message.contains("Content-Type 'text/plain;charset=UTF-8' is not supported")
                         || message.contains("Content-Type 'text/plain' is not supported"),
                 () -> "unexpected message: " + message);
-        String timestamp = root.path("timestamp").asText();
+        String timestamp = root.path("timestamp").asString();
         assertTrue(
                 Pattern.compile(DEFAULT_TIMESTAMP_REGEX).matcher(timestamp).matches(),
                 () -> "unexpected timestamp: " + timestamp);
@@ -664,7 +666,7 @@ class AuthControllerTest {
         JsonNode messageNode = rootNode.get("message");
         assertNotNull(messageNode, "message field should exist");
         assertTrue(
-                messageNode.asText().contains(messagePart),
-                "message should contain: " + messagePart + " but was: " + messageNode.asText());
+                messageNode.asString().contains(messagePart),
+                "message should contain: " + messagePart + " but was: " + messageNode);
     }
 }

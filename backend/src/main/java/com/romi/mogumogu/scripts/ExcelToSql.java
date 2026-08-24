@@ -248,7 +248,8 @@ public class ExcelToSql {
     }
 
     /**
-     * {@code user} 為 H2 / MySQL 保留字，需與 Flyway（{@code "user"} / {@code `user`}）一致加上引號。
+     * {@code user} 為 H2 / MySQL 保留字，需與 Flyway（{@code "user"} /
+     * {@code `user`}）一致加上引號。
      */
     private static String quoteTableNameForInsert(String tableName, SqlDialect dialect) {
         if (!"user".equalsIgnoreCase(tableName)) {
@@ -405,7 +406,8 @@ public class ExcelToSql {
             LocalDateTime localDateTime = LocalDateTime.ofInstant(
                     DateUtil.getJavaDate(numericValue).toInstant(),
                     ZoneId.systemDefault());
-            return quoteString(localDateTime.format(DateTimeFormatter.ofPattern(DateTimePatternConstants.STANDARD_DATE_TIME)));
+            return quoteString(
+                    localDateTime.format(DateTimeFormatter.ofPattern(DateTimePatternConstants.STANDARD_DATE_TIME)));
         }
 
         BigDecimal decimal = BigDecimal.valueOf(numericValue).stripTrailingZeros();
@@ -433,7 +435,7 @@ public class ExcelToSql {
 
         remaining.entrySet().stream()
                 .sorted(Map.Entry.comparingByKey())
-                .map(Map.Entry::getValue)
+                .map(entry -> entry.getValue())
                 .forEach(orderedStatements::add);
 
         return orderedStatements;

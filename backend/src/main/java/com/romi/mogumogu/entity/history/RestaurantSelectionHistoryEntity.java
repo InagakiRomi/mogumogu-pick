@@ -1,5 +1,7 @@
 package com.romi.mogumogu.entity.history;
 
+import java.util.Date;
+
 import com.romi.mogumogu.entity.restaurant.RestaurantEntity;
 
 import jakarta.persistence.Column;
@@ -16,35 +18,27 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
-import java.util.Date;
-
-import org.hibernate.annotations.Comment;
-
 @Entity
 @Getter
 @Setter
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@Comment("餐廳選擇歷史表")
-@Table(name = "restaurant_selection_history")
+@Table(comment = "餐廳選擇歷史表", name = "restaurant_selection_history")
 public class RestaurantSelectionHistoryEntity {
 
-    @Comment("歷史紀錄 ID")
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(comment = "歷史紀錄 ID")
     private Integer historyId;
 
-    @Comment("所屬群組 ID")
-    @Column(nullable = false)
+    @Column(comment = "所屬群組 ID", nullable = false)
     private Integer groupId;
 
-    @Comment("餐廳 ID")
     @ManyToOne(optional = false)
-    @JoinColumn(name = "restaurant_id", nullable = false)
+    @JoinColumn(comment = "餐廳 ID", name = "restaurant_id", nullable = false)
     private RestaurantEntity restaurant;
 
-    @Comment("選擇時間")
-    @Column(nullable = false)
+    @Column(comment = "選擇時間", nullable = false)
     private Date selectedAt;
 }

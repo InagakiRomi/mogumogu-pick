@@ -45,7 +45,6 @@ public class DishService {
     }
 
     /** 新增餐點 */
-    @SuppressWarnings("null")
     public DishResponse createDish(CreateDishDto request) {
         // 取得餐廳 ID
         Integer restaurantId = request.getRestaurantId();
@@ -110,7 +109,6 @@ public class DishService {
     }
 
     /** 刪除餐點 */
-    @SuppressWarnings("null")
     public void deleteDish(Integer dishId) {
         // 檢查餐點是否存在
         DishEntity dish = findDishOrThrow(dishId);

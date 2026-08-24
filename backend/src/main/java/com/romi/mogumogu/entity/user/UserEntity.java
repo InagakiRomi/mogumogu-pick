@@ -2,8 +2,6 @@ package com.romi.mogumogu.entity.user;
 
 import java.util.Date;
 
-import org.hibernate.annotations.Comment;
-
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.romi.mogumogu.enums.UserRole;
 
@@ -27,42 +25,37 @@ import lombok.Setter;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@Comment("使用者表")
-@Table(name = "`user`")
+@Table(comment = "使用者表", name = "`user`")
 public class UserEntity {
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Comment("使用者 ID")
+    @Column(comment = "使用者 ID")
     private Integer userId;
 
-    @Comment("所屬群組 ID")
+    @Column(comment = "所屬群組 ID")
     private Integer groupId;
 
-    @Comment("群組內排序 ID")
-    @Column(nullable = false)
+    @Column(comment = "群組內排序 ID", nullable = false)
     private Integer displayOrderId;
 
     @Enumerated(EnumType.ORDINAL)
-    @Comment("使用者角色（0=群組管理員、1=一般使用者）")
-    @Column(nullable = false)
+    @Column(comment = "使用者角色（0=群組管理員、1=一般使用者）", nullable = false)
     private UserRole roles;
 
-    @Comment("使用者名稱")
-    @Column(length = 64, nullable = false)
+    @Column(comment = "使用者名稱", length = 64, nullable = false)
     private String username;
 
-    @Comment("電子郵件")
-    @Column(unique = true, length = 255, nullable = false)
+    @Column(comment = "電子郵件", unique = true, length = 255, nullable = false)
     private String email;
 
     @JsonIgnore
-    @Comment("使用者密碼")
-    @Column(name = "user_password", length = 255, nullable = false)
+    @Column(comment = "使用者密碼", name = "user_password", length = 255, nullable = false)
     private String userPassword;
 
-    @Comment("帳號建立時間")
+    @Column(comment = "帳號建立時間")
     private Date createdAt;
 
-    @Comment("帳號最後更新時間")
+    @Column(comment = "帳號最後更新時間")
     private Date updatedAt;
 }
