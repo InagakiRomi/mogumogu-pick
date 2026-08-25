@@ -8,7 +8,7 @@ RUN mvn clean package -DskipTests -B
 # Runtime stage
 FROM eclipse-temurin:17-jre-alpine
 WORKDIR /app
-COPY --from=build /app/target/mogumogu-0.0.1-SNAPSHOT.jar app.jar
+COPY --from=build /app/target/mogumogu-1.0.1-SNAPSHOT.jar app.jar
 COPY data/mogumogu.mv.db /app/seed/mogumogu.mv.db
 COPY docker-entrypoint.sh /app/docker-entrypoint.sh
 RUN sed -i 's/\r$//' /app/docker-entrypoint.sh && chmod +x /app/docker-entrypoint.sh
