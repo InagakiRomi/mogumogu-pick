@@ -4,6 +4,7 @@ import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
 import com.romi.mogumogu.Response.DishListResponse;
 import com.romi.mogumogu.Response.DishResponse;
+import com.romi.mogumogu.Response.NearbyRestaurantResponse;
 import com.romi.mogumogu.Response.RestaurantListResponse;
 import com.romi.mogumogu.Response.RestaurantResponse;
 import com.romi.mogumogu.Response.SelectionHistoryResponse;
@@ -47,6 +48,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
@@ -68,6 +70,9 @@ class RestaurantControllerTest {
         private static final String RESTAURANTS_RANDOM_PATH = "/restaurants/random";
         private static final String RESTAURANTS_RANDOM_CLEAR_PATH = "/restaurants/random/clear";
         private static final String RESTAURANTS_SELECTION_HISTORY_PATH = "/restaurants/selection-history";
+        private static final String RESTAURANTS_NEARBY_PATH = "/restaurants/nearby";
+        private static final double DEFAULT_NEARBY_LATITUDE = 24.9890;
+        private static final double DEFAULT_NEARBY_LONGITUDE = 121.5111;
         private static final String CONTENT_TYPE_JSON = "application/json";
         private static final int HTTP_INTERNAL_SERVER_ERROR = 500;
         private static final String CODE_INTERNAL_SERVER_ERROR = "INTERNAL_SERVER_ERROR";
@@ -247,6 +252,372 @@ class RestaurantControllerTest {
                 void invalidLimit_returns400AndSkipsServiceCall() throws Exception {
                         assertInvalidListQuery("limit", "0",
                                         "limit must be greater than or equal to the minimum value");
+                }
+        }
+
+        @Nested
+        class GetNearbyRestaurants {
+
+                @Test
+                void success_withDefaultCoordinates_returnsNearbyRestaurantList() throws Exception {
+                        NearbyRestaurantResponse first = mock(NearbyRestaurantResponse.class);
+                        NearbyRestaurantResponse second = mock(NearbyRestaurantResponse.class);
+                        when(restaurantService.getNearbyRestaurants(
+                                        DEFAULT_NEARBY_LATITUDE,
+                                        DEFAULT_NEARBY_LONGITUDE))
+                                        .thenReturn(List.of(first, second));
+
+                        performGetNearbyRestaurants()
+                                        .andExpect(status().isOk())
+                                        .andExpect(jsonPath("$.length()").value(2));
+
+                        verify(restaurantService).getNearbyRestaurants(
+                                        DEFAULT_NEARBY_LATITUDE,
+                                        DEFAULT_NEARBY_LONGITUDE);
+                }
+
+                @Test
+                void success_returnsEmptyList() throws Exception {
+                        when(restaurantService.getNearbyRestaurants(
+                                        DEFAULT_NEARBY_LATITUDE,
+                                        DEFAULT_NEARBY_LONGITUDE))
+                                        .thenReturn(List.of());
+
+                        performGetNearbyRestaurants()
+                                        .andExpect(status().isOk())
+                                        .andExpect(jsonPath("$.length()").value(0));
+
+                        verify(restaurantService).getNearbyRestaurants(
+                                        DEFAULT_NEARBY_LATITUDE,
+                                        DEFAULT_NEARBY_LONGITUDE);
+                }
+
+                @Test
+                void withExplicitCoordinates_passesExactCoordinatesToService() throws Exception {
+                        when(restaurantService.getNearbyRestaurants(25.0330, 121.5654))
+                                        .thenReturn(List.of());
+
+                        performGetNearbyRestaurants(Map.of(
+                                        "latitude", "25.0330",
+                                        "longitude", "121.5654"))
+                                        .andExpect(status().isOk())
+                                        .andExpect(jsonPath("$.length()").value(0));
+
+                        verify(restaurantService).getNearbyRestaurants(25.0330, 121.5654);
+                }
+
+                @Test
+                void missingLatitude_usesDefaultLatitudeOnly() throws Exception {
+                        when(restaurantService.getNearbyRestaurants(
+                                        DEFAULT_NEARBY_LATITUDE,
+                                        120.3014))
+                                        .thenReturn(List.of());
+
+                        performGetNearbyRestaurants(Map.of("longitude", "120.3014"))
+                                        .andExpect(status().isOk());
+
+                        verify(restaurantService).getNearbyRestaurants(
+                                        DEFAULT_NEARBY_LATITUDE,
+                                        120.3014);
+                }
+
+                @Test
+                void missingLongitude_usesDefaultLongitudeOnly() throws Exception {
+                        when(restaurantService.getNearbyRestaurants(
+                                        22.6273,
+                                        DEFAULT_NEARBY_LONGITUDE))
+                                        .thenReturn(List.of());
+
+                        performGetNearbyRestaurants(Map.of("latitude", "22.6273"))
+                                        .andExpect(status().isOk());
+
+                        verify(restaurantService).getNearbyRestaurants(
+                                        22.6273,
+                                        DEFAULT_NEARBY_LONGITUDE);
+                }
+
+                @Test
+                void emptyCoordinateParams_useDefaultValues() throws Exception {
+                        when(restaurantService.getNearbyRestaurants(
+                                        DEFAULT_NEARBY_LATITUDE,
+                                        DEFAULT_NEARBY_LONGITUDE))
+                                        .thenReturn(List.of());
+
+                        performGetNearbyRestaurants(Map.of(
+                                        "latitude", "",
+                                        "longitude", ""))
+                                        .andExpect(status().isOk())
+                                        .andExpect(jsonPath("$.length()").value(0));
+
+                        verify(restaurantService).getNearbyRestaurants(
+                                        DEFAULT_NEARBY_LATITUDE,
+                                        DEFAULT_NEARBY_LONGITUDE);
+                }
+
+                @Test
+                void zeroCoordinates_arePassedToService() throws Exception {
+                        when(restaurantService.getNearbyRestaurants(0.0, 0.0))
+                                        .thenReturn(List.of());
+
+                        performGetNearbyRestaurants(Map.of(
+                                        "latitude", "0",
+                                        "longitude", "0"))
+                                        .andExpect(status().isOk());
+
+                        verify(restaurantService).getNearbyRestaurants(0.0, 0.0);
+                }
+
+                @Test
+                void negativeCoordinates_arePassedToService() throws Exception {
+                        when(restaurantService.getNearbyRestaurants(-33.8688, -70.6693))
+                                        .thenReturn(List.of());
+
+                        performGetNearbyRestaurants(Map.of(
+                                        "latitude", "-33.8688",
+                                        "longitude", "-70.6693"))
+                                        .andExpect(status().isOk());
+
+                        verify(restaurantService).getNearbyRestaurants(-33.8688, -70.6693);
+                }
+
+                @Test
+                void boundaryCoordinates_arePassedToService() throws Exception {
+                        when(restaurantService.getNearbyRestaurants(90.0, 180.0))
+                                        .thenReturn(List.of());
+
+                        performGetNearbyRestaurants(Map.of(
+                                        "latitude", "90",
+                                        "longitude", "180"))
+                                        .andExpect(status().isOk());
+
+                        verify(restaurantService).getNearbyRestaurants(90.0, 180.0);
+                }
+
+                @Test
+                void negativeBoundaryCoordinates_arePassedToService() throws Exception {
+                        when(restaurantService.getNearbyRestaurants(-90.0, -180.0))
+                                        .thenReturn(List.of());
+
+                        performGetNearbyRestaurants(Map.of(
+                                        "latitude", "-90",
+                                        "longitude", "-180"))
+                                        .andExpect(status().isOk());
+
+                        verify(restaurantService).getNearbyRestaurants(-90.0, -180.0);
+                }
+
+                @Test
+                void outOfGeographicRangeCoordinates_areStillPassedBecauseControllerHasNoRangeValidation()
+                                throws Exception {
+                        when(restaurantService.getNearbyRestaurants(91.0, 181.0))
+                                        .thenReturn(List.of());
+
+                        performGetNearbyRestaurants(Map.of(
+                                        "latitude", "91",
+                                        "longitude", "181"))
+                                        .andExpect(status().isOk());
+
+                        verify(restaurantService).getNearbyRestaurants(91.0, 181.0);
+                }
+
+                @Test
+                void scientificNotationCoordinates_areAccepted() throws Exception {
+                        when(restaurantService.getNearbyRestaurants(24.989, 121.5111))
+                                        .thenReturn(List.of());
+
+                        performGetNearbyRestaurants(Map.of(
+                                        "latitude", "2.4989e1",
+                                        "longitude", "1.215111e2"))
+                                        .andExpect(status().isOk());
+
+                        verify(restaurantService).getNearbyRestaurants(24.989, 121.5111);
+                }
+
+                @Test
+                void signedPositiveCoordinates_areAccepted() throws Exception {
+                        when(restaurantService.getNearbyRestaurants(24.9890, 121.5111))
+                                        .thenReturn(List.of());
+
+                        performGetNearbyRestaurants(Map.of(
+                                        "latitude", "+24.9890",
+                                        "longitude", "+121.5111"))
+                                        .andExpect(status().isOk());
+
+                        verify(restaurantService).getNearbyRestaurants(24.9890, 121.5111);
+                }
+
+                @Test
+                void negativeZero_isPreservedAsAValidDouble() throws Exception {
+                        when(restaurantService.getNearbyRestaurants(-0.0d, -0.0d))
+                                        .thenReturn(List.of());
+
+                        performGetNearbyRestaurants(Map.of(
+                                        "latitude", "-0.0",
+                                        "longitude", "-0.0"))
+                                        .andExpect(status().isOk());
+
+                        verify(restaurantService).getNearbyRestaurants(-0.0d, -0.0d);
+                }
+
+                @Test
+                void maximumFiniteDoubleValues_areAcceptedByTypeConversion() throws Exception {
+                        when(restaurantService.getNearbyRestaurants(Double.MAX_VALUE, Double.MAX_VALUE))
+                                        .thenReturn(List.of());
+
+                        performGetNearbyRestaurants(Map.of(
+                                        "latitude", Double.toString(Double.MAX_VALUE),
+                                        "longitude", Double.toString(Double.MAX_VALUE)))
+                                        .andExpect(status().isOk());
+
+                        verify(restaurantService).getNearbyRestaurants(Double.MAX_VALUE, Double.MAX_VALUE);
+                }
+
+                @Test
+                void nanAndInfinity_areAcceptedByDoubleConversionAndPassedToService() throws Exception {
+                        when(restaurantService.getNearbyRestaurants(Double.NaN, Double.POSITIVE_INFINITY))
+                                        .thenReturn(List.of());
+
+                        performGetNearbyRestaurants(Map.of(
+                                        "latitude", "NaN",
+                                        "longitude", "Infinity"))
+                                        .andExpect(status().isOk());
+
+                        verify(restaurantService).getNearbyRestaurants(Double.NaN, Double.POSITIVE_INFINITY);
+                }
+
+                @Test
+                void unrelatedQueryParams_areIgnoredAndDefaultsRemain() throws Exception {
+                        when(restaurantService.getNearbyRestaurants(
+                                        DEFAULT_NEARBY_LATITUDE,
+                                        DEFAULT_NEARBY_LONGITUDE))
+                                        .thenReturn(List.of());
+
+                        performGetNearbyRestaurants(Map.of(
+                                        "lat", "35.0000",
+                                        "lng", "139.0000",
+                                        "radius", "999999"))
+                                        .andExpect(status().isOk());
+
+                        verify(restaurantService).getNearbyRestaurants(
+                                        DEFAULT_NEARBY_LATITUDE,
+                                        DEFAULT_NEARBY_LONGITUDE);
+                }
+
+                @Test
+                void caseSensitiveWrongParameterNames_areIgnoredAndDefaultsRemain() throws Exception {
+                        when(restaurantService.getNearbyRestaurants(
+                                        DEFAULT_NEARBY_LATITUDE,
+                                        DEFAULT_NEARBY_LONGITUDE))
+                                        .thenReturn(List.of());
+
+                        performGetNearbyRestaurants(Map.of(
+                                        "Latitude", "25",
+                                        "Longitude", "121"))
+                                        .andExpect(status().isOk());
+
+                        verify(restaurantService).getNearbyRestaurants(
+                                        DEFAULT_NEARBY_LATITUDE,
+                                        DEFAULT_NEARBY_LONGITUDE);
+                }
+
+                @Test
+                void invalidLatitude_returns500AndSkipsServiceCall() throws Exception {
+                        assertErrorResponseContains(
+                                        performGetNearbyRestaurants(Map.of(
+                                                        "latitude", "not-a-number",
+                                                        "longitude", "121.5111")),
+                                        HTTP_INTERNAL_SERVER_ERROR,
+                                        CODE_INTERNAL_SERVER_ERROR,
+                                        RESTAURANTS_NEARBY_PATH,
+                                        "Failed to convert value of type");
+
+                        verifyNoInteractions(restaurantService);
+                }
+
+                @Test
+                void invalidLongitude_returns500AndSkipsServiceCall() throws Exception {
+                        assertErrorResponseContains(
+                                        performGetNearbyRestaurants(Map.of(
+                                                        "latitude", "24.9890",
+                                                        "longitude", "hello-world")),
+                                        HTTP_INTERNAL_SERVER_ERROR,
+                                        CODE_INTERNAL_SERVER_ERROR,
+                                        RESTAURANTS_NEARBY_PATH,
+                                        "Failed to convert value of type");
+
+                        verifyNoInteractions(restaurantService);
+                }
+
+                @Test
+                void commaDecimalSeparator_returns500AndSkipsServiceCall() throws Exception {
+                        assertErrorResponseContains(
+                                        performGetNearbyRestaurants(Map.of(
+                                                        "latitude", "24,9890",
+                                                        "longitude", "121,5111")),
+                                        HTTP_INTERNAL_SERVER_ERROR,
+                                        CODE_INTERNAL_SERVER_ERROR,
+                                        RESTAURANTS_NEARBY_PATH,
+                                        "Failed to convert value of type");
+
+                        verifyNoInteractions(restaurantService);
+                }
+
+                @Test
+                void serviceThrowsBadRequest_returns400() throws Exception {
+                        when(restaurantService.getNearbyRestaurants(
+                                        DEFAULT_NEARBY_LATITUDE,
+                                        DEFAULT_NEARBY_LONGITUDE))
+                                        .thenThrow(new ResponseStatusException(
+                                                        HttpStatus.BAD_REQUEST,
+                                                        "Invalid coordinates"));
+
+                        assertErrorResponse(
+                                        performGetNearbyRestaurants(),
+                                        HttpStatus.BAD_REQUEST,
+                                        RESTAURANTS_NEARBY_PATH,
+                                        "Invalid coordinates");
+
+                        verify(restaurantService).getNearbyRestaurants(
+                                        DEFAULT_NEARBY_LATITUDE,
+                                        DEFAULT_NEARBY_LONGITUDE);
+                }
+
+                @Test
+                void serviceThrowsResponseStatusException_returns503() throws Exception {
+                        when(restaurantService.getNearbyRestaurants(
+                                        DEFAULT_NEARBY_LATITUDE,
+                                        DEFAULT_NEARBY_LONGITUDE))
+                                        .thenThrow(new ResponseStatusException(
+                                                        HttpStatus.SERVICE_UNAVAILABLE,
+                                                        "Overpass API temporarily unavailable"));
+
+                        assertErrorResponse(
+                                        performGetNearbyRestaurants(),
+                                        HttpStatus.SERVICE_UNAVAILABLE,
+                                        RESTAURANTS_NEARBY_PATH,
+                                        "Overpass API temporarily unavailable");
+
+                        verify(restaurantService).getNearbyRestaurants(
+                                        DEFAULT_NEARBY_LATITUDE,
+                                        DEFAULT_NEARBY_LONGITUDE);
+                }
+
+                @Test
+                void serviceThrowsUnexpectedException_returns500() throws Exception {
+                        when(restaurantService.getNearbyRestaurants(
+                                        DEFAULT_NEARBY_LATITUDE,
+                                        DEFAULT_NEARBY_LONGITUDE))
+                                        .thenThrow(new RuntimeException("Nearby restaurant lookup failed"));
+
+                        assertErrorResponse(
+                                        performGetNearbyRestaurants(),
+                                        HttpStatus.INTERNAL_SERVER_ERROR,
+                                        RESTAURANTS_NEARBY_PATH,
+                                        "Nearby restaurant lookup failed");
+
+                        verify(restaurantService).getNearbyRestaurants(
+                                        DEFAULT_NEARBY_LATITUDE,
+                                        DEFAULT_NEARBY_LONGITUDE);
                 }
         }
 
@@ -1361,6 +1732,16 @@ class RestaurantControllerTest {
 
         private ResultActions performDeleteRestaurant(Integer id) throws Exception {
                 return mockMvc.perform(delete("/restaurants/{id}", id));
+        }
+
+        private ResultActions performGetNearbyRestaurants() throws Exception {
+                return mockMvc.perform(get(RESTAURANTS_NEARBY_PATH));
+        }
+
+        private ResultActions performGetNearbyRestaurants(Map<String, String> queryParams) throws Exception {
+                var requestBuilder = get(RESTAURANTS_NEARBY_PATH);
+                queryParams.forEach(requestBuilder::param);
+                return mockMvc.perform(requestBuilder);
         }
 
         private ResultActions performGetRestaurants() throws Exception {
