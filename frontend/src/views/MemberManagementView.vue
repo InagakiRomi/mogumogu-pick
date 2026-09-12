@@ -326,147 +326,141 @@ onMounted(() => {
 <template>
   <ListPagePanel>
     <div class="space-y-6">
-        <section class="space-y-3 rounded-lg border border-border bg-card/70 p-4">
-          <div class="flex flex-wrap items-center justify-between gap-3">
-            <p class="text-lg font-bold text-card-foreground">
-              團隊名稱：{{ groupProfile?.groupName || '-' }}
-            </p>
-            <WarmButton
-              v-if="canManageMembers"
-              :disabled="isLoading"
-              @click="openGroupNameDialog"
-            >
-              更新團隊名稱
-            </WarmButton>
-          </div>
-        </section>
+      <section class="space-y-3 rounded-lg border border-border bg-card/70 p-4">
+        <div class="flex flex-wrap items-center justify-between gap-3">
+          <p class="text-lg font-bold text-card-foreground">
+            團隊名稱：{{ groupProfile?.groupName || '-' }}
+          </p>
+          <WarmButton v-if="canManageMembers" :disabled="isLoading" @click="openGroupNameDialog">
+            更新團隊名稱
+          </WarmButton>
+        </div>
+      </section>
 
-        <ListSection title="成員列表" :summary="`共 ${members.length} 位成員`">
-          <div :class="FORM_TOOLBAR_CLASS">
-            <FormSelectField
-              v-model="orderBy"
-              label="排序欄位"
-              :options="memberListForm.orderByOptions"
-              placeholder="選擇排序欄位"
+      <ListSection title="成員列表" :summary="`共 ${members.length} 位成員`">
+        <div :class="FORM_TOOLBAR_CLASS">
+          <FormSelectField
+            v-model="orderBy"
+            label="排序欄位"
+            :options="memberListForm.orderByOptions"
+            placeholder="選擇排序欄位"
+          />
+          <FormSelectField
+            v-model="sort"
+            label="排序方向"
+            :options="memberListForm.sortOptions"
+            placeholder="選擇排序方向"
+          />
+        </div>
+
+        <div v-if="canManageMembers" :class="FORM_TOOLBAR_CLASS">
+          <div class="min-w-60 grow space-y-2">
+            <Label for="target-email" :class="FORM_LABEL_CLASS">新增成員（電子郵件）</Label>
+            <Input
+              id="target-email"
+              v-model="targetEmailInput"
+              type="email"
+              autocomplete="email"
+              :class="FORM_INPUT_CLASS"
+              placeholder="輸入要加入的電子郵件"
+              @keyup.enter="addMemberByEmail"
             />
-            <FormSelectField
-              v-model="sort"
-              label="排序方向"
-              :options="memberListForm.sortOptions"
-              placeholder="選擇排序方向"
-            />
           </div>
+          <WarmButton :disabled="isLoading || isAddingMember" @click="addMemberByEmail">
+            {{ isAddingMember ? '加入中...' : '加入成員' }}
+          </WarmButton>
+        </div>
 
-          <div v-if="canManageMembers" :class="FORM_TOOLBAR_CLASS">
-            <div class="min-w-[240px] grow space-y-2">
-              <Label for="target-email" :class="FORM_LABEL_CLASS">新增成員（電子郵件）</Label>
-              <Input
-                id="target-email"
-                v-model="targetEmailInput"
-                type="email"
-                autocomplete="email"
-                :class="FORM_INPUT_CLASS"
-                placeholder="輸入要加入的電子郵件"
-                @keyup.enter="addMemberByEmail"
-              />
-            </div>
-            <WarmButton
-              :disabled="isLoading || isAddingMember"
-              @click="addMemberByEmail"
-            >
-              {{ isAddingMember ? '加入中...' : '加入成員' }}
-            </WarmButton>
-          </div>
+        <ListTable
+          :is-loading="isLoading"
+          :is-empty="sortedMembers.length === 0"
+          :column-count="5"
+          :loading-text="memberListForm.loadingText"
+          :empty-text="memberListForm.emptyText"
+        >
+          <template #header>
+            <ListTableHead class="w-21">ID</ListTableHead>
+            <ListTableHead class="w-20">排序 ID</ListTableHead>
+            <ListTableHead>名稱</ListTableHead>
+            <ListTableHead class="w-30">角色</ListTableHead>
+            <ListTableHead class="w-75">操作</ListTableHead>
+          </template>
 
-          <ListTable
-            :is-loading="isLoading"
-            :is-empty="sortedMembers.length === 0"
-            :column-count="5"
-            :loading-text="memberListForm.loadingText"
-            :empty-text="memberListForm.emptyText"
-          >
-            <template #header>
-              <ListTableHead class="w-[84px]">ID</ListTableHead>
-              <ListTableHead class="w-[80px]">排序 ID</ListTableHead>
-              <ListTableHead>名稱</ListTableHead>
-              <ListTableHead class="w-[120px]">角色</ListTableHead>
-              <ListTableHead class="w-[300px]">操作</ListTableHead>
-            </template>
-
-            <ListTableRow
-              v-for="member in sortedMembers"
-              :key="member.userId ?? member.username"
-            >
-              <ListTableCell>{{ member.userId ?? '-' }}</ListTableCell>
-              <ListTableCell>{{ member.displayOrderId ?? '-' }}</ListTableCell>
-              <ListTableCell truncate :title="member.username ?? undefined">
-                {{ member.username ?? '-' }}
-              </ListTableCell>
-              <ListTableCell>{{ getRoleLabel(member.role) }}</ListTableCell>
-              <ListTableCell>
-                <ListTableActions>
-                  <template v-if="canManageMembers">
-                    <template v-if="isCurrentUser(member)">
-                      <span class="inline-flex h-9 items-center text-sm text-muted-foreground">-</span>
-                    </template>
-                    <template v-else>
-                      <WarmButton
-                        variant="outline-standard"
-                        class="h-9 px-3 text-sm"
-                        :disabled="member.role === 0"
-                        @click="openTransferAdminDialog(member)"
-                      >
-                        轉移管理員
-                      </WarmButton>
-                      <WarmButton
-                        variant="outline-standard"
-                        class="h-9 px-3 text-sm"
-                        @click="openRemoveMemberDialog(member)"
-                      >
-                        刪除成員
-                      </WarmButton>
-                    </template>
+          <ListTableRow v-for="member in sortedMembers" :key="member.userId ?? member.username">
+            <ListTableCell>{{ member.userId ?? '-' }}</ListTableCell>
+            <ListTableCell>{{ member.displayOrderId ?? '-' }}</ListTableCell>
+            <ListTableCell truncate :title="member.username ?? undefined">
+              {{ member.username ?? '-' }}
+            </ListTableCell>
+            <ListTableCell>{{ getRoleLabel(member.role) }}</ListTableCell>
+            <ListTableCell>
+              <ListTableActions>
+                <template v-if="canManageMembers">
+                  <template v-if="isCurrentUser(member)">
+                    <span class="inline-flex h-9 items-center text-sm text-muted-foreground"
+                      >-</span
+                    >
                   </template>
                   <template v-else>
                     <WarmButton
-                      v-if="isCurrentUser(member)"
                       variant="outline-standard"
                       class="h-9 px-3 text-sm"
-                      @click="leaveGroup"
+                      :disabled="member.role === 0"
+                      @click="openTransferAdminDialog(member)"
                     >
-                      退出群組
+                      轉移管理員
                     </WarmButton>
-                    <span v-else class="inline-flex h-9 items-center text-sm text-muted-foreground">-</span>
+                    <WarmButton
+                      variant="outline-standard"
+                      class="h-9 px-3 text-sm"
+                      @click="openRemoveMemberDialog(member)"
+                    >
+                      刪除成員
+                    </WarmButton>
                   </template>
-                </ListTableActions>
-              </ListTableCell>
-            </ListTableRow>
-          </ListTable>
-        </ListSection>
+                </template>
+                <template v-else>
+                  <WarmButton
+                    v-if="isCurrentUser(member)"
+                    variant="outline-standard"
+                    class="h-9 px-3 text-sm"
+                    @click="leaveGroup"
+                  >
+                    退出群組
+                  </WarmButton>
+                  <span v-else class="inline-flex h-9 items-center text-sm text-muted-foreground"
+                    >-</span
+                  >
+                </template>
+              </ListTableActions>
+            </ListTableCell>
+          </ListTableRow>
+        </ListTable>
+      </ListSection>
     </div>
 
     <template #overlay>
       <FormAlertDialog
-      :open="isGroupNameDialogOpen"
-      title="更新團隊名稱"
-      submit-label="更新"
-      :loading="isSavingGroupName"
-      loading-label="更新中..."
-      :can-submit="groupNameInput.trim().length > 0"
-      @update:open="handleGroupNameDialogOpenChange"
-      @submit="updateGroupName"
-      @cancel="closeGroupNameDialog"
-    >
-      <div class="space-y-2">
-        <Label for="group-name-dialog" :class="FORM_LABEL_CLASS">團隊名稱</Label>
-        <Input
-          id="group-name-dialog"
-          v-model="groupNameInput"
-          maxlength="64"
-          :class="FORM_INPUT_CLASS"
-          placeholder="輸入團隊名稱"
-        />
-      </div>
+        :open="isGroupNameDialogOpen"
+        title="更新團隊名稱"
+        submit-label="更新"
+        :loading="isSavingGroupName"
+        loading-label="更新中..."
+        :can-submit="groupNameInput.trim().length > 0"
+        @update:open="handleGroupNameDialogOpenChange"
+        @submit="updateGroupName"
+        @cancel="closeGroupNameDialog"
+      >
+        <div class="space-y-2">
+          <Label for="group-name-dialog" :class="FORM_LABEL_CLASS">團隊名稱</Label>
+          <Input
+            id="group-name-dialog"
+            v-model="groupNameInput"
+            maxlength="64"
+            :class="FORM_INPUT_CLASS"
+            placeholder="輸入團隊名稱"
+          />
+        </div>
       </FormAlertDialog>
 
       <ConfirmAlertDialog

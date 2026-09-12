@@ -8,7 +8,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
 
-const FORM_DIALOG_FOOTER_BUTTON_CLASS = 'h-11 min-w-[120px] flex-1 sm:flex-none'
+const FORM_DIALOG_FOOTER_BUTTON_CLASS = 'h-11 min-w-30 flex-1 sm:flex-none'
 
 withDefaults(
   defineProps<{

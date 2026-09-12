@@ -264,142 +264,140 @@ onMounted(() => {
 <template>
   <ListPagePanel>
     <ListSection title="餐廳分類" :summary="`共 ${categories.length} 個分類`">
-        <div class="flex flex-wrap items-end gap-3">
-          <FormSelectField
-            v-model="orderBy"
-            label="排序欄位"
-            :options="categoryListForm.orderByOptions"
-            placeholder="選擇排序欄位"
-          />
-          <FormSelectField
-            v-model="sort"
-            label="排序方向"
-            :options="categoryListForm.sortOptions"
-            placeholder="選擇排序方向"
-          />
-          <WarmButton :disabled="isLoading" @click="openCreateDialog">
-            新增分類
-          </WarmButton>
-        </div>
+      <div class="flex flex-wrap items-end gap-3">
+        <FormSelectField
+          v-model="orderBy"
+          label="排序欄位"
+          :options="categoryListForm.orderByOptions"
+          placeholder="選擇排序欄位"
+        />
+        <FormSelectField
+          v-model="sort"
+          label="排序方向"
+          :options="categoryListForm.sortOptions"
+          placeholder="選擇排序方向"
+        />
+        <WarmButton :disabled="isLoading" @click="openCreateDialog"> 新增分類 </WarmButton>
+      </div>
 
-        <ListTable
-          :is-loading="isLoading"
-          :is-empty="sortedCategories.length === 0"
-          :column-count="4"
-          :loading-text="categoryListForm.loadingText"
-          :empty-text="categoryListForm.emptyText"
+      <ListTable
+        :is-loading="isLoading"
+        :is-empty="sortedCategories.length === 0"
+        :column-count="4"
+        :loading-text="categoryListForm.loadingText"
+        :empty-text="categoryListForm.emptyText"
+      >
+        <template #header>
+          <ListTableHead class="w-30">排序 ID</ListTableHead>
+          <ListTableHead>分類名稱</ListTableHead>
+          <ListTableHead class="w-30">使用中餐廳</ListTableHead>
+          <ListTableHead class="w-55">操作</ListTableHead>
+        </template>
+
+        <ListTableRow
+          v-for="category in sortedCategories"
+          :key="category.categoryId ?? category.categoryName"
         >
-          <template #header>
-            <ListTableHead class="w-[120px]">排序 ID</ListTableHead>
-            <ListTableHead>分類名稱</ListTableHead>
-            <ListTableHead class="w-[120px]">使用中餐廳</ListTableHead>
-            <ListTableHead class="w-[220px]">操作</ListTableHead>
-          </template>
-
-          <ListTableRow
-            v-for="category in sortedCategories"
-            :key="category.categoryId ?? category.categoryName"
-          >
-            <ListTableCell>{{ category.displayOrderId ?? '-' }}</ListTableCell>
-            <ListTableCell truncate :title="category.categoryName ?? undefined">
-              {{ category.categoryName ?? '-' }}
-            </ListTableCell>
-            <ListTableCell>{{ category.restaurantCount ?? 0 }} 間</ListTableCell>
-            <ListTableCell>
-              <ListTableActions>
-                <WarmButton
-                  variant="outline-standard"
-                  class="h-9 px-3 text-sm"
-                  @click="openEditDialog(category)"
-                >
-                  編輯
-                </WarmButton>
-                <WarmButton
-                  variant="outline-standard"
-                  class="h-9 px-3 text-sm"
-                  @click="openDeleteDialog(category)"
-                >
-                  刪除
-                </WarmButton>
-              </ListTableActions>
-            </ListTableCell>
-          </ListTableRow>
-        </ListTable>
+          <ListTableCell>{{ category.displayOrderId ?? '-' }}</ListTableCell>
+          <ListTableCell truncate :title="category.categoryName ?? undefined">
+            {{ category.categoryName ?? '-' }}
+          </ListTableCell>
+          <ListTableCell>{{ category.restaurantCount ?? 0 }} 間</ListTableCell>
+          <ListTableCell>
+            <ListTableActions>
+              <WarmButton
+                variant="outline-standard"
+                class="h-9 px-3 text-sm"
+                @click="openEditDialog(category)"
+              >
+                編輯
+              </WarmButton>
+              <WarmButton
+                variant="outline-standard"
+                class="h-9 px-3 text-sm"
+                @click="openDeleteDialog(category)"
+              >
+                刪除
+              </WarmButton>
+            </ListTableActions>
+          </ListTableCell>
+        </ListTableRow>
+      </ListTable>
     </ListSection>
 
     <template #overlay>
       <FormAlertDialog
-      :open="isCreateDialogOpen"
-      title="新增分類"
-      submit-label="新增"
-      :loading="isCreating"
-      loading-label="新增中..."
-      :can-submit="createNameInput.trim().length > 0"
-      @update:open="isCreateDialogOpen = $event"
-      @submit="createCategory"
-      @cancel="closeCreateDialog"
-    >
-      <div class="space-y-2">
-        <Label for="create-category-name" :class="FORM_LABEL_CLASS">分類名稱</Label>
-        <Input
-          id="create-category-name"
-          v-model="createNameInput"
-          maxlength="32"
-          :class="FORM_INPUT_CLASS"
-          placeholder="例如：甜點"
-        />
-      </div>
-    </FormAlertDialog>
+        :open="isCreateDialogOpen"
+        title="新增分類"
+        submit-label="新增"
+        :loading="isCreating"
+        loading-label="新增中..."
+        :can-submit="createNameInput.trim().length > 0"
+        @update:open="isCreateDialogOpen = $event"
+        @submit="createCategory"
+        @cancel="closeCreateDialog"
+      >
+        <div class="space-y-2">
+          <Label for="create-category-name" :class="FORM_LABEL_CLASS">分類名稱</Label>
+          <Input
+            id="create-category-name"
+            v-model="createNameInput"
+            maxlength="32"
+            :class="FORM_INPUT_CLASS"
+            placeholder="例如：甜點"
+          />
+        </div>
+      </FormAlertDialog>
 
-    <FormAlertDialog
-      :open="isEditDialogOpen"
-      title="編輯分類"
-      submit-label="更新"
-      :loading="isUpdating"
-      loading-label="更新中..."
-      :can-submit="editNameInput.trim().length > 0 && editDisplayOrderIdInput.trim().length > 0"
-      @update:open="isEditDialogOpen = $event"
-      @submit="updateCategory"
-      @cancel="closeEditDialog"
-    >
-      <div class="space-y-2">
-        <Label for="edit-category-name" :class="FORM_LABEL_CLASS">分類名稱</Label>
-        <Input
-          id="edit-category-name"
-          v-model="editNameInput"
-          maxlength="32"
-          :class="FORM_INPUT_CLASS"
-          placeholder="例如：甜點"
-        />
-      </div>
-      <div class="space-y-2">
-        <Label for="edit-category-display-order-id" :class="FORM_LABEL_CLASS">
-          顯示排序 ID
-        </Label>
-        <Input
-          id="edit-category-display-order-id"
-          v-model="editDisplayOrderIdInput"
-          type="number"
-          min="1"
-          step="1"
-          :class="FORM_INPUT_CLASS"
-          placeholder="例如：1"
-        />
-      </div>
-    </FormAlertDialog>
+      <FormAlertDialog
+        :open="isEditDialogOpen"
+        title="編輯分類"
+        submit-label="更新"
+        :loading="isUpdating"
+        loading-label="更新中..."
+        :can-submit="editNameInput.trim().length > 0 && editDisplayOrderIdInput.trim().length > 0"
+        @update:open="isEditDialogOpen = $event"
+        @submit="updateCategory"
+        @cancel="closeEditDialog"
+      >
+        <div class="space-y-2">
+          <Label for="edit-category-name" :class="FORM_LABEL_CLASS">分類名稱</Label>
+          <Input
+            id="edit-category-name"
+            v-model="editNameInput"
+            maxlength="32"
+            :class="FORM_INPUT_CLASS"
+            placeholder="例如：甜點"
+          />
+        </div>
+        <div class="space-y-2">
+          <Label for="edit-category-display-order-id" :class="FORM_LABEL_CLASS">
+            顯示排序 ID
+          </Label>
+          <Input
+            id="edit-category-display-order-id"
+            v-model="editDisplayOrderIdInput"
+            type="number"
+            min="1"
+            step="1"
+            :class="FORM_INPUT_CLASS"
+            placeholder="例如：1"
+          />
+        </div>
+      </FormAlertDialog>
 
-    <ConfirmAlertDialog
-      v-model:open="isDeleteDialogOpen"
-      title="確認刪除分類？"
-      confirm-label="確認刪除"
-      loading-label="刪除中..."
-      :loading="isDeleting"
-      @confirm="handleDeleteCategory"
-    >
-      確定要刪除分類「{{
-        deletingCategory?.categoryName?.trim() || `ID ${deletingCategory?.categoryId ?? ''}`
-      }}」嗎？
-    </ConfirmAlertDialog>
+      <ConfirmAlertDialog
+        v-model:open="isDeleteDialogOpen"
+        title="確認刪除分類？"
+        confirm-label="確認刪除"
+        loading-label="刪除中..."
+        :loading="isDeleting"
+        @confirm="handleDeleteCategory"
+      >
+        確定要刪除分類「{{
+          deletingCategory?.categoryName?.trim() || `ID ${deletingCategory?.categoryId ?? ''}`
+        }}」嗎？
+      </ConfirmAlertDialog>
     </template>
   </ListPagePanel>
 </template>

@@ -20,10 +20,7 @@ import {
 import { useFeedbackDialog } from '@/composables/useFeedbackDialog'
 import { useRestaurantCategories } from '@/composables/useRestaurantCategories'
 import { authSession } from '@/lib/authSession'
-import {
-  getApiErrorMessage,
-  RESTAURANT_UPDATE_FEEDBACK_MESSAGES,
-} from '@/lib/apiErrorMessage'
+import { getApiErrorMessage, RESTAURANT_UPDATE_FEEDBACK_MESSAGES } from '@/lib/apiErrorMessage'
 import { isGroupAdmin } from '@/lib/userRole'
 import { homeBgBackgroundStyle, publicAsset } from '@/lib/utils'
 
@@ -298,23 +295,29 @@ async function fetchRestaurantDetail() {
   dishes.value = []
   dishTotal.value = 0
 
-  const [{ data: restaurantData, error: restaurantError }, { data: dishListData, error: dishListError }] =
-    await Promise.all([
-      client.GET('/restaurants/{id}', {
-        params: {
-          path: { id },
-        },
-      }),
-      client.GET('/restaurants/{id}/dishes', {
-        params: {
-          path: { id },
-        },
-      }),
-    ])
+  const [
+    { data: restaurantData, error: restaurantError },
+    { data: dishListData, error: dishListError },
+  ] = await Promise.all([
+    client.GET('/restaurants/{id}', {
+      params: {
+        path: { id },
+      },
+    }),
+    client.GET('/restaurants/{id}/dishes', {
+      params: {
+        path: { id },
+      },
+    }),
+  ])
 
   if (restaurantError) {
     restaurant.value = null
-    showFeedback(getApiErrorMessage(restaurantError, '取得餐廳詳細資料失敗'), 'error', redirectToRestaurantList)
+    showFeedback(
+      getApiErrorMessage(restaurantError, '取得餐廳詳細資料失敗'),
+      'error',
+      redirectToRestaurantList,
+    )
     isLoading.value = false
     return
   }
@@ -672,7 +675,7 @@ watch(isDeleteDishDialogOpen, (open) => {
     :style="homeBgBackgroundStyle"
   >
     <div
-      class="relative z-10 mx-auto mt-6 w-full max-w-4xl rounded-[10px] border border-[rgba(226,164,136,0.52)] bg-linear-to-br from-[rgba(255,248,241,0.9)] to-[rgba(255,233,219,0.84)] px-[30px] pt-[30px] pb-8 shadow-[0_14px_32px_rgba(95,57,41,0.24),inset_0_1px_0_rgba(255,255,255,0.55)] backdrop-blur-sm max-lg:mt-5 max-lg:px-6 max-lg:pt-6 max-lg:pb-7 max-md:mt-4 max-md:rounded-lg max-md:px-4 max-md:pt-4 max-md:pb-6"
+      class="relative z-10 mx-auto mt-6 w-full max-w-4xl rounded-[10px] border border-[rgba(226,164,136,0.52)] bg-linear-to-br from-[rgba(255,248,241,0.9)] to-[rgba(255,233,219,0.84)] px-7.5 pt-7.5 pb-8 shadow-[0_14px_32px_rgba(95,57,41,0.24),inset_0_1px_0_rgba(255,255,255,0.55)] backdrop-blur-sm max-lg:mt-5 max-lg:px-6 max-lg:pt-6 max-lg:pb-7 max-md:mt-4 max-md:rounded-lg max-md:px-4 max-md:pt-4 max-md:pb-6"
     >
       <div class="space-y-6">
         <div class="flex flex-wrap items-center justify-between gap-3">
@@ -696,13 +699,14 @@ watch(isDeleteDishDialogOpen, (open) => {
                 {{ isDeleting ? '刪除中...' : '刪除餐廳' }}
               </WarmButton>
             </template>
-            <WarmButton class="h-10 px-4" @click="backToList">
-              返回列表
-            </WarmButton>
+            <WarmButton class="h-10 px-4" @click="backToList"> 返回列表 </WarmButton>
           </div>
         </div>
 
-        <div v-if="isLoading" class="rounded-lg border border-border bg-card/70 px-4 py-8 text-center">
+        <div
+          v-if="isLoading"
+          class="rounded-lg border border-border bg-card/70 px-4 py-8 text-center"
+        >
           <p class="text-muted-foreground">載入資料中...</p>
         </div>
 
@@ -740,7 +744,10 @@ watch(isDeleteDishDialogOpen, (open) => {
             <div class="flex flex-wrap items-center justify-between gap-3">
               <h2 class="text-lg font-bold text-card-foreground">
                 餐點資訊
-                <span v-if="!isDishesLoading" class="ml-2 text-sm font-normal text-muted-foreground">
+                <span
+                  v-if="!isDishesLoading"
+                  class="ml-2 text-sm font-normal text-muted-foreground"
+                >
                   （共 {{ dishTotal }} 筆）
                 </span>
               </h2>
@@ -756,10 +763,10 @@ watch(isDeleteDishDialogOpen, (open) => {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead class="w-[120px] text-center">顯示排序 ID</TableHead>
+                  <TableHead class="w-30 text-center">顯示排序 ID</TableHead>
                   <TableHead class="text-center">餐點名稱</TableHead>
-                  <TableHead class="w-[120px] text-center">價格</TableHead>
-                  <TableHead class="w-[180px] text-center">操作</TableHead>
+                  <TableHead class="w-30 text-center">價格</TableHead>
+                  <TableHead class="w-45 text-center">操作</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>

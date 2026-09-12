@@ -148,17 +148,14 @@ onMounted(() => {
         :empty-text="historyListForm.emptyText"
       >
         <template #header>
-          <ListTableHead class="w-[80px]">排序</ListTableHead>
+          <ListTableHead class="w-20">排序</ListTableHead>
           <ListTableHead>餐廳名稱</ListTableHead>
-          <ListTableHead class="w-[120px]">類別</ListTableHead>
-          <ListTableHead class="w-[180px]">選擇時間</ListTableHead>
-          <ListTableHead class="w-[140px]">操作</ListTableHead>
+          <ListTableHead class="w-30">類別</ListTableHead>
+          <ListTableHead class="w-45">選擇時間</ListTableHead>
+          <ListTableHead class="w-35">操作</ListTableHead>
         </template>
 
-        <ListTableRow
-          v-for="history in histories"
-          :key="history.historyId"
-        >
+        <ListTableRow v-for="history in histories" :key="history.historyId">
           <ListTableCell>{{ history.historyId ?? '-' }}</ListTableCell>
           <ListTableCell truncate :title="history.restaurantName ?? undefined">
             {{ history.restaurantName ?? '-' }}

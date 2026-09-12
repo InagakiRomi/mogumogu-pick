@@ -19,7 +19,10 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import RestaurantFormDialog from '@/components/restaurant/RestaurantFormDialog.vue'
 import { useFeedbackDialog } from '@/composables/useFeedbackDialog'
-import { ALL_CATEGORIES_VALUE, useRestaurantCategories } from '@/composables/useRestaurantCategories'
+import {
+  ALL_CATEGORIES_VALUE,
+  useRestaurantCategories,
+} from '@/composables/useRestaurantCategories'
 import { getApiErrorMessage, RESTAURANT_FEEDBACK_MESSAGES } from '@/lib/apiErrorMessage'
 import { publicAsset } from '@/lib/utils'
 
@@ -104,10 +107,7 @@ const pagingText = computed(() => {
 })
 
 function getRestaurantImageUrl(restaurant: Restaurant): string {
-  if (
-    restaurant.restaurantId != null &&
-    failedImageIds.value.has(restaurant.restaurantId)
-  ) {
+  if (restaurant.restaurantId != null && failedImageIds.value.has(restaurant.restaurantId)) {
     return DEFAULT_RESTAURANT_IMAGE
   }
 
@@ -275,7 +275,7 @@ onMounted(() => {
   <ListPagePanel>
     <ListSection title="餐廳列表" :summary="`共 ${total} 間餐廳`">
       <div class="flex flex-wrap items-end gap-3">
-        <div class="min-w-[220px] grow space-y-2">
+        <div class="min-w-55 grow space-y-2">
           <Label for="restaurant-search" class="font-bold text-muted-foreground">
             {{ restaurantListForm.searchLabel }}
           </Label>
@@ -324,20 +324,17 @@ onMounted(() => {
         :empty-text="restaurantListForm.emptyText"
       >
         <template #header>
-          <ListTableHead class="w-[72px]">ID</ListTableHead>
-          <ListTableHead class="w-[96px]">餐廳圖片</ListTableHead>
+          <ListTableHead class="w-18">ID</ListTableHead>
+          <ListTableHead class="w-24">餐廳圖片</ListTableHead>
           <ListTableHead class="w-[20%]">餐廳名稱</ListTableHead>
-          <ListTableHead class="w-[72px]">分類</ListTableHead>
-          <ListTableHead class="w-[120px]">被選中的次數</ListTableHead>
+          <ListTableHead class="w-18">分類</ListTableHead>
+          <ListTableHead class="w-30">被選中的次數</ListTableHead>
           <ListTableHead class="w-[24%]">備註</ListTableHead>
-          <ListTableHead class="w-[180px]">最後被選時間</ListTableHead>
-          <ListTableHead class="w-[140px]">操作</ListTableHead>
+          <ListTableHead class="w-45">最後被選時間</ListTableHead>
+          <ListTableHead class="w-35">操作</ListTableHead>
         </template>
 
-        <ListTableRow
-          v-for="restaurant in restaurants"
-          :key="restaurant.restaurantId"
-        >
+        <ListTableRow v-for="restaurant in restaurants" :key="restaurant.restaurantId">
           <ListTableCell>{{ restaurant.displayOrderId ?? '-' }}</ListTableCell>
           <ListTableCell>
             <img

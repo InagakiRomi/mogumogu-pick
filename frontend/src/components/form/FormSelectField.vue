@@ -29,7 +29,7 @@ const props = withDefaults(
   }>(),
   {
     placeholder: '請選擇',
-    fieldClass: 'w-[180px]',
+    fieldClass: 'w-45',
     contentClass: 'border-border bg-card text-popover-foreground',
     contentPosition: undefined,
   },

@@ -38,7 +38,7 @@ const variantClass = computed(() => {
       return cn(
         buttonVariants({ size: 'lg' }),
         baseClass,
-        'h-11 min-w-[120px] px-8 text-base font-semibold',
+        'h-11 min-w-30 px-8 text-base font-semibold',
       )
     case 'nav':
       return cn(

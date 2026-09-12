@@ -8,12 +8,11 @@ import WarmButton from '@/components/warm/WarmButton.vue'
 import WarmPanel from '@/components/warm/WarmPanel.vue'
 import WarmSelectTrigger from '@/components/warm/WarmSelectTrigger.vue'
 import { useFeedbackDialog } from '@/composables/useFeedbackDialog'
-import { ALL_CATEGORIES_VALUE, useRestaurantCategories } from '@/composables/useRestaurantCategories'
 import {
-  AlertDialog,
-  AlertDialogDescription,
-  AlertDialogTitle,
-} from '@/components/ui/alert-dialog'
+  ALL_CATEGORIES_VALUE,
+  useRestaurantCategories,
+} from '@/composables/useRestaurantCategories'
+import { AlertDialog, AlertDialogDescription, AlertDialogTitle } from '@/components/ui/alert-dialog'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Label } from '@/components/ui/label'
@@ -60,7 +59,9 @@ const selectedCategoryLabel = computed(() => {
   return matched?.label ?? '未分類'
 })
 
-const canChooseRestaurant = computed(() => !!currentRestaurant.value?.restaurantId && !isChooseLoading.value)
+const canChooseRestaurant = computed(
+  () => !!currentRestaurant.value?.restaurantId && !isChooseLoading.value,
+)
 
 function resolveImage(restaurant: RestaurantResult | null): string {
   if (!restaurant) {
@@ -331,9 +332,16 @@ async function handleChooseRestaurant() {
                   <Separator class="bg-[rgba(198,134,105,0.45)]" />
 
                   <div class="grid grid-cols-1 gap-2 text-sm text-[rgba(95,57,41,0.92)]">
-                    <p><span class="font-semibold">選擇次數：</span>{{ frontContent.selectedCount }}</p>
-                    <p><span class="font-semibold">最後選擇時間：</span>{{ frontContent.lastSelectedAt }}</p>
-                    <p><span class="font-semibold">最後更新時間：</span>{{ frontContent.updatedAt }}</p>
+                    <p>
+                      <span class="font-semibold">選擇次數：</span>{{ frontContent.selectedCount }}
+                    </p>
+                    <p>
+                      <span class="font-semibold">最後選擇時間：</span
+                      >{{ frontContent.lastSelectedAt }}
+                    </p>
+                    <p>
+                      <span class="font-semibold">最後更新時間：</span>{{ frontContent.updatedAt }}
+                    </p>
                     <p><span class="font-semibold">備註：</span>{{ frontContent.note }}</p>
                   </div>
                 </CardContent>
@@ -375,9 +383,16 @@ async function handleChooseRestaurant() {
                         : 'text-[rgba(95,57,41,0.92)]'
                     "
                   >
-                    <p><span class="font-semibold">選擇次數：</span>{{ backContent.selectedCount }}</p>
-                    <p><span class="font-semibold">最後選擇時間：</span>{{ backContent.lastSelectedAt }}</p>
-                    <p><span class="font-semibold">最後更新時間：</span>{{ backContent.updatedAt }}</p>
+                    <p>
+                      <span class="font-semibold">選擇次數：</span>{{ backContent.selectedCount }}
+                    </p>
+                    <p>
+                      <span class="font-semibold">最後選擇時間：</span
+                      >{{ backContent.lastSelectedAt }}
+                    </p>
+                    <p>
+                      <span class="font-semibold">最後更新時間：</span>{{ backContent.updatedAt }}
+                    </p>
                     <p><span class="font-semibold">備註：</span>{{ backContent.note }}</p>
                   </div>
                 </CardContent>
@@ -416,13 +431,13 @@ async function handleChooseRestaurant() {
         <template #actions>
           <div class="flex flex-wrap items-center justify-center gap-3">
             <WarmButton
-              class="min-w-[120px]"
+              class="min-w-30"
               variant="outline-standard"
               @click="handleClosePostChooseDialog"
             >
               關閉
             </WarmButton>
-            <WarmButton class="min-w-[120px]" @click="handleViewChosenRestaurantDetail">
+            <WarmButton class="min-w-30" @click="handleViewChosenRestaurantDetail">
               查看詳細
             </WarmButton>
           </div>
