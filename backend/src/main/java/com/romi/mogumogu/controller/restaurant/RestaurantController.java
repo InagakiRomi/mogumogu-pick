@@ -1,10 +1,10 @@
 package com.romi.mogumogu.controller.restaurant;
 
-import com.romi.mogumogu.Response.DishListResponse;
-import com.romi.mogumogu.Response.NearbyRestaurantResponse;
-import com.romi.mogumogu.Response.RestaurantListResponse;
-import com.romi.mogumogu.Response.RestaurantResponse;
-import com.romi.mogumogu.Response.SelectionHistoryResponse;
+import com.romi.mogumogu.response.DishListResponse;
+import com.romi.mogumogu.response.NearbyRestaurantResponse;
+import com.romi.mogumogu.response.RestaurantListResponse;
+import com.romi.mogumogu.response.RestaurantResponse;
+import com.romi.mogumogu.response.SelectionHistoryResponse;
 import com.romi.mogumogu.dto.CreateRestaurantDto;
 import com.romi.mogumogu.dto.GetRestaurantQuery;
 import com.romi.mogumogu.dto.GetSelectionHistoryQuery;

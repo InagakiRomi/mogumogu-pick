@@ -1,4 +1,4 @@
-package com.romi.mogumogu.Response;
+package com.romi.mogumogu.response;
 
 import com.romi.mogumogu.entity.dish.DishEntity;
 import io.swagger.v3.oas.annotations.media.Schema;

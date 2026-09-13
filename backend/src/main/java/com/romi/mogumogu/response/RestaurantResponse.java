@@ -1,4 +1,4 @@
-package com.romi.mogumogu.Response;
+package com.romi.mogumogu.response;
 
 import com.romi.mogumogu.entity.restaurant.RestaurantEntity;
 import com.romi.mogumogu.constant.DateTimePatternConstants;

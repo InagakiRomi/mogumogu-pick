@@ -37,8 +37,8 @@ import org.springframework.web.server.ResponseStatusException;
 
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
-import com.romi.mogumogu.Response.GroupMemberResponse;
-import com.romi.mogumogu.Response.GroupProfileResponse;
+import com.romi.mogumogu.response.GroupMemberResponse;
+import com.romi.mogumogu.response.GroupProfileResponse;
 import com.romi.mogumogu.dto.AddGroupMemberDto;
 import com.romi.mogumogu.dto.TransferGroupAdminDto;
 import com.romi.mogumogu.dto.UpdateGroupNameDto;

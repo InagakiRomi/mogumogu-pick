@@ -1,10 +1,11 @@
 package com.romi.mogumogu.service.restaurant;
 
-import com.romi.mogumogu.Response.DishListResponse;
-import com.romi.mogumogu.Response.NearbyRestaurantResponse;
-import com.romi.mogumogu.Response.RestaurantListResponse;
-import com.romi.mogumogu.Response.RestaurantResponse;
-import com.romi.mogumogu.Response.SelectionHistoryResponse;
+import com.romi.mogumogu.mapper.NearbyRestaurantMapper;
+import com.romi.mogumogu.response.DishListResponse;
+import com.romi.mogumogu.response.NearbyRestaurantResponse;
+import com.romi.mogumogu.response.RestaurantListResponse;
+import com.romi.mogumogu.response.RestaurantResponse;
+import com.romi.mogumogu.response.SelectionHistoryResponse;
 import com.romi.mogumogu.dto.CreateRestaurantDto;
 import com.romi.mogumogu.dto.GetRestaurantQuery;
 import com.romi.mogumogu.dto.GetSelectionHistoryQuery;
@@ -21,6 +22,7 @@ import com.romi.mogumogu.repository.user.UserRepository;
 import com.romi.mogumogu.logging.JulLoggerFactory;
 import com.romi.mogumogu.security.SecurityUtils;
 
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.data.jpa.domain.Specification;
@@ -51,7 +53,7 @@ import java.util.logging.Logger;
 
 @Service
 public class RestaurantService {
-    private static final int RADIUS = 1000;
+    private static final int RADIUS = 1500;
     private static final Logger renderLog = new JulLoggerFactory().printRenderLog();
 
     private final RestaurantRepository restaurantRepository;
@@ -72,7 +74,7 @@ public class RestaurantService {
             UserRepository userRepository,
             RestaurantSelectionHistoryService restaurantSelectionHistoryService,
             DishService dishService,
-            RestClient overpassRestClient) {
+            @Qualifier("overpassRestClient") RestClient overpassRestClient) {
         this.restaurantRepository = restaurantRepository;
         this.restaurantCategoryRepository = restaurantCategoryRepository;
         this.userRepository = userRepository;
@@ -171,25 +173,23 @@ public class RestaurantService {
         return dishService.getRestaurantDishes(restaurantId);
     }
 
-    /** 取得座標附近的餐廳資料 */
+    /** 取得指定座標附近的餐廳資料 */
     public List<NearbyRestaurantResponse> getNearbyRestaurants(double latitude, double longitude) {
+
         // 建立 Overpass API 查詢語法
         String query = """
-                [out:json][timeout:20];
-                node
+                [out:json][timeout:10];
+                nwr
                   ["amenity"~"^(restaurant|cafe|fast_food|food_court)$"]
                   (around:%d,%f,%f);
-                out;
-                """.formatted(
-                RADIUS,
-                latitude,
-                longitude);
+                out center;
+                """.formatted(RADIUS, latitude, longitude);
 
-        // 建立 Overpass API 表單資料
+        // 建立 API 表單資料
         MultiValueMap<String, String> formData = new LinkedMultiValueMap<>();
         formData.add("data", query);
 
-        // 呼叫 Overpass API 取得附近餐廳資料
+        // 呼叫 Overpass API
         JsonNode response = overpassRestClient
                 .post()
                 .uri("/api/interpreter")
@@ -199,27 +199,39 @@ public class RestaurantService {
                 .retrieve()
                 .body(JsonNode.class);
 
-        // 檢查回傳資料是否存在
+        // 無資料時回傳空列表
         if (response == null || !response.has("elements")) {
             return List.of();
         }
 
-        // 建立附近餐廳列表
+        // 建立餐廳列表
         List<NearbyRestaurantResponse> restaurants = new ArrayList<>();
 
-        // 將 Overpass API 資料轉換為餐廳回傳資料
+        // 將 API 資料轉換成回傳資料
         for (JsonNode element : response.get("elements")) {
-            JsonNode tags = element.path("tags");
+            // 依序取得 name、name:zh、brand
+            String name = null;
 
-            // 取得餐廳名稱
-            String name = tags.path("name").asString(null);
+            for (String key : List.of("name", "name:zh", "brand")) {
+                String value = element.path("tags").path(key).asString(null);
 
-            // 沒有餐廳名稱則略過
-            if (name == null || name.isBlank()) {
+                if (value != null && !value.isBlank()) {
+                    name = value;
+                    break;
+                }
+            }
+
+            // 無名稱則略過
+            if (name == null) {
                 continue;
             }
 
-            restaurants.add(NearbyRestaurantResponse.fromOverpass(element));
+            NearbyRestaurantResponse restaurant = NearbyRestaurantMapper.fromOverpass(element, name);
+
+            // 有有效座標才加入列表
+            if (restaurant != null) {
+                restaurants.add(restaurant);
+            }
         }
 
         return restaurants;

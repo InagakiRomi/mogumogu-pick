@@ -1,7 +1,7 @@
 package com.romi.mogumogu.service.history;
 
-import com.romi.mogumogu.Response.RestaurantListResponse;
-import com.romi.mogumogu.Response.SelectionHistoryResponse;
+import com.romi.mogumogu.response.RestaurantListResponse;
+import com.romi.mogumogu.response.SelectionHistoryResponse;
 import com.romi.mogumogu.dto.GetSelectionHistoryQuery;
 import com.romi.mogumogu.entity.history.RestaurantSelectionHistoryEntity;
 import com.romi.mogumogu.entity.restaurant.RestaurantEntity;

@@ -1,4 +1,4 @@
-package com.romi.mogumogu.Response;
+package com.romi.mogumogu.response;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
 import com.romi.mogumogu.constant.DateTimePatternConstants;

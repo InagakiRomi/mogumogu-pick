@@ -301,6 +301,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/restaurants/nearby": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 取得座標附近的餐廳資料 */
+        get: operations["getNearbyRestaurants"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/health": {
         parameters: {
             query?: never;
@@ -723,6 +740,18 @@ export interface components {
             category?: string;
             /** Format: date-time */
             selectedAt?: string;
+        };
+        NearbyRestaurantResponse: {
+            /** Format: int64 */
+            id?: number;
+            name?: string;
+            /** Format: double */
+            latitude?: number;
+            /** Format: double */
+            longitude?: number;
+            address?: string;
+            openingHours?: string;
+            phone?: string;
         };
         HealthResponse: {
             status?: string;
@@ -1308,6 +1337,29 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["RestaurantResponse"];
+                };
+            };
+        };
+    };
+    getNearbyRestaurants: {
+        parameters: {
+            query?: {
+                latitude?: number;
+                longitude?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["NearbyRestaurantResponse"][];
                 };
             };
         };

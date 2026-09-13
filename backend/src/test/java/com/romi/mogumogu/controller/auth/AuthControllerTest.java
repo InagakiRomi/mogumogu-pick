@@ -38,7 +38,7 @@ import org.springframework.web.server.ResponseStatusException;
 
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
-import com.romi.mogumogu.Response.LoginResponse;
+import com.romi.mogumogu.response.LoginResponse;
 import com.romi.mogumogu.dto.LoginRequest;
 import com.romi.mogumogu.dto.RegisterRequest;
 import com.romi.mogumogu.enums.UserRole;

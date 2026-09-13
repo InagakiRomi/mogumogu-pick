@@ -8,7 +8,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 
-import com.romi.mogumogu.Response.ErrorResponse;
+import com.romi.mogumogu.response.ErrorResponse;
 
 @DisplayName("ErrorResponseFactory")
 class ErrorResponseFactoryTest {

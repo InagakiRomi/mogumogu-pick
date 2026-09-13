@@ -1,4 +1,4 @@
-package com.romi.mogumogu.Response;
+package com.romi.mogumogu.response;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;

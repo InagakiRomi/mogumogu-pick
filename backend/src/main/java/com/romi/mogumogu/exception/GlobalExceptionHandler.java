@@ -1,6 +1,6 @@
 package com.romi.mogumogu.exception;
 
-import com.romi.mogumogu.Response.ErrorResponse;
+import com.romi.mogumogu.response.ErrorResponse;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;

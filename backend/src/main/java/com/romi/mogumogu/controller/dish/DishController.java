@@ -1,6 +1,6 @@
 package com.romi.mogumogu.controller.dish;
 
-import com.romi.mogumogu.Response.DishResponse;
+import com.romi.mogumogu.response.DishResponse;
 import com.romi.mogumogu.dto.CreateDishDto;
 import com.romi.mogumogu.dto.UpdateDishDto;
 import com.romi.mogumogu.service.dish.DishService;
