@@ -18,12 +18,12 @@ const emit = defineEmits<{
 
 <template>
   <div class="flex flex-col items-center gap-3">
-    <p class="text-muted-foreground">{{ pagingText }}</p>
-    <div class="flex items-center justify-center gap-2">
+    <p class="text-center text-muted-foreground">{{ pagingText }}</p>
+    <div class="flex flex-wrap items-center justify-center gap-2">
       <PrimaryButton variant="outline" :disabled="!hasPrevPage || isLoading" @click="emit('prev')">
         上一頁
       </PrimaryButton>
-      <span class="font-medium text-card-foreground">
+      <span class="min-w-0 text-center font-medium text-card-foreground">
         第 {{ page }} / {{ totalPages }} 頁
       </span>
       <PrimaryButton variant="outline" :disabled="!hasNextPage || isLoading" @click="emit('next')">

@@ -29,7 +29,7 @@ withDefaults(
 </script>
 
 <template>
-  <div class="w-45 space-y-2">
+  <div class="w-full min-w-0 space-y-2 sm:w-45">
     <Label :for="id" class="font-bold text-muted-foreground">{{ label }}</Label>
     <Select v-model="model">
       <PrimarySelectTrigger :id="id">

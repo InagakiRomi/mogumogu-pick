@@ -34,6 +34,7 @@ const API_ERROR_MESSAGES: Record<string, string> = {
   'categoryId is required': '請選擇分類',
   'restaurantName is required': '請輸入餐廳名稱',
   'restaurantName size is out of allowed range': '餐廳名稱不可超過 64 字',
+  'address size is out of allowed range': '地址不可超過 255 字',
   'note size is out of allowed range': '備註不可超過 512 字',
   'imageUrl size is out of allowed range': '圖片網址不可超過 512 字',
   'groupId must be greater than or equal to 0': '群組 ID 格式不正確',

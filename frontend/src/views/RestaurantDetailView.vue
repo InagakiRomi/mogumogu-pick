@@ -69,6 +69,7 @@ const editForm = ref({
   categoryId: '1',
   displayOrderId: '',
   selectedCount: '',
+  address: '',
   note: '',
   imageUrl: '',
   lastSelectedAt: '',
@@ -97,6 +98,7 @@ const canSave = computed(() => {
     displayOrderId >= 0 &&
     Number.isInteger(selectedCount) &&
     selectedCount >= 0 &&
+    editForm.value.address.length <= 255 &&
     editForm.value.note.length <= 512 &&
     editForm.value.imageUrl.length <= 512
   )
@@ -142,6 +144,9 @@ function validateEditRestaurant(): string | null {
   }
   if (!isValidNonNegativeInteger(selectedCount)) {
     return '請輸入有效的被選取次數（須為 0 以上的整數）'
+  }
+  if (editForm.value.address.length > 255) {
+    return '地址不可超過 255 字'
   }
   if (editForm.value.note.length > 512) {
     return '備註不可超過 512 字'
@@ -253,6 +258,7 @@ function syncEditForm(data: Restaurant) {
     categoryId: String(data.categoryId ?? 1),
     displayOrderId: data.displayOrderId != null ? String(data.displayOrderId) : '',
     selectedCount: data.selectedCount != null ? String(data.selectedCount) : '0',
+    address: data.address ?? '',
     note: data.note ?? '',
     imageUrl: data.imageUrl ?? '',
     lastSelectedAt: toDatetimeLocalValue(data.lastSelectedAt),
@@ -360,6 +366,7 @@ async function handleSaveRestaurant() {
     categoryId: Number(editForm.value.categoryId),
     displayOrderId,
     selectedCount,
+    address: editForm.value.address.trim(),
     note: editForm.value.note.trim(),
     imageUrl: editForm.value.imageUrl.trim(),
     lastSelectedAt,
@@ -727,10 +734,11 @@ watch(isDeleteDishDialogOpen, (open) => {
               <p class="sm:col-span-2 text-lg font-semibold">
                 {{ restaurant.restaurantName ?? '-' }}
               </p>
+              <p class="sm:col-span-2">地址：{{ restaurant.address || '-' }}</p>
               <p>分類：{{ restaurant.categoryName ?? '-' }}</p>
               <p>顯示排序 ID：{{ restaurant.displayOrderId ?? '-' }}</p>
               <p>被選取次數：{{ restaurant.selectedCount ?? 0 }}</p>
-              <p>最後被選時間：{{ restaurant.lastSelectedAt?.trim() || '-' }}</p>
+              <p>最後選擇時間：{{ restaurant.lastSelectedAt?.trim() || '-' }}</p>
               <p>建立時間：{{ restaurant.createdAt?.trim() || '-' }}</p>
               <p>更新時間：{{ restaurant.updatedAt?.trim() || '-' }}</p>
               <p class="sm:col-span-2">備註：{{ restaurant.note || '-' }}</p>
@@ -741,10 +749,7 @@ watch(isDeleteDishDialogOpen, (open) => {
             <div class="flex flex-wrap items-center justify-between gap-3">
               <h2 class="text-lg font-bold text-card-foreground">
                 餐點資訊
-                <span
-                  v-if="!isDishesLoading"
-                  class="ml-2 font-normal text-muted-foreground"
-                >
+                <span v-if="!isDishesLoading" class="ml-2 font-normal text-muted-foreground">
                   （共 {{ dishTotal }} 筆）
                 </span>
               </h2>
@@ -768,9 +773,7 @@ watch(isDeleteDishDialogOpen, (open) => {
               </TableHeader>
               <TableBody>
                 <TableRow v-if="isDishesLoading">
-                  <TableCell colspan="4" class="py-8 text-center">
-                    載入餐點中...
-                  </TableCell>
+                  <TableCell colspan="4" class="py-8 text-center"> 載入餐點中... </TableCell>
                 </TableRow>
                 <TableRow v-else-if="dishes.length === 0">
                   <TableCell colspan="4" class="py-8 text-center">
@@ -871,6 +874,16 @@ watch(isDeleteDishDialogOpen, (open) => {
             required
           />
         </div>
+      </div>
+
+      <div>
+        <Label for="edit-restaurant-address">地址</Label>
+        <Input
+          id="edit-restaurant-address"
+          v-model="editForm.address"
+          maxlength="255"
+          placeholder="例如：台北市信義區信義路五段7號"
+        />
       </div>
 
       <div>

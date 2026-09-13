@@ -53,7 +53,7 @@ import java.util.logging.Logger;
 
 @Service
 public class RestaurantService {
-    private static final int RADIUS = 1500;
+    private static final int RADIUS = 1200;
     private static final Logger renderLog = new JulLoggerFactory().printRenderLog();
 
     private final RestaurantRepository restaurantRepository;
@@ -366,6 +366,7 @@ public class RestaurantService {
                 .displayOrderId(nextDisplayOrderId)
                 .selectedCount(0)
                 .restaurantName(request.getRestaurantName())
+                .address(request.getAddress())
                 .note(request.getNote())
                 .imageUrl(request.getImageUrl())
                 .lastSelectedAt(null)
@@ -413,6 +414,11 @@ public class RestaurantService {
         if (request.getRestaurantName() != null && !request.getRestaurantName().isBlank()) {
             String restaurantName = request.getRestaurantName();
             restaurant.setRestaurantName(restaurantName);
+        }
+
+        // 修改地址
+        if (request.getAddress() != null) {
+            restaurant.setAddress(request.getAddress());
         }
 
         // 修改備註

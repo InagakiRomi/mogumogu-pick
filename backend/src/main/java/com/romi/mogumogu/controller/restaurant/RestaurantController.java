@@ -51,8 +51,8 @@ public class RestaurantController {
     @GetMapping("/nearby")
     @Operation(summary = "取得座標附近的餐廳資料")
     public List<NearbyRestaurantResponse> getNearbyRestaurants(
-            @RequestParam(defaultValue = "24.9890") double latitude,
-            @RequestParam(defaultValue = "121.5111") double longitude) {
+            @RequestParam(defaultValue = "25.033") double latitude,
+            @RequestParam(defaultValue = "121.5654") double longitude) {
         return restaurantService.getNearbyRestaurants(latitude, longitude);
     }
 

@@ -13,7 +13,11 @@ export const ListTableHead = defineComponent({
   },
   setup(props, { slots }) {
     return () =>
-      h(TableHead, { class: cn('text-center !text-card-foreground', props.class) }, slots.default?.())
+      h(
+        TableHead,
+        { class: cn('overflow-hidden text-center !text-card-foreground', props.class) },
+        slots.default?.(),
+      )
   },
 })
 
@@ -30,7 +34,7 @@ export const ListTableRow = defineComponent({
       h(
         UiTableRow,
         {
-          class: cn('h-[52px]', props.class),
+          class: cn('h-auto min-h-[52px] md:h-[52px]', props.class),
         },
         slots.default?.(),
       )
@@ -53,8 +57,8 @@ export const ListTableCell = defineComponent({
         UiTableCell,
         {
           class: cn(
-            'h-[52px] text-center text-card-foreground',
-            props.truncate && 'truncate',
+            'h-auto min-h-[52px] overflow-hidden text-center text-card-foreground md:h-[52px]',
+            props.truncate && 'max-w-0 truncate',
             props.class,
           ),
           title: props.title,
@@ -68,7 +72,11 @@ export const ListTableActions = defineComponent({
   name: 'ListTableActions',
   setup(_, { slots }) {
     return () =>
-      h('div', { class: 'flex h-9 items-center justify-center gap-2' }, slots.default?.())
+      h(
+        'div',
+        { class: 'flex h-9 shrink-0 items-center justify-center gap-2 whitespace-nowrap' },
+        slots.default?.(),
+      )
   },
 })
 </script>
@@ -96,8 +104,10 @@ const props = withDefaults(
 </script>
 
 <template>
-  <div class="overflow-x-auto overflow-y-hidden rounded-lg border border-border bg-card">
-    <Table class="table-fixed bg-card text-card-foreground [&_th]:text-card-foreground">
+  <div class="min-w-0 overflow-x-auto overflow-y-hidden rounded-lg border border-border bg-card">
+    <Table
+      class="w-full min-w-[80rem] table-fixed bg-card text-card-foreground [&_th]:text-card-foreground"
+    >
       <TableHeader>
         <TableRow class="hover:bg-transparent">
           <slot name="header" />

@@ -14,5 +14,6 @@ public final class MemH2DataSourceProperties {
         registry.add("spring.datasource.username", () -> "sa");
         registry.add("spring.datasource.password", () -> "");
         registry.add("spring.datasource.driver-class-name", () -> "org.h2.Driver");
+        registry.add("spring.flyway.enabled", () -> "false");
     }
 }

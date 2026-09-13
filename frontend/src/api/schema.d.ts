@@ -375,6 +375,11 @@ export interface components {
              */
             restaurantName: string;
             /**
+             * @description 地址
+             * @example 台北市信義區信義路五段7號
+             */
+            address?: string;
+            /**
              * @description 備註
              * @example 可訂位
              */
@@ -426,6 +431,11 @@ export interface components {
              * @example 和食天國
              */
             restaurantName?: string;
+            /**
+             * @description 地址
+             * @example 台北市信義區信義路五段7號
+             */
+            address?: string;
             /**
              * @description 備註
              * @example 可訂位
@@ -642,6 +652,11 @@ export interface components {
              * @example 和食天國
              */
             restaurantName?: string;
+            /**
+             * @description 地址
+             * @example 台北市信義區信義路五段7號
+             */
+            address?: string;
             /**
              * @description 備註
              * @example 可訂位

@@ -40,22 +40,22 @@ function handleCancel() {
 <template>
   <AlertDialog :open="open" @update:open="emit('update:open', $event)">
     <AlertDialogContent
-      class="form-dialog w-[min(92vw,48rem)] max-w-[min(92vw,48rem)] border-border bg-card text-card-foreground"
+      class="form-dialog max-h-[min(90dvh,44rem)] w-[min(94vw,48rem)] max-w-[min(94vw,48rem)] overflow-y-auto border-border bg-card text-card-foreground"
     >
       <AlertDialogHeader>
         <AlertDialogTitle>{{ title }}</AlertDialogTitle>
       </AlertDialogHeader>
 
       <form class="grid gap-4" @submit.prevent="emit('submit')">
-        <div class="form-dialog__fields grid gap-4">
+        <div class="form-dialog__fields grid min-w-0 gap-4">
           <slot />
         </div>
 
-        <AlertDialogFooter class="mt-1 gap-3">
+        <AlertDialogFooter class="mt-1 flex-col-reverse gap-3 sm:flex-row">
           <PrimaryButton
             type="button"
             variant="outline"
-            class="h-11 min-w-30 flex-1 sm:flex-none"
+            class="h-11 w-full min-w-0 sm:w-auto sm:min-w-30 sm:flex-none"
             :disabled="loading"
             @click="handleCancel"
           >
@@ -64,7 +64,7 @@ function handleCancel() {
 
           <PrimaryButton
             type="submit"
-            class="h-11 min-w-30 flex-1 sm:flex-none"
+            class="h-11 w-full min-w-0 sm:w-auto sm:min-w-30 sm:flex-none"
             :disabled="!canSubmit || loading"
           >
             {{ loading ? loadingLabel : submitLabel }}
@@ -76,8 +76,9 @@ function handleCancel() {
 </template>
 
 <style scoped>
-.form-dialog__fields :deep(div) {
+.form-dialog__fields > :deep(*) {
   display: grid;
+  min-width: 0;
   gap: 0.5rem;
 }
 

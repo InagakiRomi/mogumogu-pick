@@ -456,7 +456,7 @@ public class ExcelToSql {
 
     /** SQL 字串常值跳脫（單引號加倍） */
     private static String quoteString(String value) {
-        if (value == null) {
+        if (value == null || "NULL".equalsIgnoreCase(value.trim())) {
             return "NULL";
         }
         return "'" + value.replace("'", "''") + "'";

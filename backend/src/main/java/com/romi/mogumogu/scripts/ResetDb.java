@@ -1,9 +1,11 @@
 package com.romi.mogumogu.scripts;
 
-import java.io.File;
 import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -47,31 +49,17 @@ public class ResetDb {
         String mysqlUser = env.getOrDefault("DB_USERNAME", DEFAULT_MYSQL_USER).trim();
         String mysqlPassword = env.getOrDefault("DB_PASSWORD", "").trim();
 
-        String sql = "DROP DATABASE IF EXISTS " + dbName + "; CREATE DATABASE " + dbName
-                + " CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;";
-
-        List<String> mysqlCommand = new ArrayList<>();
-        mysqlCommand.add("mysql");
-        mysqlCommand.add("-h");
-        mysqlCommand.add(mysqlHost);
-        mysqlCommand.add("-P");
-        mysqlCommand.add(mysqlPort);
-        mysqlCommand.add("-u");
-        mysqlCommand.add(mysqlUser);
-        mysqlCommand.add("-e");
-        mysqlCommand.add(sql);
-
-        ProcessBuilder mysqlProcessBuilder = new ProcessBuilder(mysqlCommand)
-                .directory(new File("."))
-                .inheritIO();
-        mysqlProcessBuilder.environment().putAll(env);
-        if (!mysqlPassword.isEmpty()) {
-            mysqlProcessBuilder.environment().put("MYSQL_PWD", mysqlPassword);
+        if (!dbName.matches("[A-Za-z0-9_$]+")) {
+            throw new IllegalArgumentException("DB_NAME 含有不支援的字元：" + dbName);
         }
-        Process process = mysqlProcessBuilder.start();
-        int exitCode = process.waitFor();
-        if (exitCode != 0) {
-            throw new IllegalStateException("Command failed: " + String.join(" ", mysqlCommand));
+        String serverUrl = "jdbc:mysql://" + mysqlHost + ":" + mysqlPort
+                + "/?serverTimezone=Asia/Taipei&characterEncoding=utf-8";
+        String quotedDbName = "`" + dbName.replace("`", "``") + "`";
+        try (Connection connection = DriverManager.getConnection(serverUrl, mysqlUser, mysqlPassword);
+                Statement statement = connection.createStatement()) {
+            statement.executeUpdate("DROP DATABASE IF EXISTS " + quotedDbName);
+            statement.executeUpdate("CREATE DATABASE " + quotedDbName
+                    + " CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci");
         }
 
         runSpringBootWithProfile("mysql", null);

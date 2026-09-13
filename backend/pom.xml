@@ -62,10 +62,10 @@
 			<scope>runtime</scope>
 		</dependency>
 	
-		<!-- 資料庫與 Migration -->
+		<!-- 資料庫與 Migration；Boot 4 需 starter 才會自動執行 Flyway -->
 		<dependency>
-			<groupId>org.flywaydb</groupId>
-			<artifactId>flyway-core</artifactId>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-flyway</artifactId>
 		</dependency>
 		<dependency>
 			<groupId>org.flywaydb</groupId>

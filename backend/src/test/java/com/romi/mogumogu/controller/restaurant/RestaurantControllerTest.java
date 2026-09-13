@@ -71,8 +71,8 @@ class RestaurantControllerTest {
         private static final String RESTAURANTS_RANDOM_CLEAR_PATH = "/restaurants/random/clear";
         private static final String RESTAURANTS_SELECTION_HISTORY_PATH = "/restaurants/selection-history";
         private static final String RESTAURANTS_NEARBY_PATH = "/restaurants/nearby";
-        private static final double DEFAULT_NEARBY_LATITUDE = 24.9890;
-        private static final double DEFAULT_NEARBY_LONGITUDE = 121.5111;
+        private static final double DEFAULT_NEARBY_LATITUDE = 25.033;
+        private static final double DEFAULT_NEARBY_LONGITUDE = 121.5654;
         private static final String CONTENT_TYPE_JSON = "application/json";
         private static final int HTTP_INTERNAL_SERVER_ERROR = 500;
         private static final String CODE_INTERNAL_SERVER_ERROR = "INTERNAL_SERVER_ERROR";
@@ -422,7 +422,7 @@ class RestaurantControllerTest {
 
                 @Test
                 void scientificNotationCoordinates_areAccepted() throws Exception {
-                        when(restaurantService.getNearbyRestaurants(24.989, 121.5111))
+                        when(restaurantService.getNearbyRestaurants(24.989, 121.5654))
                                         .thenReturn(List.of());
 
                         performGetNearbyRestaurants(Map.of(
@@ -430,20 +430,20 @@ class RestaurantControllerTest {
                                         "longitude", "1.215111e2"))
                                         .andExpect(status().isOk());
 
-                        verify(restaurantService).getNearbyRestaurants(24.989, 121.5111);
+                        verify(restaurantService).getNearbyRestaurants(24.989, 121.5654);
                 }
 
                 @Test
                 void signedPositiveCoordinates_areAccepted() throws Exception {
-                        when(restaurantService.getNearbyRestaurants(24.9890, 121.5111))
+                        when(restaurantService.getNearbyRestaurants(25.033, 121.5654))
                                         .thenReturn(List.of());
 
                         performGetNearbyRestaurants(Map.of(
-                                        "latitude", "+24.9890",
-                                        "longitude", "+121.5111"))
+                                        "latitude", "+25.033",
+                                        "longitude", "+121.5654"))
                                         .andExpect(status().isOk());
 
-                        verify(restaurantService).getNearbyRestaurants(24.9890, 121.5111);
+                        verify(restaurantService).getNearbyRestaurants(25.033, 121.5654);
                 }
 
                 @Test
@@ -525,7 +525,7 @@ class RestaurantControllerTest {
                         assertErrorResponseContains(
                                         performGetNearbyRestaurants(Map.of(
                                                         "latitude", "not-a-number",
-                                                        "longitude", "121.5111")),
+                                                        "longitude", "121.5654")),
                                         HTTP_INTERNAL_SERVER_ERROR,
                                         CODE_INTERNAL_SERVER_ERROR,
                                         RESTAURANTS_NEARBY_PATH,
@@ -538,7 +538,7 @@ class RestaurantControllerTest {
                 void invalidLongitude_returns500AndSkipsServiceCall() throws Exception {
                         assertErrorResponseContains(
                                         performGetNearbyRestaurants(Map.of(
-                                                        "latitude", "24.9890",
+                                                        "latitude", "25.033",
                                                         "longitude", "hello-world")),
                                         HTTP_INTERNAL_SERVER_ERROR,
                                         CODE_INTERNAL_SERVER_ERROR,
@@ -1306,6 +1306,17 @@ class RestaurantControllerTest {
                 }
 
                 @Test
+                void addressTooLong_returns400AndSkipsServiceCall() throws Exception {
+                        CreateRestaurantDto request = buildCreateRequest(1, 2, "和食天國");
+                        request.setAddress("a".repeat(256));
+
+                        assertBadRequestValidation(performPostRestaurants(request),
+                                        "address size is out of allowed range");
+
+                        verifyNoInteractions(restaurantService);
+                }
+
+                @Test
                 void nullFieldsViaRawJson_returns400AndSkipsServiceCall() throws Exception {
                         assertBadRequestValidation(performPostRestaurantsRaw(
                                         "{\"groupId\":null,\"categoryId\":null,\"restaurantName\":null}"),
@@ -1487,6 +1498,18 @@ class RestaurantControllerTest {
 
                         assertBadRequestValidation(performPatchRestaurant(7, request),
                                         "imageUrl size is out of allowed range");
+
+                        verify(restaurantService, never()).updateRestaurant(eq(7), any(UpdateRestaurantDto.class));
+                }
+
+                @Test
+                void addressTooLong_returns400AndSkipsServiceCall1() throws Exception {
+                        UpdateRestaurantDto request = UpdateRestaurantDto.builder()
+                                        .address("a".repeat(256))
+                                        .build();
+
+                        assertBadRequestValidation(performPatchRestaurant(7, request),
+                                        "address size is out of allowed range");
 
                         verify(restaurantService, never()).updateRestaurant(eq(7), any(UpdateRestaurantDto.class));
                 }

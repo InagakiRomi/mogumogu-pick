@@ -83,6 +83,7 @@ function resolveContent(restaurant: RestaurantResult | null | 'drawing') {
       selectedCount: '—',
       lastSelectedAt: '—',
       updatedAt: '—',
+      address: '—',
       note: '—',
       isPlaceholder: true,
     }
@@ -94,6 +95,7 @@ function resolveContent(restaurant: RestaurantResult | null | 'drawing') {
     selectedCount: restaurant?.selectedCount ?? 0,
     lastSelectedAt: restaurant?.lastSelectedAt || '尚無紀錄',
     updatedAt: restaurant?.updatedAt || '尚無紀錄',
+    address: restaurant?.address || '無',
     note: restaurant?.note || '無',
     isPlaceholder: false,
   }
@@ -341,6 +343,7 @@ async function handleChooseRestaurant() {
                     <p>
                       <span class="font-semibold">最後更新時間：</span>{{ frontContent.updatedAt }}
                     </p>
+                    <p><span class="font-semibold">地址：</span>{{ frontContent.address }}</p>
                     <p><span class="font-semibold">備註：</span>{{ frontContent.note }}</p>
                   </div>
                 </CardContent>
@@ -392,6 +395,7 @@ async function handleChooseRestaurant() {
                     <p>
                       <span class="font-semibold">最後更新時間：</span>{{ backContent.updatedAt }}
                     </p>
+                    <p><span class="font-semibold">地址：</span>{{ backContent.address }}</p>
                     <p><span class="font-semibold">備註：</span>{{ backContent.note }}</p>
                   </div>
                 </CardContent>

@@ -48,7 +48,7 @@ const restaurantListForm = {
     { label: 'ID', value: 'DISPLAY_ORDER_ID' as const },
     { label: '建立時間', value: 'CREATED_AT' as const },
     { label: '被選取次數', value: 'SELECTED_COUNT' as const },
-    { label: '最後被選時間', value: 'LAST_SELECTED_AT' as const },
+    { label: '最後選擇時間', value: 'LAST_SELECTED_AT' as const },
   ],
   sortOptions: DEFAULT_SORT_OPTIONS,
   searchLabel: '餐廳名稱搜尋',
@@ -76,6 +76,7 @@ const isCreating = ref(false)
 const createForm = ref({
   restaurantName: '',
   categoryId: '1',
+  address: '',
   note: '',
   imageUrl: '',
 })
@@ -133,6 +134,7 @@ function resetCreateForm() {
   createForm.value = {
     restaurantName: '',
     categoryId: defaultCategoryId.value || '1',
+    address: '',
     note: '',
     imageUrl: '',
   }
@@ -203,6 +205,7 @@ async function handleCreateRestaurant() {
         groupId,
         categoryId: Number(createForm.value.categoryId),
         restaurantName,
+        address: createForm.value.address.trim() || undefined,
         note: createForm.value.note.trim() || undefined,
         imageUrl: createForm.value.imageUrl.trim() || undefined,
       },
@@ -320,18 +323,19 @@ onMounted(() => {
       <ListTable
         :is-loading="isLoading"
         :is-empty="restaurants.length === 0"
-        :column-count="8"
+        :column-count="9"
         :loading-text="restaurantListForm.loadingText"
         :empty-text="restaurantListForm.emptyText"
       >
         <template #header>
           <ListTableHead class="w-18">ID</ListTableHead>
           <ListTableHead class="w-24">餐廳圖片</ListTableHead>
-          <ListTableHead class="w-[20%]">餐廳名稱</ListTableHead>
+          <ListTableHead class="w-[16%]">餐廳名稱</ListTableHead>
+          <ListTableHead class="w-[18%]">地址</ListTableHead>
           <ListTableHead class="w-18">分類</ListTableHead>
           <ListTableHead class="w-30">被選中的次數</ListTableHead>
-          <ListTableHead class="w-[24%]">備註</ListTableHead>
-          <ListTableHead class="w-45">最後被選時間</ListTableHead>
+          <ListTableHead class="w-[18%]">備註</ListTableHead>
+          <ListTableHead class="w-45">最後選擇時間</ListTableHead>
           <ListTableHead class="w-35">操作</ListTableHead>
         </template>
 
@@ -353,6 +357,9 @@ onMounted(() => {
             :title="restaurant.restaurantName ?? undefined"
           >
             {{ restaurant.restaurantName ?? '-' }}
+          </ListTableCell>
+          <ListTableCell truncate :title="restaurant.address || undefined">
+            {{ restaurant.address || '-' }}
           </ListTableCell>
           <ListTableCell>{{ restaurant.categoryName ?? '-' }}</ListTableCell>
           <ListTableCell>{{ restaurant.selectedCount ?? 0 }}</ListTableCell>
@@ -408,6 +415,16 @@ onMounted(() => {
             maxlength="100"
             placeholder="例如：和食天國"
             required
+          />
+        </div>
+
+        <div>
+          <Label for="create-restaurant-address">地址（選填）</Label>
+          <Input
+            id="create-restaurant-address"
+            v-model="createForm.address"
+            maxlength="255"
+            placeholder="例如：台北市信義區信義路五段7號"
           />
         </div>
 
