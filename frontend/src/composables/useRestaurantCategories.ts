@@ -4,7 +4,7 @@ import client from '@/api/client'
 
 export const ALL_CATEGORIES_VALUE = 'all'
 
-export type RestaurantCategoryOption = {
+type RestaurantCategoryOption = {
   label: string
   value: string
 }
@@ -20,8 +20,6 @@ function toCategoryOption(category: RestaurantCategory): RestaurantCategoryOptio
 
 export function useRestaurantCategories() {
   const categories = ref<RestaurantCategoryOption[]>([])
-  const isLoading = ref(false)
-  const errorMessage = ref<string | null>(null)
 
   const categoryOptionsWithAll = computed<RestaurantCategoryOption[]>(() => [
     { label: '全部', value: ALL_CATEGORIES_VALUE },
@@ -31,20 +29,13 @@ export function useRestaurantCategories() {
   const defaultCategoryId = computed(() => categories.value[0]?.value ?? '')
 
   async function fetchCategories() {
-    isLoading.value = true
-    errorMessage.value = null
-
-  const { data, error } = await client.GET('/restaurant-categories')
-  if (error) {
+    const { data, error } = await client.GET('/restaurant-categories')
+    if (error) {
       categories.value = []
-      errorMessage.value = '取得餐廳分類失敗'
-      console.error(error)
-      isLoading.value = false
-    return
+      return
     }
 
-  categories.value = (data ?? []).map(toCategoryOption)
-  isLoading.value = false
+    categories.value = (data ?? []).map(toCategoryOption)
   }
 
   onMounted(() => {
@@ -53,11 +44,7 @@ export function useRestaurantCategories() {
 
   return {
     categories,
-    categoryOptions: categories,
     categoryOptionsWithAll,
     defaultCategoryId,
-    isLoading,
-    errorMessage,
-    fetchCategories,
   }
 }

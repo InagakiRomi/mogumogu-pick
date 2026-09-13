@@ -4,15 +4,15 @@ import { useRouter } from 'vue-router'
 import type { components, operations } from '@/api/schema'
 import client from '@/api/client'
 import FormSelectField from '@/components/form/FormSelectField.vue'
-import ListPagePanel from '@/components/form/ListPagePanel.vue'
-import ListPagination from '@/components/form/ListPagination.vue'
-import ListSection from '@/components/form/ListSection.vue'
+import ListPagePanel from '@/components/list/ListPagePanel.vue'
+import ListPagination from '@/components/list/ListPagination.vue'
+import ListSection from '@/components/list/ListSection.vue'
 import ListTable, {
   ListTableActions,
   ListTableCell,
   ListTableHead,
   ListTableRow,
-} from '@/components/form/ListTable.vue'
+} from '@/components/list/ListTable.vue'
 import PrimaryButton from '@/components/common/PrimaryButton.vue'
 import { useFeedbackDialog } from '@/composables/useFeedbackDialog'
 import { getApiErrorMessage, RESTAURANT_FEEDBACK_MESSAGES } from '@/lib/apiErrorMessage'
@@ -169,7 +169,7 @@ onMounted(() => {
               <PrimaryButton
                 v-if="history.restaurantId != null"
                 variant="outline"
-                class="h-9 px-3 text-sm"
+                class="h-9 px-3"
                 @click="goRestaurantDetail(history.restaurantId)"
               >
                 查看詳細

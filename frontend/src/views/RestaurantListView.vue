@@ -3,21 +3,23 @@ import { computed, onMounted, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import type { components, operations } from '@/api/schema'
 import client from '@/api/client'
+import FormDialog from '@/components/form/FormDialog.vue'
 import FormSelectField from '@/components/form/FormSelectField.vue'
-import ListPagePanel from '@/components/form/ListPagePanel.vue'
-import ListPagination from '@/components/form/ListPagination.vue'
-import ListSection from '@/components/form/ListSection.vue'
+import ListPagePanel from '@/components/list/ListPagePanel.vue'
+import ListPagination from '@/components/list/ListPagination.vue'
+import ListSection from '@/components/list/ListSection.vue'
 import ListTable, {
   ListTableActions,
   ListTableCell,
   ListTableHead,
   ListTableRow,
-} from '@/components/form/ListTable.vue'
+} from '@/components/list/ListTable.vue'
 import PrimaryButton from '@/components/common/PrimaryButton.vue'
+import PrimarySelectTrigger from '@/components/common/PrimarySelectTrigger.vue'
 import { authSession } from '@/lib/authSession'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import RestaurantFormDialog from '@/components/restaurant/RestaurantFormDialog.vue'
+import { Select, SelectContent, SelectItem, SelectValue } from '@/components/ui/select'
 import { useFeedbackDialog } from '@/composables/useFeedbackDialog'
 import {
   ALL_CATEGORIES_VALUE,
@@ -59,7 +61,6 @@ const restaurantListForm = {
 
 const failedImageIds = ref(new Set<number>())
 const { categoryOptionsWithAll, categories, defaultCategoryId } = useRestaurantCategories()
-const categoryOptions = categoryOptionsWithAll
 
 const restaurants = ref<Restaurant[]>([])
 const searchInput = ref('')
@@ -282,7 +283,7 @@ onMounted(() => {
           <Input
             id="restaurant-search"
             v-model="searchInput"
-            class="h-10 px-2.5 text-sm rounded-md border border-border bg-muted/90 text-popover-foreground"
+            class="h-10 px-2.5 rounded-md border border-border bg-muted/90 text-popover-foreground"
             :placeholder="restaurantListForm.searchPlaceholder"
             @keyup.enter="handleSearch"
           />
@@ -292,7 +293,7 @@ onMounted(() => {
           id="restaurant-category"
           v-model="selectedCategory"
           :label="restaurantListForm.categoryLabel"
-          :options="categoryOptions"
+          :options="categoryOptionsWithAll"
           :placeholder="restaurantListForm.categoryPlaceholder"
         />
         <FormSelectField
@@ -365,7 +366,7 @@ onMounted(() => {
             <ListTableActions>
               <PrimaryButton
                 variant="outline"
-                class="h-9 px-3 text-sm"
+                class="h-9 px-3"
                 @click="goRestaurantDetail(restaurant.restaurantId)"
               >
                 查看詳細
@@ -388,13 +389,9 @@ onMounted(() => {
     </ListSection>
 
     <template #overlay>
-      <RestaurantFormDialog
+      <FormDialog
         :open="isCreateDialogOpen"
-        v-model="createForm"
-        :category-options="categories"
-        mode="create"
         title="新增餐廳"
-        id-prefix="create-restaurant"
         submit-label="確認新增"
         loading-label="新增中..."
         :loading="isCreating"
@@ -402,7 +399,52 @@ onMounted(() => {
         @update:open="handleCreateDialogOpenChange"
         @submit="handleCreateRestaurant"
         @cancel="handleCreateDialogOpenChange(false)"
-      />
+      >
+        <div>
+          <Label for="create-restaurant-name">餐廳名稱</Label>
+          <Input
+            id="create-restaurant-name"
+            v-model="createForm.restaurantName"
+            maxlength="100"
+            placeholder="例如：和食天國"
+            required
+          />
+        </div>
+
+        <div>
+          <Label for="create-restaurant-category">分類</Label>
+          <Select v-model="createForm.categoryId">
+            <PrimarySelectTrigger id="create-restaurant-category">
+              <SelectValue placeholder="選擇分類" />
+            </PrimarySelectTrigger>
+            <SelectContent position="popper">
+              <SelectItem v-for="option in categories" :key="option.value" :value="option.value">
+                {{ option.label }}
+              </SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div>
+          <Label for="create-restaurant-note">備註（選填）</Label>
+          <Input
+            id="create-restaurant-note"
+            v-model="createForm.note"
+            maxlength="255"
+            placeholder="例如：可電話訂位"
+          />
+        </div>
+
+        <div>
+          <Label for="create-restaurant-image-url">圖片網址（選填）</Label>
+          <Input
+            id="create-restaurant-image-url"
+            v-model="createForm.imageUrl"
+            maxlength="255"
+            placeholder="https://example.com/restaurant.jpg"
+          />
+        </div>
+      </FormDialog>
     </template>
   </ListPagePanel>
 </template>

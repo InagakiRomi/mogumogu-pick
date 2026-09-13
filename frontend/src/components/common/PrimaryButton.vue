@@ -17,22 +17,22 @@ const variantConfig = {
     buttonVariant: 'default',
     class:
       'from-[#d78867] to-[#c96d57] text-primary-foreground ' +
-      'shadow-[0_8px_18px_rgba(138,73,52,0.3)] ' +
+      'shadow-[0_3px_8px_rgba(138,73,52,0.18)] ' +
       'hover:from-[#de8f6c] hover:to-[#d3735d] ' +
-      'hover:shadow-[0_10px_22px_rgba(138,73,52,0.36)] ' +
+      'hover:shadow-[0_4px_10px_rgba(138,73,52,0.22)] ' +
       'active:from-[#cb7b5c] active:to-[#bf644f] ' +
-      'active:shadow-[0_3px_8px_rgba(138,73,52,0.15)]',
+      'active:shadow-[0_1px_4px_rgba(138,73,52,0.1)]',
   },
   outline: {
     buttonVariant: 'outline',
     class:
       'border-[rgba(146,80,58,0.32)] ' +
       'from-[rgba(255,252,248,0.98)] to-[rgba(255,236,220,0.95)] ' +
-      'text-[#5c4033] shadow-[0_2px_8px_rgba(138,73,52,0.1)] ' +
+      'shadow-[0_1px_4px_rgba(138,73,52,0.08)] ' +
       'hover:border-[rgba(146,80,58,0.45)] ' +
       'hover:from-[rgba(255,245,235,1)] hover:to-[rgba(255,228,210,0.98)] ' +
       'hover:text-[#4a2c2a] ' +
-      'hover:shadow-[0_4px_12px_rgba(138,73,52,0.15)]',
+      'hover:shadow-[0_2px_6px_rgba(138,73,52,0.1)]',
   },
 } as const
 </script>

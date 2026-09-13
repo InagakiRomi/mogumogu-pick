@@ -6,13 +6,12 @@ import client from '@/api/client'
 import PrimaryButton from '@/components/common/PrimaryButton.vue'
 import PrimaryPanel from '@/components/common/PrimaryPanel.vue'
 import PrimarySelectTrigger from '@/components/common/PrimarySelectTrigger.vue'
-import WarmAlertDialogShell from '@/components/feedback/WarmAlertDialogShell.vue'
+import ConfirmationAlertDialog from '@/components/alert/ConfirmationAlertDialog.vue'
 import { useFeedbackDialog } from '@/composables/useFeedbackDialog'
 import {
   ALL_CATEGORIES_VALUE,
   useRestaurantCategories,
 } from '@/composables/useRestaurantCategories'
-import { AlertDialog, AlertDialogDescription, AlertDialogTitle } from '@/components/ui/alert-dialog'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Label } from '@/components/ui/label'
@@ -331,7 +330,7 @@ async function handleChooseRestaurant() {
 
                   <Separator class="bg-[rgba(198,134,105,0.45)]" />
 
-                  <div class="grid grid-cols-1 gap-2 text-sm text-[rgba(95,57,41,0.92)]">
+                  <div class="grid grid-cols-1 gap-2 text-[rgba(95,57,41,0.92)]">
                     <p>
                       <span class="font-semibold">選擇次數：</span>{{ frontContent.selectedCount }}
                     </p>
@@ -376,7 +375,7 @@ async function handleChooseRestaurant() {
                   <Separator class="bg-[rgba(198,134,105,0.45)]" />
 
                   <div
-                    class="grid grid-cols-1 gap-2 text-sm"
+                    class="grid grid-cols-1 gap-2"
                     :class="
                       backContent.isPlaceholder
                         ? 'text-[rgba(95,57,41,0.55)]'
@@ -416,34 +415,16 @@ async function handleChooseRestaurant() {
       </div>
     </PrimaryPanel>
 
-    <AlertDialog :open="isPostChooseDialogOpen" @update:open="isPostChooseDialogOpen = $event">
-      <WarmAlertDialogShell>
-        <template #title>
-          <AlertDialogTitle class="w-full text-center text-2xl font-bold text-[#5e3a28]">
-            選擇成功！
-          </AlertDialogTitle>
-        </template>
-        <AlertDialogDescription
-          class="w-full text-pretty wrap-break-word text-center text-xl font-semibold tracking-wide text-[#5e3a28]/90"
-        >
-          {{ RESTAURANT_FEEDBACK_MESSAGES.choose.success(chosenRestaurantName) }}
-        </AlertDialogDescription>
-        <template #actions>
-          <div class="flex flex-wrap items-center justify-center gap-3">
-            <PrimaryButton
-              class="min-w-30"
-              variant="outline"
-              @click="handleClosePostChooseDialog"
-            >
-              關閉
-            </PrimaryButton>
-            <PrimaryButton class="min-w-30" @click="handleViewChosenRestaurantDetail">
-              查看詳細
-            </PrimaryButton>
-          </div>
-        </template>
-      </WarmAlertDialogShell>
-    </AlertDialog>
+    <ConfirmationAlertDialog
+      :open="isPostChooseDialogOpen"
+      title="選擇成功！"
+      :description="RESTAURANT_FEEDBACK_MESSAGES.choose.success(chosenRestaurantName)"
+      confirm-label="查看詳細"
+      cancel-label="關閉"
+      @update:open="isPostChooseDialogOpen = $event"
+      @confirm="handleViewChosenRestaurantDetail"
+      @cancel="handleClosePostChooseDialog"
+    />
   </main>
 </template>
 

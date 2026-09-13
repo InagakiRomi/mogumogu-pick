@@ -11,10 +11,6 @@ export function getRoleLabel(role?: number | null) {
   return ROLE_LABELS[role] ?? '未知角色'
 }
 
-export function isRegularUser(role?: number | null) {
-  return role === 1
-}
-
 export function isGroupAdmin(role?: number | null) {
   return role === 0
 }

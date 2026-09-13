@@ -39,7 +39,8 @@ const alertBgImage = publicAsset('images/Alert.png')
 .content-scroll {
   overflow-y: auto;
   scrollbar-width: thin;
-  scrollbar-color: rgba(94, 58, 40, 0.45) rgba(94, 58, 40, 0.12);
+  scrollbar-color: color-mix(in oklab, var(--popover-foreground) 45%, transparent)
+    color-mix(in oklab, var(--popover-foreground) 12%, transparent);
 }
 
 .content-scroll::-webkit-scrollbar {
@@ -48,15 +49,15 @@ const alertBgImage = publicAsset('images/Alert.png')
 
 .content-scroll::-webkit-scrollbar-track {
   border-radius: 9999px;
-  background: rgba(94, 58, 40, 0.1);
+  background: color-mix(in oklab, var(--popover-foreground) 10%, transparent);
 }
 
 .content-scroll::-webkit-scrollbar-thumb {
   border-radius: 9999px;
-  background: rgba(94, 58, 40, 0.4);
+  background: color-mix(in oklab, var(--popover-foreground) 40%, transparent);
 }
 
 .content-scroll::-webkit-scrollbar-thumb:hover {
-  background: rgba(94, 58, 40, 0.55);
+  background: color-mix(in oklab, var(--popover-foreground) 55%, transparent);
 }
 </style>

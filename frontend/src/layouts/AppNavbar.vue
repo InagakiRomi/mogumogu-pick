@@ -1,80 +1,187 @@
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
-import { useRouter } from 'vue-router'
+import { computed, onMounted, ref, watch } from 'vue'
+import { onClickOutside, useMediaQuery } from '@vueuse/core'
+import { MenuIcon, XIcon } from '@lucide/vue'
+import { useRoute, useRouter } from 'vue-router'
 
 import client from '@/api/client'
 import PrimaryButton from '@/components/common/PrimaryButton.vue'
 import { authSession, hasGroup, logoutAuth } from '@/lib/authSession'
 import { getRoleLabel } from '@/lib/userRole'
+import { publicAsset } from '@/lib/utils'
 
 const router = useRouter()
+const route = useRoute()
 
-/** 目前所屬群組名稱 */
 const groupName = ref('')
+const isMenuOpen = ref(false)
+const headerRef = ref<HTMLElement | null>(null)
 
-/** 主要功能頁捷徑 */
+const isCompactLayout = useMediaQuery('(max-width: 1023px)')
+
 const navItems = [
   { label: '抽餐廳', name: 'random-restaurant' },
-  { label: '餐廳一覽', name: 'list-restaurant' },
+  { label: '我的餐廳', name: 'list-restaurant' },
+  { label: '美食地圖', name: 'map' },
   { label: '歷史紀錄', name: 'restaurant-history' },
   { label: '分類管理', name: 'category-management' },
   { label: '成員管理', name: 'member-management' },
-]
+] as const
 
-/** 群組名稱與角色 */
-const userInfo = computed(() =>
-  [groupName.value, getRoleLabel(authSession.value?.role)].filter(Boolean).join(' · '),
-)
+const username = computed(() => authSession.value?.username ?? '使用者')
 
-/** 查詢群組名稱 */
+const roleLabel = computed(() => getRoleLabel(authSession.value?.role))
+
+const greetingText = computed(() => `Hello！${username.value}`)
+
+const userInfo = computed(() => [groupName.value, roleLabel.value].filter(Boolean).join(' · '))
+
+/** 取得目前群組名稱 */
 async function loadGroupName() {
-  if (!hasGroup()) return
+  if (!hasGroup()) {
+    groupName.value = ''
+    return
+  }
 
-  const { data } = await client.GET('/groups/my')
-  groupName.value = data?.groupName?.trim() ?? ''
+  try {
+    const { data } = await client.GET('/groups/my')
+    groupName.value = data?.groupName?.trim() ?? ''
+  } catch {
+    groupName.value = ''
+  }
 }
 
-/** 登出並回到登入頁 */
+/** 關閉手機／平板選單 */
+function closeMenu() {
+  isMenuOpen.value = false
+}
+
+/** 切換手機／平板選單 */
+function toggleMenu() {
+  isMenuOpen.value = !isMenuOpen.value
+}
+
+/** 前往指定頁面 */
+function goTo(name: string) {
+  closeMenu()
+  void router.push({ name })
+}
+
+/** 登出 */
 function handleLogout() {
+  closeMenu()
   logoutAuth()
-  router.push({ name: 'home' })
+  void router.push({ name: 'home' })
 }
+
+onClickOutside(headerRef, closeMenu)
+
+watch(() => route.fullPath, closeMenu)
+
+watch(isCompactLayout, (isCompact) => {
+  if (!isCompact) {
+    closeMenu()
+  }
+})
 
 onMounted(loadGroupName)
 </script>
 
 <template>
-  <header class="sticky top-0 z-50 border-b bg-background/95">
-    <div class="flex w-full items-center justify-between px-4 py-2">
-      <div class="flex items-center gap-7">
-        <!-- 回抽餐廳頁 -->
-        <RouterLink :to="{ name: 'random-restaurant' }">
-          <img src="/images/logo.png" alt="Mogumogu Pick" class="h-16" />
+  <header ref="headerRef" class="sticky top-0 z-50 border-b bg-background/95">
+    <div class="flex w-full items-center justify-between gap-3 px-3 py-2 sm:px-4">
+      <!-- 左側 -->
+      <div class="flex min-w-0 flex-1 items-center gap-3 overflow-hidden sm:gap-5 xl:gap-7">
+        <RouterLink :to="{ name: 'random-restaurant' }" class="shrink-0">
+          <img
+            :src="publicAsset('images/logo.png')"
+            alt="Mogumogu Pick"
+            class="h-12 w-auto max-w-40 object-contain object-left sm:h-14 sm:max-w-48 md:h-16 xl:max-w-none"
+          />
         </RouterLink>
 
-        <nav class="flex gap-2">
+        <!-- Desktop Navigation -->
+        <nav class="hidden min-w-0 items-center gap-1.5 lg:flex xl:gap-2">
           <PrimaryButton
             v-for="item in navItems"
             :key="item.name"
+            class="px-2 xl:px-2.5"
             variant="standard"
-            @click="router.push({ name: item.name })"
+            @click="goTo(item.name)"
           >
             {{ item.label }}
           </PrimaryButton>
         </nav>
       </div>
 
-      <div class="flex items-center gap-5">
-        <!-- 使用者與群組資訊 -->
-        <div class="hidden text-right text-base font-bold text-[#5c4033] sm:block">
-          <div>Hello！{{ authSession?.username ?? '使用者' }}</div>
-          <div>{{ userInfo }}</div>
+      <!-- 右側 -->
+      <div class="flex shrink-0 items-center gap-2 sm:gap-4 xl:gap-5">
+        <!-- Desktop User Info -->
+        <div
+          class="hidden min-w-0 max-w-36 text-right font-bold lg:block xl:max-w-52"
+        >
+          <div class="truncate" :title="greetingText">
+            {{ greetingText }}
+          </div>
+
+          <div class="flex min-w-0 items-center justify-end" :title="userInfo">
+            <span v-if="groupName" class="min-w-0 truncate">
+              {{ groupName }}
+            </span>
+
+            <span v-if="groupName" class="shrink-0"> &nbsp;·&nbsp; </span>
+
+            <span class="shrink-0">
+              {{ roleLabel }}
+            </span>
+          </div>
         </div>
 
-        <PrimaryButton class="min-w-20 px-6" variant="outline" @click="handleLogout">
+        <PrimaryButton
+          class="min-w-16 px-3 sm:min-w-20 sm:px-6"
+          variant="outline"
+          @click="handleLogout"
+        >
           登出
         </PrimaryButton>
+
+        <PrimaryButton
+          class="w-11 px-0 lg:hidden"
+          variant="outline"
+          :aria-expanded="isMenuOpen"
+          aria-controls="app-navbar-menu"
+          :aria-label="isMenuOpen ? '關閉選單' : '開啟選單'"
+          @click="toggleMenu"
+        >
+          <XIcon v-if="isMenuOpen" class="size-6" />
+
+          <MenuIcon v-else class="size-6" />
+        </PrimaryButton>
       </div>
+    </div>
+
+    <!-- Mobile / Tablet Menu -->
+    <div
+      v-show="isMenuOpen"
+      id="app-navbar-menu"
+      class="border-t bg-background/95 px-4 py-3 lg:hidden"
+    >
+      <div class="mb-3 font-bold">
+        <div>{{ greetingText }}</div>
+        <div>{{ userInfo }}</div>
+      </div>
+
+      <nav class="flex flex-col gap-2">
+        <PrimaryButton
+          v-for="item in navItems"
+          :key="`mobile-${item.name}`"
+          class="w-full"
+          variant="standard"
+          @click="goTo(item.name)"
+        >
+          {{ item.label }}
+        </PrimaryButton>
+      </nav>
     </div>
   </header>
 </template>

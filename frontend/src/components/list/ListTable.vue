@@ -1,10 +1,6 @@
 <script lang="ts">
 import { defineComponent, h, type HTMLAttributes, type PropType } from 'vue'
-import {
-  TableCell as UiTableCell,
-  TableHead,
-  TableRow as UiTableRow,
-} from '@/components/ui/table'
+import { TableCell as UiTableCell, TableHead, TableRow as UiTableRow } from '@/components/ui/table'
 import { cn } from '@/lib/utils'
 
 export const ListTableHead = defineComponent({
@@ -17,7 +13,7 @@ export const ListTableHead = defineComponent({
   },
   setup(props, { slots }) {
     return () =>
-      h(TableHead, { class: cn('text-center', props.class) }, slots.default?.())
+      h(TableHead, { class: cn('text-center !text-card-foreground', props.class) }, slots.default?.())
   },
 })
 
@@ -34,10 +30,7 @@ export const ListTableRow = defineComponent({
       h(
         UiTableRow,
         {
-          class: cn(
-            'h-[52px] hover:bg-[rgba(255,185,135,0.72)]',
-            props.class,
-          ),
+          class: cn('h-[52px]', props.class),
         },
         slots.default?.(),
       )
@@ -59,7 +52,11 @@ export const ListTableCell = defineComponent({
       h(
         UiTableCell,
         {
-          class: cn('h-[52px] py-2 text-center', props.truncate && 'truncate', props.class),
+          class: cn(
+            'h-[52px] text-center text-card-foreground',
+            props.truncate && 'truncate',
+            props.class,
+          ),
           title: props.title,
         },
         slots.default?.(),
@@ -70,21 +67,16 @@ export const ListTableCell = defineComponent({
 export const ListTableActions = defineComponent({
   name: 'ListTableActions',
   setup(_, { slots }) {
-    return () => h('div', { class: 'flex h-9 items-center justify-center gap-2' }, slots.default?.())
+    return () =>
+      h('div', { class: 'flex h-9 items-center justify-center gap-2' }, slots.default?.())
   },
 })
 </script>
 
 <script setup lang="ts">
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table'
+import { Table, TableBody, TableCell, TableHeader, TableRow } from '@/components/ui/table'
 
-const LIST_TABLE_EMPTY_CELL_CLASS = 'py-8 text-center text-muted-foreground'
+const LIST_TABLE_EMPTY_CELL_CLASS = 'py-8 text-center text-card-foreground'
 
 const props = withDefaults(
   defineProps<{
@@ -104,24 +96,26 @@ const props = withDefaults(
 </script>
 
 <template>
-  <Table class="table-fixed rounded-md border border-border bg-card">
-    <TableHeader>
-      <TableRow class="hover:bg-transparent">
-        <slot name="header" />
-      </TableRow>
-    </TableHeader>
-    <TableBody>
-      <TableRow v-if="props.isLoading">
-        <TableCell :colspan="props.columnCount" :class="LIST_TABLE_EMPTY_CELL_CLASS">
-          {{ props.loadingText }}
-        </TableCell>
-      </TableRow>
-      <TableRow v-else-if="props.isEmpty">
-        <TableCell :colspan="props.columnCount" :class="LIST_TABLE_EMPTY_CELL_CLASS">
-          {{ props.emptyText }}
-        </TableCell>
-      </TableRow>
-      <slot v-else />
-    </TableBody>
-  </Table>
+  <div class="overflow-x-auto overflow-y-hidden rounded-lg border border-border bg-card">
+    <Table class="table-fixed bg-card text-card-foreground [&_th]:text-card-foreground">
+      <TableHeader>
+        <TableRow class="hover:bg-transparent">
+          <slot name="header" />
+        </TableRow>
+      </TableHeader>
+      <TableBody>
+        <TableRow v-if="props.isLoading">
+          <TableCell :colspan="props.columnCount" :class="LIST_TABLE_EMPTY_CELL_CLASS">
+            {{ props.loadingText }}
+          </TableCell>
+        </TableRow>
+        <TableRow v-else-if="props.isEmpty">
+          <TableCell :colspan="props.columnCount" :class="LIST_TABLE_EMPTY_CELL_CLASS">
+            {{ props.emptyText }}
+          </TableCell>
+        </TableRow>
+        <slot v-else />
+      </TableBody>
+    </Table>
+  </div>
 </template>

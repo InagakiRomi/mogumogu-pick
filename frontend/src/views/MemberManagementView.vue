@@ -3,17 +3,17 @@ import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import type { components } from '@/api/schema'
 import client from '@/api/client'
-import ConfirmAlertDialog from '@/components/feedback/ConfirmAlertDialog.vue'
-import FormAlertDialog from '@/components/feedback/FormAlertDialog.vue'
+import ConfirmationAlertDialog from '@/components/alert/ConfirmationAlertDialog.vue'
+import FormDialog from '@/components/form/FormDialog.vue'
 import FormSelectField from '@/components/form/FormSelectField.vue'
-import ListPagePanel from '@/components/form/ListPagePanel.vue'
-import ListSection from '@/components/form/ListSection.vue'
+import ListPagePanel from '@/components/list/ListPagePanel.vue'
+import ListSection from '@/components/list/ListSection.vue'
 import ListTable, {
   ListTableActions,
   ListTableCell,
   ListTableHead,
   ListTableRow,
-} from '@/components/form/ListTable.vue'
+} from '@/components/list/ListTable.vue'
 import PrimaryButton from '@/components/common/PrimaryButton.vue'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -24,7 +24,7 @@ import { getRoleLabel, isGroupAdmin } from '@/lib/userRole'
 
 const FORM_LABEL_CLASS = 'font-bold text-muted-foreground'
 const FORM_INPUT_CLASS =
-  'h-10 px-2.5 text-sm rounded-md border border-border bg-muted/90 text-popover-foreground'
+  'h-10 px-2.5 rounded-md border border-border bg-muted/90 text-popover-foreground'
 const FORM_TOOLBAR_CLASS = 'flex flex-wrap items-end gap-3'
 const DEFAULT_SORT_OPTIONS = [
   { label: '小到大', value: 'ASC' as const },
@@ -56,9 +56,11 @@ const isSavingGroupName = ref(false)
 const isGroupNameDialogOpen = ref(false)
 const isRemoveMemberDialogOpen = ref(false)
 const isTransferAdminDialogOpen = ref(false)
+const isLeaveGroupDialogOpen = ref(false)
 const isAddingMember = ref(false)
 const isRemovingMember = ref(false)
 const isTransferringAdmin = ref(false)
+const isLeavingGroup = ref(false)
 const removingMember = ref<GroupMember | null>(null)
 const transferTargetMember = ref<GroupMember | null>(null)
 const groupProfile = ref<GroupProfile | null>(null)
@@ -174,7 +176,9 @@ async function updateGroupName() {
     if (groupProfile.value) {
       groupProfile.value.groupName = groupName
     }
-    showFeedback('團隊名稱已更新', 'success')
+    showFeedback('團隊名稱已更新', 'success', () => {
+      window.location.reload()
+    })
   } finally {
     closeGroupNameDialog()
     isSavingGroupName.value = false
@@ -296,26 +300,28 @@ async function handleTransferAdmin() {
 }
 
 async function leaveGroup() {
-  const confirmed = window.confirm('確定要退出群組嗎？')
-  if (!confirmed) {
-    return
-  }
+  isLeavingGroup.value = true
 
-  const { error } = await client.POST('/groups/my/leave', {})
-  if (error) {
-    showFeedback(getApiErrorMessage(error, '退出群組失敗'))
-    return
-  }
-
-  if (authSession.value) {
-    authSession.value = {
-      ...authSession.value,
-      groupId: null,
+  try {
+    const { error } = await client.POST('/groups/my/leave', {})
+    if (error) {
+      showFeedback(getApiErrorMessage(error, '退出群組失敗'))
+      return
     }
-  }
 
-  showFeedback('你已退出群組', 'success')
-  await router.push({ name: 'no-group' })
+    if (authSession.value) {
+      authSession.value = {
+        ...authSession.value,
+        groupId: null,
+      }
+    }
+
+    showFeedback('你已退出群組', 'success')
+    await router.push({ name: 'no-group' })
+  } finally {
+    isLeaveGroupDialogOpen.value = false
+    isLeavingGroup.value = false
+  }
 }
 
 onMounted(() => {
@@ -338,109 +344,107 @@ onMounted(() => {
       </section>
 
       <ListSection title="成員列表" :summary="`共 ${members.length} 位成員`">
-        <div :class="FORM_TOOLBAR_CLASS">
-          <FormSelectField
-            v-model="orderBy"
-            label="排序欄位"
-            :options="memberListForm.orderByOptions"
-            placeholder="選擇排序欄位"
-          />
-          <FormSelectField
-            v-model="sort"
-            label="排序方向"
-            :options="memberListForm.sortOptions"
-            placeholder="選擇排序方向"
+      <div :class="FORM_TOOLBAR_CLASS">
+        <FormSelectField
+          v-model="orderBy"
+          label="排序欄位"
+          :options="memberListForm.orderByOptions"
+          placeholder="選擇排序欄位"
+        />
+        <FormSelectField
+          v-model="sort"
+          label="排序方向"
+          :options="memberListForm.sortOptions"
+          placeholder="選擇排序方向"
+        />
+      </div>
+
+      <div v-if="canManageMembers" :class="FORM_TOOLBAR_CLASS">
+        <div class="min-w-60 grow space-y-2">
+          <Label for="target-email" :class="FORM_LABEL_CLASS">新增成員（電子郵件）</Label>
+          <Input
+            id="target-email"
+            v-model="targetEmailInput"
+            type="email"
+            autocomplete="email"
+            :class="FORM_INPUT_CLASS"
+            placeholder="輸入要加入的電子郵件"
+            @keyup.enter="addMemberByEmail"
           />
         </div>
+        <PrimaryButton :disabled="isLoading || isAddingMember" @click="addMemberByEmail">
+          {{ isAddingMember ? '加入中...' : '加入成員' }}
+        </PrimaryButton>
+      </div>
 
-        <div v-if="canManageMembers" :class="FORM_TOOLBAR_CLASS">
-          <div class="min-w-60 grow space-y-2">
-            <Label for="target-email" :class="FORM_LABEL_CLASS">新增成員（電子郵件）</Label>
-            <Input
-              id="target-email"
-              v-model="targetEmailInput"
-              type="email"
-              autocomplete="email"
-              :class="FORM_INPUT_CLASS"
-              placeholder="輸入要加入的電子郵件"
-              @keyup.enter="addMemberByEmail"
-            />
-          </div>
-          <PrimaryButton :disabled="isLoading || isAddingMember" @click="addMemberByEmail">
-            {{ isAddingMember ? '加入中...' : '加入成員' }}
-          </PrimaryButton>
-        </div>
+      <ListTable
+        :is-loading="isLoading"
+        :is-empty="sortedMembers.length === 0"
+        :column-count="5"
+        :loading-text="memberListForm.loadingText"
+        :empty-text="memberListForm.emptyText"
+      >
+        <template #header>
+          <ListTableHead class="w-21">ID</ListTableHead>
+          <ListTableHead class="w-20">排序 ID</ListTableHead>
+          <ListTableHead>名稱</ListTableHead>
+          <ListTableHead class="w-30">角色</ListTableHead>
+          <ListTableHead class="w-75">操作</ListTableHead>
+        </template>
 
-        <ListTable
-          :is-loading="isLoading"
-          :is-empty="sortedMembers.length === 0"
-          :column-count="5"
-          :loading-text="memberListForm.loadingText"
-          :empty-text="memberListForm.emptyText"
-        >
-          <template #header>
-            <ListTableHead class="w-21">ID</ListTableHead>
-            <ListTableHead class="w-20">排序 ID</ListTableHead>
-            <ListTableHead>名稱</ListTableHead>
-            <ListTableHead class="w-30">角色</ListTableHead>
-            <ListTableHead class="w-75">操作</ListTableHead>
-          </template>
-
-          <ListTableRow v-for="member in sortedMembers" :key="member.userId ?? member.username">
-            <ListTableCell>{{ member.userId ?? '-' }}</ListTableCell>
-            <ListTableCell>{{ member.displayOrderId ?? '-' }}</ListTableCell>
-            <ListTableCell truncate :title="member.username ?? undefined">
-              {{ member.username ?? '-' }}
-            </ListTableCell>
-            <ListTableCell>{{ getRoleLabel(member.role) }}</ListTableCell>
-            <ListTableCell>
-              <ListTableActions>
-                <template v-if="canManageMembers">
-                  <template v-if="isCurrentUser(member)">
-                    <span class="inline-flex h-9 items-center text-sm text-muted-foreground"
-                      >-</span
-                    >
-                  </template>
-                  <template v-else>
-                    <PrimaryButton
-                      variant="outline"
-                      class="h-9 px-3 text-sm"
-                      :disabled="member.role === 0"
-                      @click="openTransferAdminDialog(member)"
-                    >
-                      轉移管理員
-                    </PrimaryButton>
-                    <PrimaryButton
-                      variant="outline"
-                      class="h-9 px-3 text-sm"
-                      @click="openRemoveMemberDialog(member)"
-                    >
-                      刪除成員
-                    </PrimaryButton>
-                  </template>
+        <ListTableRow v-for="member in sortedMembers" :key="member.userId ?? member.username">
+          <ListTableCell>{{ member.userId ?? '-' }}</ListTableCell>
+          <ListTableCell>{{ member.displayOrderId ?? '-' }}</ListTableCell>
+          <ListTableCell truncate :title="member.username ?? undefined">
+            {{ member.username ?? '-' }}
+          </ListTableCell>
+          <ListTableCell>{{ getRoleLabel(member.role) }}</ListTableCell>
+          <ListTableCell>
+            <ListTableActions>
+              <template v-if="canManageMembers">
+                <template v-if="isCurrentUser(member)">
+                  <span class="inline-flex h-9 items-center text-muted-foreground">-</span>
                 </template>
                 <template v-else>
                   <PrimaryButton
-                    v-if="isCurrentUser(member)"
                     variant="outline"
-                    class="h-9 px-3 text-sm"
-                    @click="leaveGroup"
+                    class="h-9 px-3"
+                    :disabled="member.role === 0"
+                    @click="openTransferAdminDialog(member)"
                   >
-                    退出群組
+                    轉移管理員
                   </PrimaryButton>
-                  <span v-else class="inline-flex h-9 items-center text-sm text-muted-foreground"
-                    >-</span
+                  <PrimaryButton
+                    variant="outline"
+                    class="h-9 px-3"
+                    @click="openRemoveMemberDialog(member)"
                   >
+                    刪除成員
+                  </PrimaryButton>
                 </template>
-              </ListTableActions>
-            </ListTableCell>
-          </ListTableRow>
-        </ListTable>
+              </template>
+              <template v-else>
+                <PrimaryButton
+                  v-if="isCurrentUser(member)"
+                  variant="outline"
+                  class="h-9 px-3"
+                  @click="isLeaveGroupDialogOpen = true"
+                >
+                  退出群組
+                </PrimaryButton>
+                <span v-else class="inline-flex h-9 items-center text-muted-foreground"
+                  >-</span
+                >
+              </template>
+            </ListTableActions>
+          </ListTableCell>
+        </ListTableRow>
+      </ListTable>
       </ListSection>
     </div>
 
     <template #overlay>
-      <FormAlertDialog
+      <FormDialog
         :open="isGroupNameDialogOpen"
         title="更新團隊名稱"
         submit-label="更新"
@@ -451,43 +455,49 @@ onMounted(() => {
         @submit="updateGroupName"
         @cancel="closeGroupNameDialog"
       >
-        <div class="space-y-2">
-          <Label for="group-name-dialog" :class="FORM_LABEL_CLASS">團隊名稱</Label>
+        <div>
+          <Label for="group-name-dialog">團隊名稱</Label>
           <Input
             id="group-name-dialog"
             v-model="groupNameInput"
             maxlength="64"
-            :class="FORM_INPUT_CLASS"
             placeholder="輸入團隊名稱"
           />
         </div>
-      </FormAlertDialog>
+      </FormDialog>
 
-      <ConfirmAlertDialog
-        v-model:open="isRemoveMemberDialogOpen"
+      <ConfirmationAlertDialog
+        :open="isRemoveMemberDialogOpen"
         title="確認移出成員？"
+        :description="`確定要將成員「${removingMember?.username?.trim() || `ID ${removingMember?.userId ?? ''}`}」移出群組嗎？`"
         confirm-label="確認移出"
         loading-label="移出中..."
         :loading="isRemovingMember"
+        @update:open="isRemoveMemberDialogOpen = $event"
         @confirm="handleRemoveMember"
-      >
-        確定要將成員「{{
-          removingMember?.username?.trim() || `ID ${removingMember?.userId ?? ''}`
-        }}」移出群組嗎？
-      </ConfirmAlertDialog>
+      />
 
-      <ConfirmAlertDialog
-        v-model:open="isTransferAdminDialogOpen"
+      <ConfirmationAlertDialog
+        :open="isTransferAdminDialogOpen"
         title="確認轉移管理權？"
+        :description="`確定要將管理權轉移給「${transferTargetMember?.username?.trim() || `ID ${transferTargetMember?.userId ?? ''}`}」嗎？`"
         confirm-label="確認轉移"
         loading-label="轉移中..."
         :loading="isTransferringAdmin"
+        @update:open="isTransferAdminDialogOpen = $event"
         @confirm="handleTransferAdmin"
-      >
-        確定要將管理權轉移給「{{
-          transferTargetMember?.username?.trim() || `ID ${transferTargetMember?.userId ?? ''}`
-        }}」嗎？
-      </ConfirmAlertDialog>
+      />
+
+      <ConfirmationAlertDialog
+        :open="isLeaveGroupDialogOpen"
+        title="確認退出群組？"
+        description="確定要退出群組嗎？"
+        confirm-label="確認退出"
+        loading-label="退出中..."
+        :loading="isLeavingGroup"
+        @update:open="isLeaveGroupDialogOpen = $event"
+        @confirm="leaveGroup"
+      />
     </template>
   </ListPagePanel>
 </template>

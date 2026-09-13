@@ -70,7 +70,6 @@ const API_ERROR_PATTERNS: Array<{ pattern: RegExp; message: string }> = [
 
 export const AUTH_FEEDBACK_MESSAGES = {
   login: {
-    success: '登入成功',
     fallback: '登入失敗，請確認帳號密碼',
     missingToken: '登入失敗，伺服器未回傳有效的登入憑證',
   },

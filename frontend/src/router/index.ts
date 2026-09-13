@@ -9,6 +9,7 @@ import RandomRestaurantView from '@/views/RandomRestaurantView.vue'
 import RestaurantHistoryView from '@/views/RestaurantHistoryView.vue'
 import RestaurantDetailView from '@/views/RestaurantDetailView.vue'
 import RestaurantListView from '@/views/RestaurantListView.vue'
+import MapView from '@/views/MapView.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -47,6 +48,12 @@ const router = createRouter({
       path: '/restaurants/history',
       name: 'restaurant-history',
       component: RestaurantHistoryView,
+      meta: { requiresAuth: true, requiresGroup: true },
+    },
+    {
+      path: '/map',
+      name: 'map',
+      component: MapView,
       meta: { requiresAuth: true, requiresGroup: true },
     },
     {

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useRoute } from 'vue-router'
-import FeedbackAlertDialog from '@/components/feedback/FeedbackAlertDialog.vue'
+import FeedbackAlertDialog from '@/components/alert/FeedbackAlertDialog.vue'
 import AppNavbar from '@/layouts/AppNavbar.vue'
 import { authToken } from '@/lib/authToken'
 
