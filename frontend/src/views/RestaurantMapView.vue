@@ -271,7 +271,7 @@ onUnmounted(() => {
 
 <template>
   <div
-    class="relative h-[calc(100dvh-4rem-1px)] w-full sm:h-[calc(100dvh-4.5rem-1px)] md:h-[calc(100dvh-5rem-1px)]"
+    class="relative h-full min-h-full w-full"
   >
     <div ref="mapContainer" class="h-full w-full overflow-hidden" />
 

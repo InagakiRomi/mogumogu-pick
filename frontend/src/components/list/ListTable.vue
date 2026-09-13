@@ -106,7 +106,7 @@ const props = withDefaults(
 <template>
   <div class="min-w-0 overflow-x-auto overflow-y-hidden rounded-lg border border-border bg-card">
     <Table
-      class="w-full min-w-[80rem] table-fixed bg-card text-card-foreground [&_th]:text-card-foreground"
+      class="w-full min-w-7xl table-fixed bg-card text-card-foreground [&_th]:text-card-foreground"
     >
       <TableHeader>
         <TableRow class="hover:bg-transparent">

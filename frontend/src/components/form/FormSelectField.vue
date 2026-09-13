@@ -1,12 +1,8 @@
 <script setup lang="ts" generic="T extends string">
 import { Label } from '@/components/ui/label'
 import PrimarySelectTrigger from '@/components/common/PrimarySelectTrigger.vue'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectValue,
-} from '@/components/ui/select'
+import PrimarySelectContent from '@/components/common/PrimarySelectContent.vue'
+import { Select, SelectItem, SelectValue } from '@/components/ui/select'
 
 type SelectOption<T extends string = string> = {
   label: string
@@ -23,7 +19,7 @@ withDefaults(
     id?: string
   }>(),
   {
-    placeholder: '請選擇',
+    placeholder: '',
   },
 )
 </script>
@@ -35,11 +31,22 @@ withDefaults(
       <PrimarySelectTrigger :id="id">
         <SelectValue :placeholder="placeholder" />
       </PrimarySelectTrigger>
-      <SelectContent class="border-border bg-card text-popover-foreground">
+      <PrimarySelectContent
+        position="popper"
+        align="start"
+        class="form-select-content w-(--reka-select-trigger-width) max-w-(--reka-select-trigger-width) border-border bg-card text-popover-foreground"
+      >
         <SelectItem v-for="option in options" :key="option.value" :value="option.value">
           {{ option.label }}
         </SelectItem>
-      </SelectContent>
+      </PrimarySelectContent>
     </Select>
   </div>
 </template>
+
+<style scoped>
+:global([data-slot='select-content'].form-select-content [data-position='popper']) {
+  height: auto;
+  max-height: min(16rem, var(--reka-select-content-available-height, 16rem));
+}
+</style>

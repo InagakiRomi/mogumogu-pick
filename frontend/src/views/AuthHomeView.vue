@@ -12,7 +12,8 @@ import { useFeedbackDialog } from '@/composables/useFeedbackDialog'
 import { useServerConnection } from '@/composables/useServerConnection'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Select, SelectContent, SelectItem, SelectValue } from '@/components/ui/select'
+import PrimarySelectContent from '@/components/common/PrimarySelectContent.vue'
+import { Select, SelectItem, SelectValue } from '@/components/ui/select'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { homeBgBackgroundStyle, publicAsset } from '@/lib/utils'
 
@@ -127,7 +128,7 @@ async function handleRegister() {
 
 <template>
   <main
-    class="min-h-screen bg-cover bg-center bg-no-repeat px-4 pt-5 pb-10 max-md:bg-top max-md:pt-3"
+    class="min-h-full bg-cover bg-center bg-no-repeat px-4 pt-5 pb-10 max-md:bg-top max-md:pt-3"
     :style="homeBgBackgroundStyle"
   >
     <div class="mx-auto w-fit text-center max-md:w-[calc(100%-24px)]">
@@ -184,7 +185,6 @@ async function handleRegister() {
                 :class="authFieldClass"
                 type="email"
                 autocomplete="email"
-                placeholder="you@test.com"
                 required
               />
             </div>
@@ -197,7 +197,6 @@ async function handleRegister() {
                 :class="authFieldClass"
                 type="password"
                 autocomplete="current-password"
-                placeholder="請輸入密碼"
                 required
               />
             </div>
@@ -218,7 +217,6 @@ async function handleRegister() {
                 :class="authFieldClass"
                 type="text"
                 autocomplete="username"
-                placeholder="請輸入名稱"
                 required
               />
             </div>
@@ -231,7 +229,6 @@ async function handleRegister() {
                 :class="authFieldClass"
                 type="email"
                 autocomplete="email"
-                placeholder="you@test.com"
                 required
               />
             </div>
@@ -244,7 +241,6 @@ async function handleRegister() {
                 :class="authFieldClass"
                 type="password"
                 autocomplete="new-password"
-                placeholder="請輸入密碼"
                 required
               />
             </div>
@@ -253,12 +249,12 @@ async function handleRegister() {
               <Label :class="authLabelClass"> 帳號類型 </Label>
               <Select v-model="registerForm.role">
                 <PrimarySelectTrigger>
-                  <SelectValue placeholder="選擇帳號類型" />
+                  <SelectValue />
                 </PrimarySelectTrigger>
-                <SelectContent class="border-border bg-card text-popover-foreground">
+                <PrimarySelectContent class="border-border bg-card text-popover-foreground">
                   <SelectItem value="1"> 一般使用者 </SelectItem>
                   <SelectItem value="0"> 群組管理員 </SelectItem>
-                </SelectContent>
+                </PrimarySelectContent>
               </Select>
             </div>
 

@@ -3,7 +3,7 @@ import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import type { components } from '@/api/schema'
 import client from '@/api/client'
-import ConfirmationAlertDialog from '@/components/alert/ConfirmationAlertDialog.vue'
+import AlertConfirm from '@/components/alert/AlertConfirm.vue'
 import FormDialog from '@/components/form/FormDialog.vue'
 import FormSelectField from '@/components/form/FormSelectField.vue'
 import ListPagePanel from '@/components/list/ListPagePanel.vue'
@@ -349,13 +349,11 @@ onMounted(() => {
           v-model="orderBy"
           label="排序欄位"
           :options="memberListForm.orderByOptions"
-          placeholder="選擇排序欄位"
         />
         <FormSelectField
           v-model="sort"
           label="排序方向"
           :options="memberListForm.sortOptions"
-          placeholder="選擇排序方向"
         />
       </div>
 
@@ -368,7 +366,6 @@ onMounted(() => {
             type="email"
             autocomplete="email"
             :class="FORM_INPUT_CLASS"
-            placeholder="輸入要加入的電子郵件"
             @keyup.enter="addMemberByEmail"
           />
         </div>
@@ -461,12 +458,11 @@ onMounted(() => {
             id="group-name-dialog"
             v-model="groupNameInput"
             maxlength="64"
-            placeholder="輸入團隊名稱"
           />
         </div>
       </FormDialog>
 
-      <ConfirmationAlertDialog
+      <AlertConfirm
         :open="isRemoveMemberDialogOpen"
         title="確認移出成員？"
         :description="`確定要將成員「${removingMember?.username?.trim() || `ID ${removingMember?.userId ?? ''}`}」移出群組嗎？`"
@@ -477,7 +473,7 @@ onMounted(() => {
         @confirm="handleRemoveMember"
       />
 
-      <ConfirmationAlertDialog
+      <AlertConfirm
         :open="isTransferAdminDialogOpen"
         title="確認轉移管理權？"
         :description="`確定要將管理權轉移給「${transferTargetMember?.username?.trim() || `ID ${transferTargetMember?.userId ?? ''}`}」嗎？`"
@@ -488,7 +484,7 @@ onMounted(() => {
         @confirm="handleTransferAdmin"
       />
 
-      <ConfirmationAlertDialog
+      <AlertConfirm
         :open="isLeaveGroupDialogOpen"
         title="確認退出群組？"
         description="確定要退出群組嗎？"

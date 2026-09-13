@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { AlertDialog, AlertDialogDescription, AlertDialogTitle } from '@/components/ui/alert-dialog'
+import PrimaryAlert from '@/components/common/PrimaryAlert.vue'
 import PrimaryButton from '@/components/common/PrimaryButton.vue'
-import WarmAlertDialogShell from '@/components/alert/WarmAlertDialogShell.vue'
 import { useFeedbackDialog } from '@/composables/useFeedbackDialog'
 
 const { open, message, type, onOpenChange } = useFeedbackDialog()
@@ -12,7 +12,7 @@ const title = computed(() => (type.value === 'error' ? '提示' : '完成'))
 
 <template>
   <AlertDialog :open="open" @update:open="onOpenChange">
-    <WarmAlertDialogShell>
+    <PrimaryAlert>
       <template #title>
         <AlertDialogTitle class="w-full text-center text-2xl font-bold text-popover-foreground">
           {{ title }}
@@ -26,6 +26,6 @@ const title = computed(() => (type.value === 'error' ? '提示' : '完成'))
       <template #actions>
         <PrimaryButton class="min-w-24" @click="onOpenChange(false)"> 確定 </PrimaryButton>
       </template>
-    </WarmAlertDialogShell>
+    </PrimaryAlert>
   </AlertDialog>
 </template>

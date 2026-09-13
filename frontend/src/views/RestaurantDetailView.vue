@@ -3,14 +3,15 @@ import { computed, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import type { components } from '@/api/schema'
 import client from '@/api/client'
-import ConfirmationAlertDialog from '@/components/alert/ConfirmationAlertDialog.vue'
+import AlertConfirm from '@/components/alert/AlertConfirm.vue'
 import FormDialog from '@/components/form/FormDialog.vue'
 import PrimaryButton from '@/components/common/PrimaryButton.vue'
 import PrimaryPanel from '@/components/common/PrimaryPanel.vue'
 import PrimarySelectTrigger from '@/components/common/PrimarySelectTrigger.vue'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Select, SelectContent, SelectItem, SelectValue } from '@/components/ui/select'
+import PrimarySelectContent from '@/components/common/PrimarySelectContent.vue'
+import { Select, SelectItem, SelectValue } from '@/components/ui/select'
 import {
   Table,
   TableBody,
@@ -677,7 +678,7 @@ watch(isDeleteDishDialogOpen, (open) => {
 
 <template>
   <main
-    class="min-h-screen bg-fixed bg-cover bg-center bg-no-repeat px-4 py-6 md:px-6"
+    class="min-h-full bg-fixed bg-cover bg-center bg-no-repeat px-4 py-6 md:px-6"
     :style="homeBgBackgroundStyle"
   >
     <PrimaryPanel width="wide">
@@ -695,6 +696,7 @@ watch(isDeleteDishDialogOpen, (open) => {
                 修改餐廳
               </PrimaryButton>
               <PrimaryButton
+                v-if="canDeleteAsGroupAdmin"
                 variant="outline"
                 class="h-10 px-4"
                 :disabled="isDeleting || isSaving"
@@ -795,6 +797,7 @@ watch(isDeleteDishDialogOpen, (open) => {
                         修改
                       </PrimaryButton>
                       <PrimaryButton
+                        v-if="canDeleteAsGroupAdmin"
                         variant="outline"
                         class="h-9 px-3"
                         :disabled="isSavingDish || isDeletingDish"
@@ -829,7 +832,6 @@ watch(isDeleteDishDialogOpen, (open) => {
           id="edit-restaurant-name"
           v-model="editForm.restaurantName"
           maxlength="64"
-          placeholder="例如：和食天國"
           required
         />
       </div>
@@ -838,13 +840,17 @@ watch(isDeleteDishDialogOpen, (open) => {
         <Label for="edit-restaurant-category">分類</Label>
         <Select v-model="editForm.categoryId">
           <PrimarySelectTrigger id="edit-restaurant-category">
-            <SelectValue placeholder="選擇分類" />
+            <SelectValue />
           </PrimarySelectTrigger>
-          <SelectContent position="popper">
+          <PrimarySelectContent
+            position="popper"
+            align="start"
+            class="w-(--reka-select-trigger-width) max-w-(--reka-select-trigger-width) border-border bg-card text-popover-foreground"
+          >
             <SelectItem v-for="option in categoryOptions" :key="option.value" :value="option.value">
               {{ option.label }}
             </SelectItem>
-          </SelectContent>
+          </PrimarySelectContent>
         </Select>
       </div>
 
@@ -857,7 +863,6 @@ watch(isDeleteDishDialogOpen, (open) => {
             type="number"
             min="0"
             step="1"
-            placeholder="例如：1"
             required
           />
         </div>
@@ -870,7 +875,6 @@ watch(isDeleteDishDialogOpen, (open) => {
             type="number"
             min="0"
             step="1"
-            placeholder="例如：0"
             required
           />
         </div>
@@ -878,32 +882,17 @@ watch(isDeleteDishDialogOpen, (open) => {
 
       <div>
         <Label for="edit-restaurant-address">地址</Label>
-        <Input
-          id="edit-restaurant-address"
-          v-model="editForm.address"
-          maxlength="255"
-          placeholder="例如：台北市信義區信義路五段7號"
-        />
+        <Input id="edit-restaurant-address" v-model="editForm.address" maxlength="255" />
       </div>
 
       <div>
         <Label for="edit-restaurant-note">備註</Label>
-        <Input
-          id="edit-restaurant-note"
-          v-model="editForm.note"
-          maxlength="512"
-          placeholder="例如：可電話訂位"
-        />
+        <Input id="edit-restaurant-note" v-model="editForm.note" maxlength="512" />
       </div>
 
       <div>
         <Label for="edit-restaurant-image-url">圖片網址</Label>
-        <Input
-          id="edit-restaurant-image-url"
-          v-model="editForm.imageUrl"
-          maxlength="512"
-          placeholder="https://example.com/restaurant.jpg"
-        />
+        <Input id="edit-restaurant-image-url" v-model="editForm.imageUrl" maxlength="512" />
       </div>
 
       <div>
@@ -917,7 +906,7 @@ watch(isDeleteDishDialogOpen, (open) => {
       </div>
     </FormDialog>
 
-    <ConfirmationAlertDialog
+    <AlertConfirm
       :open="isDeleteDialogOpen"
       title="確認刪除餐廳？"
       :description="`確定要刪除「${restaurant?.restaurantName ?? '此餐廳'}」嗎？此操作無法復原。`"
@@ -941,13 +930,7 @@ watch(isDeleteDishDialogOpen, (open) => {
     >
       <div>
         <Label for="create-dish-name">餐點名稱</Label>
-        <Input
-          id="create-dish-name"
-          v-model="createDishForm.dishName"
-          maxlength="64"
-          placeholder="例如：牛肉拉麵"
-          required
-        />
+        <Input id="create-dish-name" v-model="createDishForm.dishName" maxlength="64" required />
       </div>
 
       <div>
@@ -958,7 +941,6 @@ watch(isDeleteDishDialogOpen, (open) => {
           type="number"
           min="0"
           step="1"
-          placeholder="例如：130"
           required
         />
       </div>
@@ -983,20 +965,13 @@ watch(isDeleteDishDialogOpen, (open) => {
           type="number"
           min="1"
           step="1"
-          placeholder="例如：1"
           required
         />
       </div>
 
       <div>
         <Label for="edit-dish-name">餐點名稱</Label>
-        <Input
-          id="edit-dish-name"
-          v-model="editDishForm.dishName"
-          maxlength="64"
-          placeholder="例如：雙倍叉燒拉麵"
-          required
-        />
+        <Input id="edit-dish-name" v-model="editDishForm.dishName" maxlength="64" required />
       </div>
 
       <div>
@@ -1007,13 +982,12 @@ watch(isDeleteDishDialogOpen, (open) => {
           type="number"
           min="0"
           step="1"
-          placeholder="例如：180"
           required
         />
       </div>
     </FormDialog>
 
-    <ConfirmationAlertDialog
+    <AlertConfirm
       :open="isDeleteDishDialogOpen"
       title="確認刪除餐點？"
       :description="`確定要刪除「${deletingDish?.dishName ?? '此餐點'}」嗎？此操作無法復原。`"

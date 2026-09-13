@@ -19,7 +19,8 @@ import PrimarySelectTrigger from '@/components/common/PrimarySelectTrigger.vue'
 import { authSession } from '@/lib/authSession'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Select, SelectContent, SelectItem, SelectValue } from '@/components/ui/select'
+import PrimarySelectContent from '@/components/common/PrimarySelectContent.vue'
+import { Select, SelectItem, SelectValue } from '@/components/ui/select'
 import { useFeedbackDialog } from '@/composables/useFeedbackDialog'
 import {
   ALL_CATEGORIES_VALUE,
@@ -52,9 +53,7 @@ const restaurantListForm = {
   ],
   sortOptions: DEFAULT_SORT_OPTIONS,
   searchLabel: '餐廳名稱搜尋',
-  searchPlaceholder: '輸入關鍵字，例如：拉麵',
   categoryLabel: '分類',
-  categoryPlaceholder: '選擇分類',
   loadingText: '載入資料中...',
   emptyText: '找不到符合條件的餐廳',
 }
@@ -287,7 +286,6 @@ onMounted(() => {
             id="restaurant-search"
             v-model="searchInput"
             class="h-10 px-2.5 rounded-md border border-border bg-muted/90 text-popover-foreground"
-            :placeholder="restaurantListForm.searchPlaceholder"
             @keyup.enter="handleSearch"
           />
         </div>
@@ -297,19 +295,16 @@ onMounted(() => {
           v-model="selectedCategory"
           :label="restaurantListForm.categoryLabel"
           :options="categoryOptionsWithAll"
-          :placeholder="restaurantListForm.categoryPlaceholder"
         />
         <FormSelectField
           v-model="orderBy"
           label="排序欄位"
           :options="restaurantListForm.orderByOptions"
-          placeholder="選擇排序欄位"
         />
         <FormSelectField
           v-model="sort"
           label="排序方向"
           :options="restaurantListForm.sortOptions"
-          placeholder="選擇排序方向"
         />
 
         <PrimaryButton :disabled="isLoading" @click="handleSearch">
@@ -353,12 +348,12 @@ onMounted(() => {
           </ListTableCell>
           <ListTableCell
             truncate
-            class="font-medium"
+            class="text-left font-medium"
             :title="restaurant.restaurantName ?? undefined"
           >
             {{ restaurant.restaurantName ?? '-' }}
           </ListTableCell>
-          <ListTableCell truncate :title="restaurant.address || undefined">
+          <ListTableCell truncate class="text-left" :title="restaurant.address || undefined">
             {{ restaurant.address || '-' }}
           </ListTableCell>
           <ListTableCell>{{ restaurant.categoryName ?? '-' }}</ListTableCell>
@@ -413,53 +408,41 @@ onMounted(() => {
             id="create-restaurant-name"
             v-model="createForm.restaurantName"
             maxlength="100"
-            placeholder="例如：和食天國"
             required
           />
         </div>
 
         <div>
           <Label for="create-restaurant-address">地址（選填）</Label>
-          <Input
-            id="create-restaurant-address"
-            v-model="createForm.address"
-            maxlength="255"
-            placeholder="例如：台北市信義區信義路五段7號"
-          />
+          <Input id="create-restaurant-address" v-model="createForm.address" maxlength="255" />
         </div>
 
         <div>
           <Label for="create-restaurant-category">分類</Label>
           <Select v-model="createForm.categoryId">
             <PrimarySelectTrigger id="create-restaurant-category">
-              <SelectValue placeholder="選擇分類" />
+              <SelectValue />
             </PrimarySelectTrigger>
-            <SelectContent position="popper">
+            <PrimarySelectContent
+              position="popper"
+              align="start"
+              class="w-(--reka-select-trigger-width) max-w-(--reka-select-trigger-width) border-border bg-card text-popover-foreground"
+            >
               <SelectItem v-for="option in categories" :key="option.value" :value="option.value">
                 {{ option.label }}
               </SelectItem>
-            </SelectContent>
+            </PrimarySelectContent>
           </Select>
         </div>
 
         <div>
           <Label for="create-restaurant-note">備註（選填）</Label>
-          <Input
-            id="create-restaurant-note"
-            v-model="createForm.note"
-            maxlength="255"
-            placeholder="例如：可電話訂位"
-          />
+          <Input id="create-restaurant-note" v-model="createForm.note" maxlength="255" />
         </div>
 
         <div>
           <Label for="create-restaurant-image-url">圖片網址（選填）</Label>
-          <Input
-            id="create-restaurant-image-url"
-            v-model="createForm.imageUrl"
-            maxlength="255"
-            placeholder="https://example.com/restaurant.jpg"
-          />
+          <Input id="create-restaurant-image-url" v-model="createForm.imageUrl" maxlength="255" />
         </div>
       </FormDialog>
     </template>

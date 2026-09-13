@@ -40,18 +40,20 @@ function handleCancel() {
 <template>
   <AlertDialog :open="open" @update:open="emit('update:open', $event)">
     <AlertDialogContent
-      class="form-dialog max-h-[min(90dvh,44rem)] w-[min(94vw,48rem)] max-w-[min(94vw,48rem)] overflow-y-auto border-border bg-card text-card-foreground"
+      class="form-dialog flex flex-col gap-0 max-h-[min(90dvh,44rem)] w-[min(94vw,48rem)] max-w-[min(94vw,48rem)] data-[size=default]:max-w-[min(94vw,48rem)] data-[size=sm]:max-w-[min(94vw,48rem)] data-[size=default]:sm:max-w-[min(94vw,48rem)] overflow-hidden border-border bg-card p-0 text-card-foreground"
     >
-      <AlertDialogHeader>
-        <AlertDialogTitle>{{ title }}</AlertDialogTitle>
+      <AlertDialogHeader
+        class="w-full shrink-0 grid-rows-[auto] rounded-t-xl border-b border-border bg-secondary p-4"
+      >
+        <AlertDialogTitle class="text-xl font-bold">{{ title }}</AlertDialogTitle>
       </AlertDialogHeader>
 
-      <form class="grid gap-4" @submit.prevent="emit('submit')">
-        <div class="form-dialog__fields grid min-w-0 gap-4">
+      <form class="flex min-h-0 flex-1 flex-col overflow-hidden" @submit.prevent="emit('submit')">
+        <div class="form-dialog__fields grid min-h-0 min-w-0 flex-1 content-start gap-4 overflow-y-auto px-4 py-4">
           <slot />
         </div>
 
-        <AlertDialogFooter class="mt-1 flex-col-reverse gap-3 sm:flex-row">
+        <AlertDialogFooter class="mx-0 mb-0 shrink-0 flex-col-reverse gap-3 sm:flex-row">
           <PrimaryButton
             type="button"
             variant="outline"
@@ -76,6 +78,10 @@ function handleCancel() {
 </template>
 
 <style scoped>
+.form-dialog__fields {
+  scrollbar-gutter: stable;
+}
+
 .form-dialog__fields > :deep(*) {
   display: grid;
   min-width: 0;
@@ -98,5 +104,16 @@ function handleCancel() {
 
 :global(body:has([data-slot='alert-dialog-content'].form-dialog) [data-slot='select-content']) {
   z-index: 10000;
+  width: var(--reka-select-trigger-width);
+  max-width: var(--reka-select-trigger-width);
+}
+
+:global(
+  body:has([data-slot='alert-dialog-content'].form-dialog)
+    [data-slot='select-content']
+    [data-position='popper']
+) {
+  height: auto;
+  max-height: min(16rem, var(--reka-select-content-available-height, 16rem));
 }
 </style>

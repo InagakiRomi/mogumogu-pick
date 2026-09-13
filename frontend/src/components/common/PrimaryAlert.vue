@@ -38,26 +38,5 @@ const alertBgImage = publicAsset('images/Alert.png')
 <style scoped>
 .content-scroll {
   overflow-y: auto;
-  scrollbar-width: thin;
-  scrollbar-color: color-mix(in oklab, var(--popover-foreground) 45%, transparent)
-    color-mix(in oklab, var(--popover-foreground) 12%, transparent);
-}
-
-.content-scroll::-webkit-scrollbar {
-  width: 8px;
-}
-
-.content-scroll::-webkit-scrollbar-track {
-  border-radius: 9999px;
-  background: color-mix(in oklab, var(--popover-foreground) 10%, transparent);
-}
-
-.content-scroll::-webkit-scrollbar-thumb {
-  border-radius: 9999px;
-  background: color-mix(in oklab, var(--popover-foreground) 40%, transparent);
-}
-
-.content-scroll::-webkit-scrollbar-thumb:hover {
-  background: color-mix(in oklab, var(--popover-foreground) 55%, transparent);
 }
 </style>

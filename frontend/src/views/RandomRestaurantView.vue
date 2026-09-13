@@ -6,7 +6,7 @@ import client from '@/api/client'
 import PrimaryButton from '@/components/common/PrimaryButton.vue'
 import PrimaryPanel from '@/components/common/PrimaryPanel.vue'
 import PrimarySelectTrigger from '@/components/common/PrimarySelectTrigger.vue'
-import ConfirmationAlertDialog from '@/components/alert/ConfirmationAlertDialog.vue'
+import AlertConfirm from '@/components/alert/AlertConfirm.vue'
 import { useFeedbackDialog } from '@/composables/useFeedbackDialog'
 import {
   ALL_CATEGORIES_VALUE,
@@ -15,7 +15,8 @@ import {
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Label } from '@/components/ui/label'
-import { Select, SelectContent, SelectItem, SelectValue } from '@/components/ui/select'
+import PrimarySelectContent from '@/components/common/PrimarySelectContent.vue'
+import { Select, SelectItem, SelectValue } from '@/components/ui/select'
 import { Separator } from '@/components/ui/separator'
 import { getApiErrorMessage, RESTAURANT_FEEDBACK_MESSAGES } from '@/lib/apiErrorMessage'
 import { homeBgBackgroundStyle, publicAsset } from '@/lib/utils'
@@ -276,7 +277,7 @@ async function handleChooseRestaurant() {
 
 <template>
   <main
-    class="min-h-screen bg-cover bg-center bg-no-repeat px-4 py-6"
+    class="min-h-full bg-cover bg-center bg-no-repeat px-4 py-6"
     :style="homeBgBackgroundStyle"
   >
     <PrimaryPanel>
@@ -285,9 +286,9 @@ async function handleChooseRestaurant() {
           <Label for="restaurant-category" class="font-bold text-muted-foreground">篩選類別</Label>
           <Select :model-value="selectedCategory" @update:model-value="handleCategoryChange">
             <PrimarySelectTrigger id="restaurant-category">
-              <SelectValue placeholder="選擇類別" />
+              <SelectValue />
             </PrimarySelectTrigger>
-            <SelectContent class="border-border bg-card text-popover-foreground">
+            <PrimarySelectContent class="border-border bg-card text-popover-foreground">
               <SelectItem
                 v-for="option in categoryOptionsWithAll"
                 :key="option.value"
@@ -295,7 +296,7 @@ async function handleChooseRestaurant() {
               >
                 {{ option.label }}
               </SelectItem>
-            </SelectContent>
+            </PrimarySelectContent>
           </Select>
         </div>
 
@@ -419,7 +420,7 @@ async function handleChooseRestaurant() {
       </div>
     </PrimaryPanel>
 
-    <ConfirmationAlertDialog
+    <AlertConfirm
       :open="isPostChooseDialogOpen"
       title="選擇成功！"
       :description="RESTAURANT_FEEDBACK_MESSAGES.choose.success(chosenRestaurantName)"

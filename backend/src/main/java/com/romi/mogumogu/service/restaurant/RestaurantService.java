@@ -305,6 +305,11 @@ public class RestaurantService {
         return selectionHistoryService.getMyGroupSelectionHistory(queryParams);
     }
 
+    /** 清除自己所屬群組的所有餐廳抽選歷史紀錄 */
+    public void clearMyGroupSelectionHistory() {
+        selectionHistoryService.clearMyGroupSelectionHistory();
+    }
+
     /** 確認選擇餐廳，更新選取紀錄並重置抽籤池 */
     @Transactional
     public RestaurantResponse chooseMyGroupRestaurant(Integer restaurantId) {

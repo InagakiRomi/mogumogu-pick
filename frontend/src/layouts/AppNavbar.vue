@@ -88,7 +88,7 @@ onMounted(loadGroupName)
 </script>
 
 <template>
-  <header ref="headerRef" class="sticky top-0 z-50 border-b bg-background/95">
+  <header ref="headerRef" class="z-50 shrink-0 border-b bg-background/95">
     <div class="flex w-full items-center justify-between gap-3 px-3 py-2 sm:px-4">
       <!-- 左側 -->
       <div class="flex min-w-0 flex-1 items-center gap-3 overflow-hidden sm:gap-5 xl:gap-7">

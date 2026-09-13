@@ -1082,6 +1082,31 @@ class RestaurantControllerTest {
         }
 
         @Nested
+        class ClearMyGroupSelectionHistory {
+
+                @Test
+                void success_returns204() throws Exception {
+                        performClearMyGroupSelectionHistory()
+                                        .andExpect(status().isNoContent());
+
+                        verify(restaurantService).clearMyGroupSelectionHistory();
+                }
+
+                @Test
+                void nonAdmin_returns403() throws Exception {
+                        doThrow(new ResponseStatusException(HttpStatus.FORBIDDEN,
+                                        "Only group admin can perform this action"))
+                                        .when(restaurantService).clearMyGroupSelectionHistory();
+
+                        assertErrorResponse(performClearMyGroupSelectionHistory(),
+                                        HttpStatus.FORBIDDEN, RESTAURANTS_SELECTION_HISTORY_PATH,
+                                        "Only group admin can perform this action");
+
+                        verify(restaurantService).clearMyGroupSelectionHistory();
+                }
+        }
+
+        @Nested
         class ClearMyGroupRandomPool {
 
                 @Test
@@ -1811,6 +1836,10 @@ class RestaurantControllerTest {
                 var requestBuilder = get(RESTAURANTS_SELECTION_HISTORY_PATH);
                 queryParams.forEach(requestBuilder::param);
                 return mockMvc.perform(requestBuilder);
+        }
+
+        private ResultActions performClearMyGroupSelectionHistory() throws Exception {
+                return mockMvc.perform(delete(RESTAURANTS_SELECTION_HISTORY_PATH));
         }
 
         private void stubGetMyGroupSelectionHistory(

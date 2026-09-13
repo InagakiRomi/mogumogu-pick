@@ -11,7 +11,8 @@ import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 
 public interface RestaurantSelectionHistoryRepository
                 extends JpaRepository<RestaurantSelectionHistoryEntity, Integer>,
-                JpaSpecificationExecutor<RestaurantSelectionHistoryEntity> {
+                JpaSpecificationExecutor<RestaurantSelectionHistoryEntity>,
+                RestaurantSelectionHistoryRepositoryCustom {
 
         /** 取得餐廳抽選歷史紀錄 */
         @EntityGraph(attributePaths = { "restaurant", "restaurant.categoryId" })
@@ -21,4 +22,7 @@ public interface RestaurantSelectionHistoryRepository
 
         /** 刪除餐廳底下的所有選取歷史 */
         void deleteByRestaurant_RestaurantId(Integer restaurantId);
+
+        /** 刪除群組底下的所有選取歷史 */
+        void deleteByGroupId(Integer groupId);
 }

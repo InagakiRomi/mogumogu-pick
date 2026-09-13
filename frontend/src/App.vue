@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useRoute } from 'vue-router'
-import FeedbackAlertDialog from '@/components/alert/FeedbackAlertDialog.vue'
+import AlertFeedback from '@/components/alert/AlertFeedback.vue'
 import AppNavbar from '@/layouts/AppNavbar.vue'
 import { authToken } from '@/lib/authToken'
 
@@ -13,7 +13,11 @@ const showNavbar = computed(
 </script>
 
 <template>
-  <AppNavbar v-if="showNavbar" />
-  <RouterView />
-  <FeedbackAlertDialog />
+  <div class="flex h-dvh flex-col overflow-hidden">
+    <AppNavbar v-if="showNavbar" />
+    <div class="app-page min-h-0 flex-1 overflow-x-hidden overflow-y-auto [&>*]:min-h-full">
+      <RouterView />
+    </div>
+    <AlertFeedback />
+  </div>
 </template>

@@ -278,7 +278,8 @@ export interface paths {
         get: operations["getMyGroupSelectionHistory"];
         put?: never;
         post?: never;
-        delete?: never;
+        /** 清除自己所屬群組的所有餐廳選擇歷史 */
+        delete: operations["clearMyGroupSelectionHistory"];
         options?: never;
         head?: never;
         patch?: never;
@@ -1331,6 +1332,24 @@ export interface operations {
                 content: {
                     "*/*": components["schemas"]["RestaurantListResponseSelectionHistoryResponse"];
                 };
+            };
+        };
+    };
+    clearMyGroupSelectionHistory: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };

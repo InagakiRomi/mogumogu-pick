@@ -17,7 +17,7 @@ function handleLogout() {
 
 <template>
   <main
-    class="flex min-h-screen items-center justify-center bg-cover bg-center bg-no-repeat px-4 py-6"
+    class="flex min-h-full items-center justify-center bg-cover bg-center bg-no-repeat px-4 py-6"
     :style="homeBgBackgroundStyle"
   >
     <PrimaryPanel class="mt-0 -translate-y-10">

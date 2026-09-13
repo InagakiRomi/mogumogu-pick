@@ -2,7 +2,7 @@
 import { computed, onMounted, ref } from 'vue'
 import type { components } from '@/api/schema'
 import client from '@/api/client'
-import ConfirmationAlertDialog from '@/components/alert/ConfirmationAlertDialog.vue'
+import AlertConfirm from '@/components/alert/AlertConfirm.vue'
 import FormDialog from '@/components/form/FormDialog.vue'
 import FormSelectField from '@/components/form/FormSelectField.vue'
 import ListPagePanel from '@/components/list/ListPagePanel.vue'
@@ -262,13 +262,11 @@ onMounted(() => {
           v-model="orderBy"
           label="排序欄位"
           :options="categoryListForm.orderByOptions"
-          placeholder="選擇排序欄位"
         />
         <FormSelectField
           v-model="sort"
           label="排序方向"
           :options="categoryListForm.sortOptions"
-          placeholder="選擇排序方向"
         />
         <PrimaryButton :disabled="isLoading" @click="openCreateDialog"> 新增分類 </PrimaryButton>
       </div>
@@ -306,6 +304,7 @@ onMounted(() => {
                 編輯
               </PrimaryButton>
               <PrimaryButton
+                v-if="canDeleteCategory"
                 variant="outline"
                 class="h-9 px-3"
                 @click="openDeleteDialog(category)"
@@ -336,7 +335,6 @@ onMounted(() => {
             id="create-category-name"
             v-model="createNameInput"
             maxlength="32"
-            placeholder="例如：甜點"
           />
         </div>
       </FormDialog>
@@ -358,7 +356,6 @@ onMounted(() => {
             id="edit-category-name"
             v-model="editNameInput"
             maxlength="32"
-            placeholder="例如：甜點"
           />
         </div>
 
@@ -370,12 +367,11 @@ onMounted(() => {
             type="number"
             min="1"
             step="1"
-            placeholder="例如：1"
           />
         </div>
       </FormDialog>
 
-      <ConfirmationAlertDialog
+      <AlertConfirm
         :open="isDeleteDialogOpen"
         title="確認刪除分類？"
         :description="`確定要刪除分類「${deletingCategory?.categoryName?.trim() || `ID ${deletingCategory?.categoryId ?? ''}`}」嗎？`"

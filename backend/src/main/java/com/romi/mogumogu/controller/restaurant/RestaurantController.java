@@ -76,6 +76,13 @@ public class RestaurantController {
         return restaurantService.getMyGroupSelectionHistory(queryParams);
     }
 
+    @DeleteMapping("/selection-history")
+    @Operation(summary = "清除自己所屬群組的所有餐廳選擇歷史")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void clearMyGroupSelectionHistory() {
+        restaurantService.clearMyGroupSelectionHistory();
+    }
+
     @PatchMapping("/{id}/choose")
     @Operation(summary = "確認選擇餐廳並重置抽籤池")
     public RestaurantResponse chooseMyGroupRestaurant(@PathVariable("id") Integer restaurantId) {
