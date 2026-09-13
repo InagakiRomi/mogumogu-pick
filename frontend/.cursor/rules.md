@@ -1,0 +1,33 @@
+# 底層元件不可改（`src/components/ui`）
+
+`src/components/ui` 是底層 primitive（shadcn / reka-ui），**禁止直接改檔、加 props、改 class、改預設行為**。
+
+需要客製時**只准複寫**：在上層包一層元件（如 `src/components/common`），import 底層再傳 `class`／`$attrs`／slot，或用 scoped／`:global` 覆寫樣式。
+
+- 正確：`PrimaryButton` 包 `Button`、`PrimarySelectContent` 包 `SelectContent`
+- 錯誤：改 `src/components/ui/select/SelectContent.vue` 的預設 class 或 props
+- 錯誤：為了單一畫面去改 `ui` 共用樣式
+
+# 註解風格（對齊 `logging/formatter/AnsiColoredJulFormatter`）
+
+撰寫註解時比照該檔：**繁體中文、極簡、只寫「這段在做什麼／為什麼存在」**，不要當文件或教學寫。
+
+## 原則（優先遵守）
+
+- **一句話夠就一句話**；能從方法名／變數名看出意圖的，**不要加註解**。
+- 只寫**功能或用途**（這個類／方法／區塊負責什麼），**不要**寫實作細節、逐步驟說明、參數逐欄解釋、邊角案例長文。
+- **禁止**：長段落、多行說同一件事、把程式「翻譯成中文」逐行註解、與程式碼重複的說明。
+
+## Javadoc（`/** … */`）
+
+- **類別與 public／private 方法**：**單行一句**說角色或回傳什麼即可（例如「自訂 log 輸出格式」「根據 log 級別回傳對應的顏色」）；非 API 文件需求時不要 `@param`／`@return` 長列表。
+- 技術名詞、API 名稱可保留原文。
+
+## 行內（`//`）
+
+- 只標**常數區塊**（如「時間格式設定」「ANSI 顏色碼」）或**非顯而易見的流程節點**（如「加上時間」「加上 logger 名稱」）。
+- **一行一個重點**；顯而易見的一行不必註解。
+
+## 避免
+
+- 結尾加句號、長篇教學、逐行翻譯程式、與程式不同步的註解。
