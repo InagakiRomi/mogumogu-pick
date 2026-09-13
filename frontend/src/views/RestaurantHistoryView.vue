@@ -13,7 +13,7 @@ import ListTable, {
   ListTableHead,
   ListTableRow,
 } from '@/components/form/ListTable.vue'
-import WarmButton from '@/components/warm/WarmButton.vue'
+import PrimaryButton from '@/components/common/PrimaryButton.vue'
 import { useFeedbackDialog } from '@/composables/useFeedbackDialog'
 import { getApiErrorMessage, RESTAURANT_FEEDBACK_MESSAGES } from '@/lib/apiErrorMessage'
 
@@ -166,14 +166,14 @@ onMounted(() => {
           </ListTableCell>
           <ListTableCell>
             <ListTableActions>
-              <WarmButton
+              <PrimaryButton
                 v-if="history.restaurantId != null"
-                variant="outline-standard"
+                variant="outline"
                 class="h-9 px-3 text-sm"
                 @click="goRestaurantDetail(history.restaurantId)"
               >
                 查看詳細
-              </WarmButton>
+              </PrimaryButton>
               <span v-else class="text-muted-foreground">-</span>
             </ListTableActions>
           </ListTableCell>

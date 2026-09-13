@@ -3,10 +3,10 @@ import { computed, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import type { components } from '@/api/schema'
 import client from '@/api/client'
+import PrimaryButton from '@/components/common/PrimaryButton.vue'
+import PrimaryPanel from '@/components/common/PrimaryPanel.vue'
+import PrimarySelectTrigger from '@/components/common/PrimarySelectTrigger.vue'
 import WarmAlertDialogShell from '@/components/feedback/WarmAlertDialogShell.vue'
-import WarmButton from '@/components/warm/WarmButton.vue'
-import WarmPanel from '@/components/warm/WarmPanel.vue'
-import WarmSelectTrigger from '@/components/warm/WarmSelectTrigger.vue'
 import { useFeedbackDialog } from '@/composables/useFeedbackDialog'
 import {
   ALL_CATEGORIES_VALUE,
@@ -278,14 +278,14 @@ async function handleChooseRestaurant() {
     class="min-h-screen bg-cover bg-center bg-no-repeat px-4 py-6"
     :style="homeBgBackgroundStyle"
   >
-    <WarmPanel>
+    <PrimaryPanel>
       <div class="space-y-5">
         <div class="space-y-2">
           <Label for="restaurant-category" class="font-bold text-muted-foreground">篩選類別</Label>
           <Select :model-value="selectedCategory" @update:model-value="handleCategoryChange">
-            <WarmSelectTrigger id="restaurant-category">
+            <PrimarySelectTrigger id="restaurant-category">
               <SelectValue placeholder="選擇類別" />
-            </WarmSelectTrigger>
+            </PrimarySelectTrigger>
             <SelectContent class="border-border bg-card text-popover-foreground">
               <SelectItem
                 v-for="option in categoryOptionsWithAll"
@@ -402,19 +402,19 @@ async function handleChooseRestaurant() {
         </div>
 
         <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
-          <WarmButton :disabled="isRandomLoading" @click="handleRandomRestaurant">
+          <PrimaryButton :disabled="isRandomLoading" @click="handleRandomRestaurant">
             {{ isRandomLoading ? '抽選中...' : '抽！' }}
-          </WarmButton>
-          <WarmButton
+          </PrimaryButton>
+          <PrimaryButton
             :disabled="!canChooseRestaurant"
-            variant="outline-standard"
+            variant="outline"
             @click="handleChooseRestaurant"
           >
             {{ isChooseLoading ? '送出中...' : '就決定選這間！' }}
-          </WarmButton>
+          </PrimaryButton>
         </div>
       </div>
-    </WarmPanel>
+    </PrimaryPanel>
 
     <AlertDialog :open="isPostChooseDialogOpen" @update:open="isPostChooseDialogOpen = $event">
       <WarmAlertDialogShell>
@@ -430,16 +430,16 @@ async function handleChooseRestaurant() {
         </AlertDialogDescription>
         <template #actions>
           <div class="flex flex-wrap items-center justify-center gap-3">
-            <WarmButton
+            <PrimaryButton
               class="min-w-30"
-              variant="outline-standard"
+              variant="outline"
               @click="handleClosePostChooseDialog"
             >
               關閉
-            </WarmButton>
-            <WarmButton class="min-w-30" @click="handleViewChosenRestaurantDetail">
+            </PrimaryButton>
+            <PrimaryButton class="min-w-30" @click="handleViewChosenRestaurantDetail">
               查看詳細
-            </WarmButton>
+            </PrimaryButton>
           </div>
         </template>
       </WarmAlertDialogShell>

@@ -6,7 +6,8 @@ import client from '@/api/client'
 import ConfirmAlertDialog from '@/components/feedback/ConfirmAlertDialog.vue'
 import FormAlertDialog from '@/components/feedback/FormAlertDialog.vue'
 import RestaurantFormDialog from '@/components/restaurant/RestaurantFormDialog.vue'
-import WarmButton from '@/components/warm/WarmButton.vue'
+import PrimaryButton from '@/components/common/PrimaryButton.vue'
+import PrimaryPanel from '@/components/common/PrimaryPanel.vue'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import {
@@ -674,32 +675,30 @@ watch(isDeleteDishDialogOpen, (open) => {
     class="min-h-screen bg-fixed bg-cover bg-center bg-no-repeat px-4 py-6 md:px-6"
     :style="homeBgBackgroundStyle"
   >
-    <div
-      class="relative z-10 mx-auto mt-6 w-full max-w-4xl rounded-[10px] border border-[rgba(226,164,136,0.52)] bg-linear-to-br from-[rgba(255,248,241,0.9)] to-[rgba(255,233,219,0.84)] px-7.5 pt-7.5 pb-8 shadow-[0_14px_32px_rgba(95,57,41,0.24),inset_0_1px_0_rgba(255,255,255,0.55)] backdrop-blur-sm max-lg:mt-5 max-lg:px-6 max-lg:pt-6 max-lg:pb-7 max-md:mt-4 max-md:rounded-lg max-md:px-4 max-md:pt-4 max-md:pb-6"
-    >
+    <PrimaryPanel width="wide">
       <div class="space-y-6">
         <div class="flex flex-wrap items-center justify-between gap-3">
           <h1 class="text-2xl font-bold text-card-foreground">餐廳詳細資料</h1>
           <div class="flex flex-wrap items-center justify-end gap-3">
             <template v-if="restaurant">
-              <WarmButton
-                variant="outline-standard"
+              <PrimaryButton
+                variant="outline"
                 class="h-10 px-4"
                 :disabled="isDeleting || isSaving"
                 @click="openEditDialog"
               >
                 修改餐廳
-              </WarmButton>
-              <WarmButton
-                variant="outline-standard"
+              </PrimaryButton>
+              <PrimaryButton
+                variant="outline"
                 class="h-10 px-4"
                 :disabled="isDeleting || isSaving"
                 @click="openDeleteDialog"
               >
                 {{ isDeleting ? '刪除中...' : '刪除餐廳' }}
-              </WarmButton>
+              </PrimaryButton>
             </template>
-            <WarmButton class="h-10 px-4" @click="backToList"> 返回列表 </WarmButton>
+            <PrimaryButton class="h-10 px-4" @click="backToList"> 返回列表 </PrimaryButton>
           </div>
         </div>
 
@@ -751,13 +750,13 @@ watch(isDeleteDishDialogOpen, (open) => {
                   （共 {{ dishTotal }} 筆）
                 </span>
               </h2>
-              <WarmButton
+              <PrimaryButton
                 class="h-9 px-3 text-sm"
                 :disabled="isDishesLoading || isCreatingDish"
                 @click="openCreateDishDialog"
               >
                 新增餐點
-              </WarmButton>
+              </PrimaryButton>
             </div>
 
             <Table>
@@ -786,22 +785,22 @@ watch(isDeleteDishDialogOpen, (open) => {
                   <TableCell class="text-center">{{ formatPrice(dish.price) }}</TableCell>
                   <TableCell class="text-center">
                     <div class="flex flex-wrap items-center justify-center gap-2">
-                      <WarmButton
-                        variant="outline-standard"
+                      <PrimaryButton
+                        variant="outline"
                         class="h-8 px-2 text-xs"
                         :disabled="isSavingDish || isDeletingDish"
                         @click="openEditDishDialog(dish)"
                       >
                         修改
-                      </WarmButton>
-                      <WarmButton
-                        variant="outline-standard"
+                      </PrimaryButton>
+                      <PrimaryButton
+                        variant="outline"
                         class="h-8 px-2 text-xs"
                         :disabled="isSavingDish || isDeletingDish"
                         @click="openDeleteDishDialog(dish)"
                       >
                         刪除
-                      </WarmButton>
+                      </PrimaryButton>
                     </div>
                   </TableCell>
                 </TableRow>
@@ -810,7 +809,7 @@ watch(isDeleteDishDialogOpen, (open) => {
           </section>
         </div>
       </div>
-    </div>
+    </PrimaryPanel>
 
     <RestaurantFormDialog
       :open="isEditDialogOpen"

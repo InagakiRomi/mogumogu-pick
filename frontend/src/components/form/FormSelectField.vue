@@ -1,11 +1,11 @@
 <script setup lang="ts" generic="T extends string">
 import type { HTMLAttributes } from 'vue'
 import { Label } from '@/components/ui/label'
+import PrimarySelectTrigger from '@/components/common/PrimarySelectTrigger.vue'
 import {
   Select,
   SelectContent,
   SelectItem,
-  SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
 import { cn } from '@/lib/utils'
@@ -40,12 +40,9 @@ const props = withDefaults(
   <div :class="cn('space-y-2', props.fieldClass)">
     <Label :for="id" class="font-bold text-muted-foreground">{{ label }}</Label>
     <Select v-model="model">
-      <SelectTrigger
-        :id="id"
-        class="h-10 w-full px-3 text-left text-sm rounded-md border border-border bg-muted/90 text-popover-foreground"
-      >
+      <PrimarySelectTrigger :id="id">
         <SelectValue :placeholder="placeholder" />
-      </SelectTrigger>
+      </PrimarySelectTrigger>
       <SelectContent :position="contentPosition" :class="contentClass">
         <SelectItem v-for="option in options" :key="option.value" :value="option.value">
           {{ option.label }}

@@ -2,7 +2,7 @@
 import { useRouter } from 'vue-router'
 import { clearAuthSession } from '@/lib/authSession'
 import { authToken } from '@/lib/authToken'
-import WarmButton from '@/components/warm/WarmButton.vue'
+import PrimaryButton from '@/components/common/PrimaryButton.vue'
 
 const router = useRouter()
 
@@ -18,6 +18,8 @@ function handleLogout() {
     <p class="text-[1.2rem] font-semibold text-[#5c4033]">
       還沒有加入任何群組哦，請尋找管理員加入群組
     </p>
-    <WarmButton type="button" variant="compact" @click="handleLogout">登出</WarmButton>
+    <PrimaryButton type="button" class="min-w-30 px-8 text-base font-semibold" @click="handleLogout">
+      登出
+    </PrimaryButton>
   </main>
 </template>

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import WarmButton from '@/components/warm/WarmButton.vue'
+import PrimaryButton from '@/components/common/PrimaryButton.vue'
 import {
   AlertDialog,
   AlertDialogContent,
@@ -49,22 +49,22 @@ const emit = defineEmits<{
         <slot />
 
         <AlertDialogFooter class="mt-1 sm:gap-3">
-          <WarmButton
+          <PrimaryButton
             type="button"
-            variant="outline-standard"
+            variant="outline"
             :class="FORM_DIALOG_FOOTER_BUTTON_CLASS"
             :disabled="loading"
             @click="emit('cancel')"
           >
             {{ cancelLabel }}
-          </WarmButton>
-          <WarmButton
+          </PrimaryButton>
+          <PrimaryButton
             type="submit"
             :class="FORM_DIALOG_FOOTER_BUTTON_CLASS"
             :disabled="!canSubmit || loading"
           >
             {{ loading ? loadingLabel : submitLabel }}
-          </WarmButton>
+          </PrimaryButton>
         </AlertDialogFooter>
       </form>
     </AlertDialogContent>

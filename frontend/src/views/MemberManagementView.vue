@@ -14,7 +14,7 @@ import ListTable, {
   ListTableHead,
   ListTableRow,
 } from '@/components/form/ListTable.vue'
-import WarmButton from '@/components/warm/WarmButton.vue'
+import PrimaryButton from '@/components/common/PrimaryButton.vue'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { useFeedbackDialog } from '@/composables/useFeedbackDialog'
@@ -331,9 +331,9 @@ onMounted(() => {
           <p class="text-lg font-bold text-card-foreground">
             團隊名稱：{{ groupProfile?.groupName || '-' }}
           </p>
-          <WarmButton v-if="canManageMembers" :disabled="isLoading" @click="openGroupNameDialog">
+          <PrimaryButton v-if="canManageMembers" :disabled="isLoading" @click="openGroupNameDialog">
             更新團隊名稱
-          </WarmButton>
+          </PrimaryButton>
         </div>
       </section>
 
@@ -366,9 +366,9 @@ onMounted(() => {
               @keyup.enter="addMemberByEmail"
             />
           </div>
-          <WarmButton :disabled="isLoading || isAddingMember" @click="addMemberByEmail">
+          <PrimaryButton :disabled="isLoading || isAddingMember" @click="addMemberByEmail">
             {{ isAddingMember ? '加入中...' : '加入成員' }}
-          </WarmButton>
+          </PrimaryButton>
         </div>
 
         <ListTable
@@ -402,32 +402,32 @@ onMounted(() => {
                     >
                   </template>
                   <template v-else>
-                    <WarmButton
-                      variant="outline-standard"
+                    <PrimaryButton
+                      variant="outline"
                       class="h-9 px-3 text-sm"
                       :disabled="member.role === 0"
                       @click="openTransferAdminDialog(member)"
                     >
                       轉移管理員
-                    </WarmButton>
-                    <WarmButton
-                      variant="outline-standard"
+                    </PrimaryButton>
+                    <PrimaryButton
+                      variant="outline"
                       class="h-9 px-3 text-sm"
                       @click="openRemoveMemberDialog(member)"
                     >
                       刪除成員
-                    </WarmButton>
+                    </PrimaryButton>
                   </template>
                 </template>
                 <template v-else>
-                  <WarmButton
+                  <PrimaryButton
                     v-if="isCurrentUser(member)"
-                    variant="outline-standard"
+                    variant="outline"
                     class="h-9 px-3 text-sm"
                     @click="leaveGroup"
                   >
                     退出群組
-                  </WarmButton>
+                  </PrimaryButton>
                   <span v-else class="inline-flex h-9 items-center text-sm text-muted-foreground"
                     >-</span
                   >

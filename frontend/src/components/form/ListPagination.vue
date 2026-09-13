@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import WarmButton from '@/components/warm/WarmButton.vue'
+import PrimaryButton from '@/components/common/PrimaryButton.vue'
 
 defineProps<{
   pagingText: string
@@ -20,23 +20,23 @@ const emit = defineEmits<{
   <div class="flex flex-col items-center gap-3">
     <p class="text-sm text-muted-foreground">{{ pagingText }}</p>
     <div class="flex items-center justify-center gap-2">
-      <WarmButton
-        variant="outline-standard"
+      <PrimaryButton
+        variant="outline"
         :disabled="!hasPrevPage || isLoading"
         @click="emit('prev')"
       >
         上一頁
-      </WarmButton>
+      </PrimaryButton>
       <span class="text-sm font-medium text-card-foreground">
         第 {{ page }} / {{ totalPages }} 頁
       </span>
-      <WarmButton
-        variant="outline-standard"
+      <PrimaryButton
+        variant="outline"
         :disabled="!hasNextPage || isLoading"
         @click="emit('next')"
       >
         下一頁
-      </WarmButton>
+      </PrimaryButton>
     </div>
   </div>
 </template>

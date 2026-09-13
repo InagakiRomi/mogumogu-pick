@@ -13,7 +13,7 @@ import ListTable, {
   ListTableHead,
   ListTableRow,
 } from '@/components/form/ListTable.vue'
-import WarmButton from '@/components/warm/WarmButton.vue'
+import PrimaryButton from '@/components/common/PrimaryButton.vue'
 import { authSession } from '@/lib/authSession'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -308,12 +308,12 @@ onMounted(() => {
           placeholder="選擇排序方向"
         />
 
-        <WarmButton :disabled="isLoading" @click="handleSearch">
+        <PrimaryButton :disabled="isLoading" @click="handleSearch">
           {{ isLoading ? '查詢中...' : '查詢' }}
-        </WarmButton>
-        <WarmButton :disabled="isLoading || isCreating" @click="openCreateDialog">
+        </PrimaryButton>
+        <PrimaryButton :disabled="isLoading || isCreating" @click="openCreateDialog">
           新增餐廳
-        </WarmButton>
+        </PrimaryButton>
       </div>
 
       <ListTable
@@ -363,13 +363,13 @@ onMounted(() => {
           </ListTableCell>
           <ListTableCell>
             <ListTableActions>
-              <WarmButton
-                variant="outline-standard"
+              <PrimaryButton
+                variant="outline"
                 class="h-9 px-3 text-sm"
                 @click="goRestaurantDetail(restaurant.restaurantId)"
               >
                 查看詳細
-              </WarmButton>
+              </PrimaryButton>
             </ListTableActions>
           </ListTableCell>
         </ListTableRow>

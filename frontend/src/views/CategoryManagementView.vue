@@ -13,7 +13,7 @@ import ListTable, {
   ListTableHead,
   ListTableRow,
 } from '@/components/form/ListTable.vue'
-import WarmButton from '@/components/warm/WarmButton.vue'
+import PrimaryButton from '@/components/common/PrimaryButton.vue'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { useFeedbackDialog } from '@/composables/useFeedbackDialog'
@@ -277,7 +277,7 @@ onMounted(() => {
           :options="categoryListForm.sortOptions"
           placeholder="選擇排序方向"
         />
-        <WarmButton :disabled="isLoading" @click="openCreateDialog"> 新增分類 </WarmButton>
+        <PrimaryButton :disabled="isLoading" @click="openCreateDialog"> 新增分類 </PrimaryButton>
       </div>
 
       <ListTable
@@ -305,20 +305,20 @@ onMounted(() => {
           <ListTableCell>{{ category.restaurantCount ?? 0 }} 間</ListTableCell>
           <ListTableCell>
             <ListTableActions>
-              <WarmButton
-                variant="outline-standard"
+              <PrimaryButton
+                variant="outline"
                 class="h-9 px-3 text-sm"
                 @click="openEditDialog(category)"
               >
                 編輯
-              </WarmButton>
-              <WarmButton
-                variant="outline-standard"
+              </PrimaryButton>
+              <PrimaryButton
+                variant="outline"
                 class="h-9 px-3 text-sm"
                 @click="openDeleteDialog(category)"
               >
                 刪除
-              </WarmButton>
+              </PrimaryButton>
             </ListTableActions>
           </ListTableCell>
         </ListTableRow>

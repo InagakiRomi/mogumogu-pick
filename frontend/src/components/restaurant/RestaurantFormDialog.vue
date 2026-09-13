@@ -2,7 +2,8 @@
 import FormAlertDialog from '@/components/feedback/FormAlertDialog.vue'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import PrimarySelectTrigger from '@/components/common/PrimarySelectTrigger.vue'
+import { Select, SelectContent, SelectItem, SelectValue } from '@/components/ui/select'
 import type { RestaurantCategoryOption } from '@/composables/useRestaurantCategories'
 
 const FORM_LABEL_CLASS = 'font-bold text-muted-foreground'
@@ -79,12 +80,9 @@ const imageUrlMaxLength = (mode: 'create' | 'edit') => (mode === 'create' ? 255 
     <div class="space-y-2">
       <Label :for="`${idPrefix}-category`" :class="FORM_LABEL_CLASS">分類</Label>
       <Select v-model="form.categoryId">
-        <SelectTrigger
-          :id="`${idPrefix}-category`"
-          class="h-10 w-full px-3 text-left text-sm rounded-md border border-border bg-muted/90 text-popover-foreground"
-        >
+        <PrimarySelectTrigger :id="`${idPrefix}-category`">
           <SelectValue placeholder="選擇分類" />
-        </SelectTrigger>
+        </PrimarySelectTrigger>
         <SelectContent position="popper" class="z-10000 border-border bg-card text-popover-foreground">
           <SelectItem
             v-for="option in categoryOptions"
