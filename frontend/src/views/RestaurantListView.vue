@@ -3,7 +3,7 @@ import { computed, onMounted, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import type { components, operations } from '@/api/schema'
 import client from '@/api/client'
-import FormDialog from '@/components/form/FormDialog.vue'
+import CreateRestaurantDialog from '@/components/form/CreateRestaurantDialog.vue'
 import FormSelectField from '@/components/form/FormSelectField.vue'
 import ListPagePanel from '@/components/list/ListPagePanel.vue'
 import ListPagination from '@/components/list/ListPagination.vue'
@@ -15,12 +15,8 @@ import ListTable, {
   ListTableRow,
 } from '@/components/list/ListTable.vue'
 import PrimaryButton from '@/components/common/PrimaryButton.vue'
-import PrimarySelectTrigger from '@/components/common/PrimarySelectTrigger.vue'
-import { authSession } from '@/lib/authSession'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import PrimarySelectContent from '@/components/common/PrimarySelectContent.vue'
-import { Select, SelectItem, SelectValue } from '@/components/ui/select'
 import { useFeedbackDialog } from '@/composables/useFeedbackDialog'
 import {
   ALL_CATEGORIES_VALUE,
@@ -59,7 +55,7 @@ const restaurantListForm = {
 }
 
 const failedImageIds = ref(new Set<number>())
-const { categoryOptionsWithAll, categories, defaultCategoryId } = useRestaurantCategories()
+const { categoryOptionsWithAll } = useRestaurantCategories()
 
 const restaurants = ref<Restaurant[]>([])
 const searchInput = ref('')
@@ -71,14 +67,6 @@ const limit = ref(DEFAULT_LIMIT)
 const total = ref(0)
 const isLoading = ref(false)
 const isCreateDialogOpen = ref(false)
-const isCreating = ref(false)
-const createForm = ref({
-  restaurantName: '',
-  categoryId: '1',
-  address: '',
-  note: '',
-  imageUrl: '',
-})
 const { showFeedback, clearFeedback } = useFeedbackDialog()
 const router = useRouter()
 
@@ -91,9 +79,7 @@ const totalPages = computed(() => {
 
 const hasPrevPage = computed(() => page.value > 1)
 const hasNextPage = computed(() => page.value < totalPages.value)
-const canSubmitCreateRestaurant = computed(
-  () => createForm.value.restaurantName.trim().length > 0 && !isCreating.value,
-)
+
 function resolveCategoryId(category: string): number | undefined {
   return category !== ALL_CATEGORIES_VALUE ? Number(category) : undefined
 }
@@ -129,27 +115,13 @@ function handleImageError(event: Event, restaurantId?: number) {
   img.src = DEFAULT_RESTAURANT_IMAGE
 }
 
-function resetCreateForm() {
-  createForm.value = {
-    restaurantName: '',
-    categoryId: defaultCategoryId.value || '1',
-    address: '',
-    note: '',
-    imageUrl: '',
-  }
-}
-
 function openCreateDialog() {
   clearFeedback()
-  resetCreateForm()
   isCreateDialogOpen.value = true
 }
 
 function handleCreateDialogOpenChange(open: boolean) {
   isCreateDialogOpen.value = open
-  if (!open) {
-    resetCreateForm()
-  }
 }
 
 async function fetchRestaurants() {
@@ -182,50 +154,13 @@ async function fetchRestaurants() {
   isLoading.value = false
 }
 
-async function handleCreateRestaurant() {
-  const groupId = authSession.value?.groupId
-  if (groupId == null || groupId <= 0) {
-    showFeedback('請先加入群組後才能新增餐廳')
+async function handleRestaurantCreated() {
+  if (page.value !== 1) {
+    page.value = 1
     return
   }
 
-  const restaurantName = createForm.value.restaurantName.trim()
-  if (!restaurantName) {
-    showFeedback('請輸入餐廳名稱')
-    return
-  }
-
-  clearFeedback()
-  isCreating.value = true
-
-  try {
-    const { error } = await client.POST('/restaurants', {
-      body: {
-        groupId,
-        categoryId: Number(createForm.value.categoryId),
-        restaurantName,
-        address: createForm.value.address.trim() || undefined,
-        note: createForm.value.note.trim() || undefined,
-        imageUrl: createForm.value.imageUrl.trim() || undefined,
-      },
-    })
-
-    if (error) {
-      showFeedback(getApiErrorMessage(error, '新增餐廳失敗'))
-      return
-    }
-
-    showFeedback('新增餐廳成功', 'success')
-
-    if (page.value !== 1) {
-      page.value = 1
-    } else {
-      await fetchRestaurants()
-    }
-  } finally {
-    handleCreateDialogOpenChange(false)
-    isCreating.value = false
-  }
+  await fetchRestaurants()
 }
 
 function handleSearch() {
@@ -310,7 +245,7 @@ onMounted(() => {
         <PrimaryButton :disabled="isLoading" @click="handleSearch">
           {{ isLoading ? '查詢中...' : '查詢' }}
         </PrimaryButton>
-        <PrimaryButton :disabled="isLoading || isCreating" @click="openCreateDialog">
+        <PrimaryButton :disabled="isLoading" @click="openCreateDialog">
           新增餐廳
         </PrimaryButton>
       </div>
@@ -391,60 +326,11 @@ onMounted(() => {
     </ListSection>
 
     <template #overlay>
-      <FormDialog
+      <CreateRestaurantDialog
         :open="isCreateDialogOpen"
-        title="新增餐廳"
-        submit-label="確認新增"
-        loading-label="新增中..."
-        :loading="isCreating"
-        :can-submit="canSubmitCreateRestaurant"
         @update:open="handleCreateDialogOpenChange"
-        @submit="handleCreateRestaurant"
-        @cancel="handleCreateDialogOpenChange(false)"
-      >
-        <div>
-          <Label for="create-restaurant-name">餐廳名稱</Label>
-          <Input
-            id="create-restaurant-name"
-            v-model="createForm.restaurantName"
-            maxlength="100"
-            required
-          />
-        </div>
-
-        <div>
-          <Label for="create-restaurant-address">地址（選填）</Label>
-          <Input id="create-restaurant-address" v-model="createForm.address" maxlength="255" />
-        </div>
-
-        <div>
-          <Label for="create-restaurant-category">分類</Label>
-          <Select v-model="createForm.categoryId">
-            <PrimarySelectTrigger id="create-restaurant-category">
-              <SelectValue />
-            </PrimarySelectTrigger>
-            <PrimarySelectContent
-              position="popper"
-              align="start"
-              class="w-(--reka-select-trigger-width) max-w-(--reka-select-trigger-width) border-border bg-card text-popover-foreground"
-            >
-              <SelectItem v-for="option in categories" :key="option.value" :value="option.value">
-                {{ option.label }}
-              </SelectItem>
-            </PrimarySelectContent>
-          </Select>
-        </div>
-
-        <div>
-          <Label for="create-restaurant-note">備註（選填）</Label>
-          <Input id="create-restaurant-note" v-model="createForm.note" maxlength="255" />
-        </div>
-
-        <div>
-          <Label for="create-restaurant-image-url">圖片網址（選填）</Label>
-          <Input id="create-restaurant-image-url" v-model="createForm.imageUrl" maxlength="255" />
-        </div>
-      </FormDialog>
+        @created="handleRestaurantCreated"
+      />
     </template>
   </ListPagePanel>
 </template>

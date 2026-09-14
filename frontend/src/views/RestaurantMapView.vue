@@ -9,6 +9,9 @@ import { createElement, icons } from 'lucide'
 
 import client from '@/api/client'
 import type { components } from '@/api/schema'
+import CreateRestaurantDialog, {
+  type CreateRestaurantPrefill,
+} from '@/components/form/CreateRestaurantDialog.vue'
 import PrimaryButton from '@/components/common/PrimaryButton.vue'
 import { useFeedbackDialog } from '@/composables/useFeedbackDialog'
 import { getApiErrorMessage } from '@/lib/apiErrorMessage'
@@ -28,6 +31,8 @@ const restaurantStatus = ref<RestaurantStatus>('idle')
 const showDefaultLocationNotice = ref(false)
 const loadingElapsedSeconds = ref(0)
 const restaurantCount = ref(0)
+const isCreateDialogOpen = ref(false)
+const createPrefill = ref<CreateRestaurantPrefill | null>(null)
 
 let map: L.Map | null = null
 let resizeObserver: ResizeObserver | null = null
@@ -244,6 +249,26 @@ const createPositionPopup = (text: string) => {
   return content
 }
 
+/** 開啟新增餐廳彈窗，並帶入地圖上可取得的資料 */
+const openCreateRestaurantDialog = (restaurant: NearbyRestaurant) => {
+  createPrefill.value = {
+    restaurantName: restaurant.name?.trim() || undefined,
+    address: restaurant.address?.trim() || undefined,
+  }
+
+  map?.closePopup()
+  isCreateDialogOpen.value = true
+}
+
+/** 關閉新增餐廳彈窗 */
+const handleCreateDialogOpenChange = (open: boolean) => {
+  isCreateDialogOpen.value = open
+
+  if (!open) {
+    createPrefill.value = null
+  }
+}
+
 /** 建立 Popup 資訊列 */
 const createPopupInfo = (label: string, value: string | null | undefined) => {
   if (!value) return null
@@ -293,6 +318,19 @@ const createRestaurantPopup = (restaurant: NearbyRestaurant) => {
   if (phone) {
     container.appendChild(phone)
   }
+
+  const addButton = document.createElement('button')
+  addButton.type = 'button'
+  addButton.className = 'restaurant-popup__add-button'
+  addButton.textContent = '新增餐廳'
+
+  L.DomEvent.disableClickPropagation(addButton)
+  L.DomEvent.on(addButton, 'click', (event) => {
+    L.DomEvent.stop(event)
+    openCreateRestaurantDialog(restaurant)
+  })
+
+  container.appendChild(addButton)
 
   return container
 }
@@ -860,6 +898,12 @@ onUnmounted(() => {
         </PrimaryButton>
       </div>
     </template>
+
+    <CreateRestaurantDialog
+      :open="isCreateDialogOpen"
+      :prefill="createPrefill"
+      @update:open="handleCreateDialogOpenChange"
+    />
   </div>
 </template>
 
@@ -1008,6 +1052,41 @@ onUnmounted(() => {
   line-height: 1.5;
   color: var(--foreground);
   overflow-wrap: anywhere;
+}
+
+:deep(.restaurant-popup__add-button) {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  margin-top: 0.875rem;
+  height: 2.5rem;
+  padding: 0 0.75rem;
+  border: none;
+  border-radius: 0.5rem;
+  background: linear-gradient(to bottom right, #d78867, #c96d57);
+  box-shadow: 0 3px 8px rgba(138, 73, 52, 0.18);
+  color: var(--primary-foreground);
+  font: inherit;
+  font-size: 0.875rem;
+  font-weight: 600;
+  line-height: 1;
+  cursor: pointer;
+  transition:
+    transform 150ms ease,
+    box-shadow 150ms ease,
+    filter 150ms ease;
+}
+
+:deep(.restaurant-popup__add-button:hover) {
+  box-shadow: 0 4px 10px rgba(138, 73, 52, 0.22);
+  filter: brightness(1.04);
+  transform: translateY(-0.125rem);
+}
+
+:deep(.restaurant-popup__add-button:active) {
+  box-shadow: 0 1px 4px rgba(138, 73, 52, 0.1);
+  transform: scale(0.98);
 }
 
 :deep(.leaflet-control-zoom.leaflet-bar) {
