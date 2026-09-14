@@ -108,7 +108,7 @@ class OverpassClientTest {
     }
 
     @Test
-    @DisplayName("第一個 API 成功時，應直接回傳 JSON")
+    @DisplayName("Returns JSON immediately when the first API succeeds")
     void searchRestaurants_firstEndpointSuccess_shouldReturnJson() {
 
         expectStandardRequest(ENDPOINT_1)
@@ -141,7 +141,7 @@ class OverpassClientTest {
     }
 
     @Test
-    @DisplayName("API 成功但沒有餐廳時，應回傳 elements 為空的 JSON")
+    @DisplayName("Returns JSON with empty elements when the API succeeds without restaurants")
     void searchRestaurants_emptyElements_shouldStillReturnJson() {
 
         expectStandardRequest(ENDPOINT_1)
@@ -165,7 +165,7 @@ class OverpassClientTest {
     }
 
     @Test
-    @DisplayName("第一個 API 沒有 response body 時，應改用第二個 API")
+    @DisplayName("Falls back to the second API when the first has no response body")
     void searchRestaurants_firstEndpointEmpty_shouldTrySecondEndpoint() {
 
         expectStandardRequest(ENDPOINT_1)
@@ -197,7 +197,7 @@ class OverpassClientTest {
     }
 
     @Test
-    @DisplayName("前兩個 API 都沒有 response body 時，應使用第三個 API")
+    @DisplayName("Uses the third API when the first two have no response body")
     void searchRestaurants_firstTwoEmpty_shouldTryThirdEndpoint() {
 
         expectStandardRequest(ENDPOINT_1)
@@ -231,7 +231,7 @@ class OverpassClientTest {
         server.verify();
     }
 
-    @ParameterizedTest(name = "HTTP {0} 應重試下一個 Overpass API")
+    @ParameterizedTest(name = "HTTP {0} retries the next Overpass API")
     @ValueSource(ints = {
             408,
             429,
@@ -242,7 +242,7 @@ class OverpassClientTest {
             504,
             599
     })
-    @DisplayName("暫時性 HTTP 錯誤應改用下一個 API")
+    @DisplayName("Transient HTTP errors fall back to the next API")
     void searchRestaurants_retryableStatus_shouldTryNextEndpoint(
             int status) {
 
@@ -275,7 +275,7 @@ class OverpassClientTest {
     }
 
     @Test
-    @DisplayName("前兩個 API 暫時失敗時，第三個成功應正常回傳")
+    @DisplayName("Returns successfully when the third API succeeds after two transient failures")
     void searchRestaurants_firstTwoRetryableErrors_thirdShouldSucceed() {
 
         expectStandardRequest(ENDPOINT_1)
@@ -309,7 +309,7 @@ class OverpassClientTest {
         server.verify();
     }
 
-    @ParameterizedTest(name = "HTTP {0} 應直接中止，不可重試")
+    @ParameterizedTest(name = "HTTP {0} aborts immediately and is not retried")
     @ValueSource(ints = {
             400,
             401,
@@ -319,7 +319,7 @@ class OverpassClientTest {
             422,
             499
     })
-    @DisplayName("非暫時性 HTTP 錯誤應直接回傳 502")
+    @DisplayName("Non-transient HTTP errors return 502 immediately")
     void searchRestaurants_nonRetryableStatus_shouldThrowBadGateway(
             int status) {
 
@@ -353,7 +353,7 @@ class OverpassClientTest {
     }
 
     @Test
-    @DisplayName("第一個 API 可重試，但第二個 API 回傳不可重試錯誤時應立即中止")
+    @DisplayName("Aborts immediately when the second API returns a non-retryable error")
     void searchRestaurants_secondEndpointNonRetryable_shouldStopImmediately() {
 
         expectStandardRequest(ENDPOINT_1)
@@ -385,7 +385,7 @@ class OverpassClientTest {
     }
 
     @Test
-    @DisplayName("第一個 API 連線失敗時，應改用第二個 API")
+    @DisplayName("Falls back to the second API when the first connection fails")
     void searchRestaurants_connectionFailure_shouldTryNextEndpoint() {
 
         expectStandardRequest(ENDPOINT_1)
@@ -420,7 +420,7 @@ class OverpassClientTest {
     }
 
     @Test
-    @DisplayName("前兩個 API 連線失敗時，應使用第三個 API")
+    @DisplayName("Uses the third API when the first two connections fail")
     void searchRestaurants_firstTwoConnectionFailures_thirdShouldSucceed() {
 
         expectStandardRequest(ENDPOINT_1)
@@ -461,7 +461,7 @@ class OverpassClientTest {
     }
 
     @Test
-    @DisplayName("第一個 API 回傳錯誤 JSON 時，應改用下一個 API")
+    @DisplayName("Falls back to the next API when the first returns invalid JSON")
     void searchRestaurants_invalidJson_shouldTryNextEndpoint() {
 
         expectStandardRequest(ENDPOINT_1)
@@ -496,7 +496,7 @@ class OverpassClientTest {
     }
 
     @Test
-    @DisplayName("三個 API 都是暫時性 HTTP 錯誤時，應回傳 503")
+    @DisplayName("Returns 503 when all three APIs fail with transient HTTP errors")
     void searchRestaurants_allRetryableHttpErrors_shouldThrowServiceUnavailable() {
 
         expectStandardRequest(ENDPOINT_1)
@@ -535,7 +535,7 @@ class OverpassClientTest {
     }
 
     @Test
-    @DisplayName("三個 API 全部連線失敗時，應回傳 503")
+    @DisplayName("Returns 503 when all three APIs fail to connect")
     void searchRestaurants_allConnectionFailures_shouldThrowServiceUnavailable() {
 
         expectStandardRequest(ENDPOINT_1)
@@ -579,7 +579,7 @@ class OverpassClientTest {
     }
 
     @Test
-    @DisplayName("三個 API 都沒有 response body 時，應回傳 503")
+    @DisplayName("Returns 503 when all three APIs have no response body")
     void searchRestaurants_allEmptyResponses_shouldThrowServiceUnavailable() {
 
         expectStandardRequest(ENDPOINT_1)
@@ -612,7 +612,7 @@ class OverpassClientTest {
     }
 
     @Test
-    @DisplayName("HTTP 錯誤、連線錯誤混合且全部失敗時，應回傳 503")
+    @DisplayName("Returns 503 when mixed HTTP and connection errors all fail")
     void searchRestaurants_mixedFailures_shouldThrowServiceUnavailable() {
 
         expectStandardRequest(ENDPOINT_1)
@@ -649,9 +649,9 @@ class OverpassClientTest {
         server.verify();
     }
 
-    @ParameterizedTest(name = "latitude = {0} 應被拒絕")
+    @ParameterizedTest(name = "latitude = {0} is rejected")
     @MethodSource("invalidLatitudes")
-    @DisplayName("Latitude 超出台灣範圍時應丟 ResponseStatusException")
+    @DisplayName("Latitude outside the Taiwan range throws ResponseStatusException")
     void searchRestaurants_invalidLatitude_shouldThrowResponseStatusException(
             double latitude) {
 
@@ -683,9 +683,9 @@ class OverpassClientTest {
                 Double.NaN);
     }
 
-    @ParameterizedTest(name = "longitude = {0} 應被拒絕")
+    @ParameterizedTest(name = "longitude = {0} is rejected")
     @MethodSource("invalidLongitudes")
-    @DisplayName("Longitude 超出台灣範圍時應丟 ResponseStatusException")
+    @DisplayName("Longitude outside the Taiwan range throws ResponseStatusException")
     void searchRestaurants_invalidLongitude_shouldThrowResponseStatusException(
             double longitude) {
 
@@ -717,7 +717,7 @@ class OverpassClientTest {
                 Double.NaN);
     }
 
-    @ParameterizedTest(name = "radius = {0} 應被拒絕")
+    @ParameterizedTest(name = "radius = {0} is rejected")
     @ValueSource(ints = {
             -2147483648,
             -1,
@@ -726,7 +726,7 @@ class OverpassClientTest {
             3001,
             2147483647
     })
-    @DisplayName("Radius 小於 100 或大於 3000 時應丟 ResponseStatusException")
+    @DisplayName("Radius below 100 or above 3000 throws ResponseStatusException")
     void searchRestaurants_invalidRadius_shouldThrowResponseStatusException(
             int radius) {
 
@@ -745,7 +745,7 @@ class OverpassClientTest {
         server.verify();
     }
 
-    @ParameterizedTest(name = "latitude={0}, longitude={1}, radius={2} 應合法")
+    @ParameterizedTest(name = "latitude={0}, longitude={1}, radius={2} is valid")
     @CsvSource({
             "21.7,  118.0,  100",
             "26.5,  122.2,  100",
@@ -754,7 +754,7 @@ class OverpassClientTest {
             "25.0,  121.0,  100",
             "25.0,  121.0,  3000"
     })
-    @DisplayName("座標與 radius 邊界值應通過驗證")
+    @DisplayName("Coordinate and radius boundary values pass validation")
     void searchRestaurants_boundaryValues_shouldBeAccepted(
             double latitude,
             double longitude,

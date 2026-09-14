@@ -14,7 +14,7 @@ import com.romi.mogumogu.response.ErrorResponse;
 class ErrorResponseFactoryTest {
 
     @Test
-    @DisplayName("create 建立標準錯誤格式")
+    @DisplayName("create builds the standard error shape")
     void create_buildsStandardErrorResponse() {
         ErrorResponse response = ErrorResponseFactory.create(
                 HttpStatus.BAD_REQUEST, "field is required", "/test/path");
@@ -28,7 +28,7 @@ class ErrorResponseFactoryTest {
     }
 
     @Test
-    @DisplayName("空白 message 回退至 HTTP reason phrase")
+    @DisplayName("A blank message falls back to the HTTP reason phrase")
     void create_blankMessage_fallsBackToReasonPhrase() {
         ErrorResponse response = ErrorResponseFactory.create(HttpStatus.NOT_FOUND, "   ", "/x");
 
@@ -36,7 +36,7 @@ class ErrorResponseFactoryTest {
     }
 
     @Test
-    @DisplayName("null message 回退至 HTTP reason phrase")
+    @DisplayName("A null message falls back to the HTTP reason phrase")
     void create_nullMessage_fallsBackToReasonPhrase() {
         ErrorResponse response = ErrorResponseFactory.create(HttpStatus.FORBIDDEN, null, "/x");
 
@@ -44,7 +44,7 @@ class ErrorResponseFactoryTest {
     }
 
     @Test
-    @DisplayName("toResponseEntity 帶正確 HTTP 狀態")
+    @DisplayName("toResponseEntity wraps the body with the correct HTTP status")
     void toResponseEntity_wrapsWithStatus() {
         ResponseEntity<ErrorResponse> entity =
                 ErrorResponseFactory.toResponseEntity(HttpStatus.CONFLICT, "duplicate", "/auth/register");

@@ -101,7 +101,7 @@ class AuthControllerTest {
                 !objectMapper.readTree(registerJson).hasNonNull("token"),
                 "註冊回應不應帶有非 null 的 token");
 
-        verify(authService).register(argThat(req -> "\u65b0\u4f7f\u7528\u8005".equals(req.getUsername())
+        verify(authService).register(argThat(req -> "新使用者".equals(req.getUsername())
                 && "new@example.com".equals(req.getEmail()) && "password123".equals(req.getPassword())));
     }
 

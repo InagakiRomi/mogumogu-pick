@@ -92,36 +92,36 @@ class JwtTokenProviderTest {
     }
 
     @Nested
-    @DisplayName("建構子")
+    @DisplayName("Constructor")
     class ConstructorTests {
 
         @Test
-        @DisplayName("32 bytes 金鑰可成功建立")
+        @DisplayName("Accepts a 32-byte HMAC secret")
         void acceptsMinimumHmacKeyLength() {
             assertThat(provider(VALID_SECRET_32_BYTES, TTL_ONE_HOUR_MS)).isNotNull();
         }
 
         @Test
-        @DisplayName("長於 32 bytes 的金鑰可成功建立")
+        @DisplayName("Accepts a secret longer than 32 bytes")
         void acceptsLongerSecret() {
             assertThat(provider("b".repeat(64), 1L)).isNotNull();
         }
 
         @Test
-        @DisplayName("金鑰不足 32 bytes 時拋出 WeakKeyException")
+        @DisplayName("Rejects a secret shorter than 32 bytes with WeakKeyException")
         void rejectsSecretShorterThan256Bits() {
             String weak = "a".repeat(31);
             assertThatThrownBy(() -> provider(weak, TTL_ONE_HOUR_MS)).isInstanceOf(WeakKeyException.class);
         }
 
         @Test
-        @DisplayName("空字串金鑰拋出 WeakKeyException")
+        @DisplayName("Rejects an empty secret with WeakKeyException")
         void rejectsEmptySecret() {
             assertThatThrownBy(() -> provider("", TTL_ONE_HOUR_MS)).isInstanceOf(WeakKeyException.class);
         }
 
         @Test
-        @DisplayName("UTF-8 多字元金鑰：以字元數計需至少 32 字元（ASCII）才滿足位元長度")
+        @DisplayName("UTF-8 multi-byte secret: 32 ASCII characters satisfy the bit-length requirement")
         void unicodeSecret_bytesNotChars() {
             String emoji32Bytes = "😀".repeat(8);
             assertThat(emoji32Bytes.getBytes(StandardCharsets.UTF_8)).hasSize(32);
@@ -134,7 +134,7 @@ class JwtTokenProviderTest {
     class GenerateAccessTokenTests {
 
         @Test
-        @DisplayName("產生的 JWT 可被同一支金鑰驗簽，且 subject、claims 與使用者一致")
+        @DisplayName("Generated JWT verifies with the same key and matches subject, claims, and user")
         void tokenIsVerifiableAndClaimsMatchUser() {
             UserEntity u = user(42, "test@example.com", 7, UserRole.GROUP_ADMIN);
             Claims claims = claimsFrom(TTL_ONE_DAY_MS, u);
@@ -145,9 +145,9 @@ class JwtTokenProviderTest {
             assertThat(claims.get("role", String.class)).isEqualTo("GROUP_ADMIN");
         }
 
-        @ParameterizedTest(name = "角色 {0} 寫入 claim role = {1}")
+        @ParameterizedTest(name = "role {0} writes claim role = {1}")
         @MethodSource("allRoles")
-        @DisplayName("各 UserRole 的 name() 會寫入 role claim")
+        @DisplayName("Each UserRole name() is written into the role claim")
         void roleClaimReflectsEnumName(UserRole role, String expectedClaim) {
             UserEntity u = user(1, "a@b.c", 1, role);
             Claims claims = claimsFrom(TTL_DEFAULT_MS, u);
@@ -161,7 +161,7 @@ class JwtTokenProviderTest {
         }
 
         @Test
-        @DisplayName("exp - iat 等於設定的 TTL（毫秒），且為 1000 的倍數時與 JWT 秒精度一致")
+        @DisplayName("exp - iat equals the configured TTL in milliseconds when it is a multiple of 1000")
         void expirationEqualsIssuedAtPlusConfiguredMillis_whenTtlMultipleOfSecond() {
             UserEntity u = user(99, "x@y.z", 3, UserRole.USER);
 
@@ -182,7 +182,7 @@ class JwtTokenProviderTest {
         }
 
         @Test
-        @DisplayName("TTL 非整秒時，payload 以秒儲存會四捨五入到整秒，exp-iat 與設定值相差至多約 1 秒")
+        @DisplayName("Non-second TTL is stored in seconds, so exp-iat may differ by at most about 1 second")
         void expirationTruncatesToJwtSecondPrecision() {
             long ttlMs = 12_345L;
             Claims claims = claimsFrom(ttlMs, BASE_USER);
@@ -191,7 +191,7 @@ class JwtTokenProviderTest {
         }
 
         @Test
-        @DisplayName("expirationTime 為 0 時，exp 與 iat 落在同一秒（驗證時需 clock skew）")
+        @DisplayName("Zero expirationTime puts exp and iat in the same second (clock skew needed to verify)")
         void zeroTtl_expEqualsIatSameSecond() {
             UserEntity u = user(1, "a@a.a", 1, UserRole.USER);
             Claims claims = parseClaimsWithSkew(accessToken(0L, u), 120);
@@ -199,7 +199,7 @@ class JwtTokenProviderTest {
         }
 
         @Test
-        @DisplayName("不同使用者產生的 token 字串不同")
+        @DisplayName("Different users produce different token strings")
         void differentUsersYieldDifferentCompactJws() {
             String t1 = accessToken(TTL_ONE_HOUR_MS, user(1, "a@a.a", 1, UserRole.USER));
             String t2 = accessToken(TTL_ONE_HOUR_MS, user(2, "a@a.a", 1, UserRole.USER));
@@ -207,7 +207,7 @@ class JwtTokenProviderTest {
         }
 
         @Test
-        @DisplayName("連續兩次產生：跨秒後 iat 不同則 compact JWS 不同（同秒內可能完全相同）")
+        @DisplayName("Consecutive tokens differ after the second boundary; they may match within the same second")
         void consecutiveGenerationsDistinctAfterSecondBoundary() throws Exception {
             UserEntity u = user(5, "same@same.com", 1, UserRole.USER);
             JwtTokenProvider p = provider(TTL_ONE_HOUR_MS);
@@ -218,7 +218,7 @@ class JwtTokenProviderTest {
         }
 
         @Test
-        @DisplayName("email 含 +、. 等特殊字元仍正確寫入 claim")
+        @DisplayName("Emails with special characters such as + and . are written into claims")
         void emailWithSpecialCharacters() {
             String email = "user.name+tag@sub.example.co.jp";
             Claims claims = claimsFrom(TTL_DEFAULT_MS, user(10, email, 2, UserRole.USER));
@@ -226,7 +226,7 @@ class JwtTokenProviderTest {
         }
 
         @Test
-        @DisplayName("錯誤金鑰無法驗簽")
+        @DisplayName("A wrong key cannot verify the signature")
         void wrongKeyFailsVerification() {
             String jwt = accessToken(TTL_DEFAULT_MS, BASE_USER);
             SecretKey otherKey = hmacKeyFrom("b".repeat(32));
@@ -234,21 +234,21 @@ class JwtTokenProviderTest {
         }
 
         @Test
-        @DisplayName("null 使用者拋出 NullPointerException")
+        @DisplayName("Null user throws NullPointerException")
         void nullUserThrowsNpe() {
             assertThatThrownBy(() -> provider(TTL_DEFAULT_MS).generateAccessToken(null))
                     .isInstanceOf(NullPointerException.class);
         }
 
         @Test
-        @DisplayName("roles 為 null 時呼叫 name() 拋出 NullPointerException")
+        @DisplayName("Null roles throw NullPointerException when name() is called")
         void nullRoleThrowsNpe() {
             UserEntity u = user(1, "a@b.c", 1, null);
             assertThatThrownBy(() -> accessToken(TTL_DEFAULT_MS, u)).isInstanceOf(NullPointerException.class);
         }
 
         @Test
-        @DisplayName("userId 為 null 時 subject 為字串 \"null\"（String.valueOf 行為）")
+        @DisplayName("Null userId becomes the literal subject string null via String.valueOf")
         void nullUserId_subjectIsLiteralNullString() {
             UserEntity u = user(null, "a@b.c", 1, UserRole.USER);
             Claims claims = claimsFrom(TTL_DEFAULT_MS, u);
@@ -256,7 +256,7 @@ class JwtTokenProviderTest {
         }
 
         @Test
-        @DisplayName("極大 expirationTime：JWT 秒精度使 exp-iat 與設定值最多相差約 1 秒")
+        @DisplayName("Very large expirationTime may differ from exp-iat by at most about 1 second due to JWT second precision")
         void veryLargeTtl_secondPrecisionTruncation() {
             long ttl = Integer.MAX_VALUE;
             Claims claims = claimsFrom(ttl, BASE_USER);
@@ -265,14 +265,14 @@ class JwtTokenProviderTest {
         }
 
         @Test
-        @DisplayName("groupId 為 0 時 claim 仍為 0")
+        @DisplayName("groupId 0 is still written as claim 0")
         void groupIdZero() {
             Claims claims = claimsFrom(TTL_DEFAULT_MS, user(1, "a@b.c", 0, UserRole.USER));
             assertThat(claims.get("groupId", Integer.class)).isZero();
         }
 
         @Test
-        @DisplayName("userId 為負數仍如實寫入 subject")
+        @DisplayName("Negative userId is written into subject as-is")
         void negativeUserIdInSubject() {
             Claims claims = claimsFrom(TTL_DEFAULT_MS, user(-1, "a@b.c", 1, UserRole.USER));
             assertThat(claims.getSubject()).isEqualTo("-1");
@@ -284,14 +284,14 @@ class JwtTokenProviderTest {
     class ParseValidClaimsTests {
 
         @Test
-        @DisplayName("合法 token 回傳 Claims")
+        @DisplayName("A valid token returns Claims")
         void validToken_returnsClaims() {
             String jwt = accessToken(TTL_DEFAULT_MS, BASE_USER);
             assertThat(provider(TTL_DEFAULT_MS).parseValidClaims(jwt)).isPresent();
         }
 
         @Test
-        @DisplayName("null、空白、非 JWT 字串回傳 empty")
+        @DisplayName("Null, blank, or non-JWT strings return empty")
         void invalidInput_returnsEmpty() {
             JwtTokenProvider provider = provider(TTL_DEFAULT_MS);
             assertThat(provider.parseValidClaims(null)).isEmpty();
@@ -300,7 +300,7 @@ class JwtTokenProviderTest {
         }
 
         @Test
-        @DisplayName("過期 token 回傳 empty")
+        @DisplayName("An expired token returns empty")
         void expiredToken_returnsEmpty() {
             Date issuedAt = new Date(System.currentTimeMillis() - 300_000L);
             Date expiredAt = new Date(System.currentTimeMillis() - 180_000L);
@@ -318,7 +318,7 @@ class JwtTokenProviderTest {
         }
 
         @Test
-        @DisplayName("不同金鑰簽署的 token 回傳 empty")
+        @DisplayName("A token signed with a different key returns empty")
         void wrongKey_returnsEmpty() {
             String jwt = accessToken(TTL_DEFAULT_MS, BASE_USER);
             JwtTokenProvider other = provider("b".repeat(32), TTL_DEFAULT_MS);
@@ -326,7 +326,7 @@ class JwtTokenProviderTest {
         }
 
         @Test
-        @DisplayName("前後空白會 trim 後解析")
+        @DisplayName("Leading and trailing whitespace is trimmed before parsing")
         void trimsWhitespace() {
             String jwt = "  " + accessToken(TTL_DEFAULT_MS, BASE_USER) + "  ";
             assertThat(provider(TTL_DEFAULT_MS).parseValidClaims(jwt)).isPresent();
@@ -338,7 +338,7 @@ class JwtTokenProviderTest {
     class ResolveAuthenticationTests {
 
         @Test
-        @DisplayName("Bearer token 回傳 Authentication 與 ROLE_ 前綴")
+        @DisplayName("A Bearer token returns Authentication with a ROLE_ prefix")
         void bearerToken_returnsAuthenticationWithRole() {
             UserEntity admin = user(7, "admin@example.com", 1, UserRole.GROUP_ADMIN);
             String header = "Bearer " + accessToken(TTL_DEFAULT_MS, admin);
@@ -352,21 +352,21 @@ class JwtTokenProviderTest {
         }
 
         @Test
-        @DisplayName("bearer 前綴大小寫不敏感")
+        @DisplayName("The bearer prefix is case-insensitive")
         void bearerPrefix_isCaseInsensitive() {
             String jwt = accessToken(TTL_DEFAULT_MS, BASE_USER);
             assertThat(provider(TTL_DEFAULT_MS).resolveAuthentication("bearer " + jwt)).isPresent();
         }
 
         @Test
-        @DisplayName("缺少 Bearer 前綴回傳 empty")
+        @DisplayName("A missing Bearer prefix returns empty")
         void missingBearerPrefix_returnsEmpty() {
             String jwt = accessToken(TTL_DEFAULT_MS, BASE_USER);
             assertThat(provider(TTL_DEFAULT_MS).resolveAuthentication(jwt)).isEmpty();
         }
 
         @Test
-        @DisplayName("無效 role claim 回傳 empty")
+        @DisplayName("An invalid role claim returns empty")
         void invalidRoleClaim_returnsEmpty() {
             String jwt = Jwts.builder()
                     .subject("1")
@@ -380,31 +380,31 @@ class JwtTokenProviderTest {
         }
 
         @Test
-        @DisplayName("null header 回傳 empty")
+        @DisplayName("A null header returns empty")
         void nullHeader_returnsEmpty() {
             assertThat(provider(TTL_DEFAULT_MS).resolveAuthentication(null)).isEmpty();
         }
     }
 
     @Nested
-    @DisplayName("邊界：JWT 結構與驗證")
+    @DisplayName("Boundaries: JWT structure and verification")
     class TokenStructureTests {
 
         @Test
-        @DisplayName("compact JWS 為三段 base64url")
+        @DisplayName("Compact JWS has three base64url parts")
         void compactJwsHasThreeParts() {
             String jwt = accessToken(TTL_DEFAULT_MS, BASE_USER);
             assertThat(jwt.split("\\.")).hasSize(3);
         }
 
         @Test
-        @DisplayName("非 JWS 字串無法解析")
+        @DisplayName("A non-JWS string cannot be parsed")
         void malformedStringFailsParse() {
             assertThatThrownBy(() -> parseClaims("not-a-jwt")).isInstanceOf(JwtException.class);
         }
 
         @Test
-        @DisplayName("竄改 payload 段後簽章驗證失敗")
+        @DisplayName("Tampering with the payload segment fails signature verification")
         void tamperedPayloadFailsSignature() {
             String jwt = accessToken(TTL_DEFAULT_MS, BASE_USER);
             String[] parts = jwt.split("\\.");

@@ -434,7 +434,7 @@ class RestaurantControllerTest {
 
                 @Test
                 void scientificNotationCoordinates_areAccepted() throws Exception {
-                        when(restaurantService.getNearbyRestaurants(24.989, 121.5654))
+                        when(restaurantService.getNearbyRestaurants(24.989, 121.5111))
                                         .thenReturn(List.of());
 
                         performGetNearbyRestaurants(Map.of(
@@ -442,7 +442,7 @@ class RestaurantControllerTest {
                                         "longitude", "1.215111e2"))
                                         .andExpect(status().isOk());
 
-                        verify(restaurantService).getNearbyRestaurants(24.989, 121.5654);
+                        verify(restaurantService).getNearbyRestaurants(24.989, 121.5111);
                 }
 
                 @Test

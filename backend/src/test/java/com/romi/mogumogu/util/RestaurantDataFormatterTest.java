@@ -14,7 +14,7 @@ import org.junit.jupiter.params.provider.ValueSource;
 class RestaurantDataFormatterTest {
 
     @Nested
-    @DisplayName("formatPhone 電話格式化測試")
+    @DisplayName("formatPhone")
     class FormatPhoneTest {
 
         @ParameterizedTest
@@ -25,7 +25,7 @@ class RestaurantDataFormatterTest {
                 "\t",
                 "\n"
         })
-        @DisplayName("電話為 null 或空白時，應回傳 null")
+        @DisplayName("Returns null when phone is null or blank")
         void shouldReturnNullWhenPhoneIsNullOrBlank(String phone) {
 
             String result = RestaurantDataFormatter.formatPhone(phone);
@@ -41,7 +41,7 @@ class RestaurantDataFormatterTest {
                 "'(02)12345678', 02-1234-5678",
                 "'(02) 1234-5678', 02-1234-5678"
         })
-        @DisplayName("02 市話應格式化成 02-xxxx-xxxx")
+        @DisplayName("Formats Taipei landlines as 02-xxxx-xxxx")
         void shouldFormatTaipeiLandline(
                 String input,
                 String expected) {
@@ -58,7 +58,7 @@ class RestaurantDataFormatterTest {
                 "0912-345-678, 0912-345-678",
                 "'(0912)345678', 0912-345-678"
         })
-        @DisplayName("手機應格式化成 09xx-xxx-xxx")
+        @DisplayName("Formats mobile numbers as 09xx-xxx-xxx")
         void shouldFormatMobilePhone(
                 String input,
                 String expected) {
@@ -78,7 +78,7 @@ class RestaurantDataFormatterTest {
                 "+8860912345678, 0912-345-678",
                 "8860912345678, 0912-345-678"
         })
-        @DisplayName("886 手機國碼應轉回台灣國內格式")
+        @DisplayName("Converts 886 mobile country codes back to domestic format")
         void shouldConvertTaiwanCountryCodeMobile(
                 String input,
                 String expected) {
@@ -98,7 +98,7 @@ class RestaurantDataFormatterTest {
                 "+8860212345678, 02-1234-5678",
                 "8860212345678, 02-1234-5678"
         })
-        @DisplayName("886 市話國碼應轉回台灣國內格式")
+        @DisplayName("Converts 886 landline country codes back to domestic format")
         void shouldConvertTaiwanCountryCodeLandline(
                 String input,
                 String expected) {
@@ -125,7 +125,7 @@ class RestaurantDataFormatterTest {
                 "0826123456, '0826 123456'",
                 "0836123456, '0836 123456'"
         })
-        @DisplayName("其他市話應依區碼切分")
+        @DisplayName("Splits other landlines by area code")
         void shouldFormatOtherLandlineAreaCodes(
                 String input,
                 String expected) {
@@ -136,7 +136,7 @@ class RestaurantDataFormatterTest {
         }
 
         @Test
-        @DisplayName("0836 必須優先於 08")
+        @DisplayName("0836 takes priority over 08")
         void shouldMatch0836Before08() {
 
             String result = RestaurantDataFormatter.formatPhone("0836123456");
@@ -145,7 +145,7 @@ class RestaurantDataFormatterTest {
         }
 
         @Test
-        @DisplayName("0826 必須優先於 082 與 08")
+        @DisplayName("0826 takes priority over 082 and 08")
         void shouldMatch0826Before082And08() {
 
             String result = RestaurantDataFormatter.formatPhone("0826123456");
@@ -154,7 +154,7 @@ class RestaurantDataFormatterTest {
         }
 
         @Test
-        @DisplayName("082 必須優先於 08")
+        @DisplayName("082 takes priority over 08")
         void shouldMatch082Before08() {
 
             String result = RestaurantDataFormatter.formatPhone("0821234567");
@@ -163,7 +163,7 @@ class RestaurantDataFormatterTest {
         }
 
         @Test
-        @DisplayName("089 必須優先於 08")
+        @DisplayName("089 takes priority over 08")
         void shouldMatch089Before08() {
 
             String result = RestaurantDataFormatter.formatPhone("0891234567");
@@ -184,7 +184,7 @@ class RestaurantDataFormatterTest {
                 "+886",
                 "0"
         })
-        @DisplayName("無法辨識的電話格式應維持原字串")
+        @DisplayName("Unrecognized phone formats keep the original string")
         void shouldReturnOriginalPhoneWhenInvalid(String input) {
 
             String result = RestaurantDataFormatter.formatPhone(input);
@@ -199,7 +199,7 @@ class RestaurantDataFormatterTest {
                 "091234567",
                 "09123456789"
         })
-        @DisplayName("02 或手機長度錯誤時，不應套用標準格式")
+        @DisplayName("Does not apply the standard format when 02 or mobile length is wrong")
         void shouldNotApplyStandardFormatWhenLengthInvalid(
                 String input) {
 
@@ -222,7 +222,7 @@ class RestaurantDataFormatterTest {
                 "'02-1234 5678', 02-1234-5678",
                 "'09 12-345 (678)', 0912-345-678"
         })
-        @DisplayName("空白、括號、減號應被移除後重新格式化")
+        @DisplayName("Removes spaces, parentheses, and hyphens before reformatting")
         void shouldRemoveAllowedSeparators(
                 String input,
                 String expected) {
@@ -239,7 +239,7 @@ class RestaurantDataFormatterTest {
                 "0912.345.678",
                 "0912-345-678 ext 123"
         })
-        @DisplayName("未支援的特殊符號應回傳原始字串")
+        @DisplayName("Unsupported special characters return the original string")
         void shouldReturnOriginalWhenContainsUnsupportedCharacters(
                 String input) {
 
@@ -249,7 +249,7 @@ class RestaurantDataFormatterTest {
         }
 
         @Test
-        @DisplayName("0800 目前會被當成 08 區碼處理")
+        @DisplayName("0800 is currently treated as the 08 area code")
         void shouldCurrentlyTreat0800As08AreaCode() {
 
             String result = RestaurantDataFormatter.formatPhone("0800123456");
@@ -258,7 +258,7 @@ class RestaurantDataFormatterTest {
         }
 
         @Test
-        @DisplayName("03 開頭即使號碼長度奇怪，目前仍會被視為市話")
+        @DisplayName("Numbers starting with 03 are still treated as landlines even with odd length")
         void shouldCurrentlyAcceptUnusualLandlineLength() {
 
             String result = RestaurantDataFormatter.formatPhone("03123");
@@ -268,7 +268,7 @@ class RestaurantDataFormatterTest {
     }
 
     @Nested
-    @DisplayName("formatOpeningHours 營業時間格式化測試")
+    @DisplayName("formatOpeningHours")
     class FormatOpeningHoursTest {
 
         @ParameterizedTest
@@ -279,7 +279,7 @@ class RestaurantDataFormatterTest {
                 "\t",
                 "\n"
         })
-        @DisplayName("營業時間為 null 或空白時應回傳 null")
+        @DisplayName("Returns null when opening hours are null or blank")
         void shouldReturnNullWhenOpeningHoursIsNullOrBlank(
                 String openingHours) {
 
@@ -297,7 +297,7 @@ class RestaurantDataFormatterTest {
                 " 24/7 ",
                 "24/7"
         })
-        @DisplayName("24/7 應顯示 24 小時營業")
+        @DisplayName("24/7 is formatted as the 24-hour Chinese label")
         void shouldFormatTwentyFourSeven(String input) {
 
             String result = RestaurantDataFormatter
@@ -315,7 +315,7 @@ class RestaurantDataFormatterTest {
                 "'Su-Fr 09:00-18:00', '週日至週五 09:00-18:00'",
                 "'We-Mo 09:00-18:00', '週三至週一 09:00-18:00'"
         })
-        @DisplayName("指定的星期範圍應轉成中文")
+        @DisplayName("Known weekday ranges are translated into Chinese labels")
         void shouldFormatDayRanges(
                 String input,
                 String expected) {
@@ -336,7 +336,7 @@ class RestaurantDataFormatterTest {
                 "'Sa 09:00-18:00', '週六 09:00-18:00'",
                 "'Su 09:00-18:00', '週日 09:00-18:00'"
         })
-        @DisplayName("單一天星期應轉成中文")
+        @DisplayName("Single weekday codes are translated into Chinese labels")
         void shouldFormatSingleDay(
                 String input,
                 String expected) {
@@ -353,7 +353,7 @@ class RestaurantDataFormatterTest {
                 "'Mo,We,Fr', '週一、週三、週五'",
                 "'Sa,Su', '週六、週日'"
         })
-        @DisplayName("逗號分隔的星期應轉成頓號")
+        @DisplayName("Comma-separated weekdays become ideographic commas")
         void shouldReplaceCommaBetweenDays(
                 String input,
                 String expected) {
@@ -365,7 +365,7 @@ class RestaurantDataFormatterTest {
         }
 
         @Test
-        @DisplayName("多組營業時間的分號應改成全形分號")
+        @DisplayName("Semicolons between opening-hour groups become full-width semicolons")
         void shouldReplaceSemicolon() {
 
             String input = "Mo-Fr 09:00-18:00; Sa 10:00-14:00";
@@ -379,7 +379,7 @@ class RestaurantDataFormatterTest {
         }
 
         @Test
-        @DisplayName("同一天有兩個時段時逗號目前也會變成頓號")
+        @DisplayName("Commas between two time ranges on the same day currently become ideographic commas")
         void shouldReplaceTimeRangeCommaWithChineseComma() {
 
             String input = "Mo 11:00-14:00,17:00-20:00";
@@ -393,7 +393,7 @@ class RestaurantDataFormatterTest {
         }
 
         @Test
-        @DisplayName("複雜 OSM 營業時間格式應正確轉換")
+        @DisplayName("Complex OSM opening-hours strings are converted correctly")
         void shouldFormatComplexOpeningHours() {
 
             String input = "Mo-Fr 11:00-14:00,17:00-21:00; Sa-Su 11:00-22:00";
@@ -412,7 +412,7 @@ class RestaurantDataFormatterTest {
                 "'Tu-Th 09:00-18:00', '週二-週四 09:00-18:00'",
                 "'Fr-Su 09:00-18:00', '週五-週日 09:00-18:00'"
         })
-        @DisplayName("沒有特別定義的範圍，目前只會翻譯星期而保留 -")
+        @DisplayName("Undefined ranges currently translate weekdays and keep the hyphen")
         void shouldTranslateUnknownDayRangesPartially(
                 String input,
                 String expected) {
@@ -431,7 +431,7 @@ class RestaurantDataFormatterTest {
                 "by appointment",
                 "09:00-18:00"
         })
-        @DisplayName("沒有星期代碼的內容應保持原樣")
+        @DisplayName("Content without weekday codes is left unchanged")
         void shouldKeepUnknownOpeningHours(String input) {
 
             String result = RestaurantDataFormatter
@@ -441,7 +441,7 @@ class RestaurantDataFormatterTest {
         }
 
         @Test
-        @DisplayName("星期代碼目前區分大小寫")
+        @DisplayName("Weekday codes are currently case-sensitive")
         void shouldNotTranslateLowercaseDayCode() {
 
             String input = "mo-fr 09:00-18:00";
@@ -455,7 +455,7 @@ class RestaurantDataFormatterTest {
         }
 
         @Test
-        @DisplayName("一般營業時間目前會保留前後空白")
+        @DisplayName("Normal opening hours currently keep leading and trailing whitespace")
         void shouldKeepWhitespaceForNormalOpeningHours() {
 
             String input = " Mo-Fr 09:00-18:00 ";

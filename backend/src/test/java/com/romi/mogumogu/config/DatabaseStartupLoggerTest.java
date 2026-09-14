@@ -24,11 +24,11 @@ class DatabaseStartupLoggerTest {
     private static final String DATASOURCE_JDBC_URL_KEY = "spring.datasource.jdbc-url";
 
     @Nested
-    @DisplayName("run() 與 Environment 讀取流程")
+    @DisplayName("run() and Environment lookup flow")
     class RunAndEnvironmentFlowTests {
 
         @Test
-        @DisplayName("有 spring.datasource.url 時，優先使用 url 並完成執行")
+        @DisplayName("Prefers spring.datasource.url when present and completes")
         void run_shouldPreferSpringDatasourceUrl_whenUrlIsPresent() {
             Environment environment = mock(Environment.class);
             when(environment.getProperty(DATASOURCE_URL_KEY)).thenReturn("jdbc:mysql://localhost:3306/mogu");
@@ -38,7 +38,7 @@ class DatabaseStartupLoggerTest {
         }
 
         @Test
-        @DisplayName("url 為空白時，應 fallback 使用 spring.datasource.jdbc-url")
+        @DisplayName("Falls back to spring.datasource.jdbc-url when url is blank")
         void run_shouldFallbackToJdbcUrl_whenUrlIsBlank() {
             Environment environment = mock(Environment.class);
             when(environment.getProperty(DATASOURCE_URL_KEY)).thenReturn("   ");
@@ -49,7 +49,7 @@ class DatabaseStartupLoggerTest {
         }
 
         @Test
-        @DisplayName("url 與 jdbc-url 都缺失時，仍可正常執行（未知資料庫）")
+        @DisplayName("Still completes when both datasource properties are missing (unknown database)")
         void run_shouldStillComplete_whenBothDatasourcePropertiesMissing() {
             Environment environment = mock(Environment.class);
             when(environment.getProperty(DATASOURCE_URL_KEY)).thenReturn(null);
@@ -60,7 +60,7 @@ class DatabaseStartupLoggerTest {
         }
 
         @Test
-        @DisplayName("url 為空字串且 jdbc-url 為空白時，仍可正常執行（未知資料庫）")
+        @DisplayName("Still completes when url is empty and jdbc-url is blank (unknown database)")
         void run_shouldStillComplete_whenUrlEmptyAndJdbcUrlBlank() {
             Environment environment = mock(Environment.class);
             when(environment.getProperty(DATASOURCE_URL_KEY)).thenReturn("");
@@ -71,7 +71,7 @@ class DatabaseStartupLoggerTest {
         }
 
         @Test
-        @DisplayName("ApplicationArguments 傳入 null 時也可正常執行（參數未被使用）")
+        @DisplayName("Still completes when ApplicationArguments is null (the argument is unused)")
         void run_shouldNotThrow_whenApplicationArgumentsIsNull() {
             Environment environment = mock(Environment.class);
             when(environment.getProperty(DATASOURCE_URL_KEY)).thenReturn("jdbc:mysql://localhost:3306/mogu");
@@ -81,13 +81,13 @@ class DatabaseStartupLoggerTest {
         }
 
         @Test
-        @DisplayName("Environment 為 null 時，執行 run 應拋出 NullPointerException")
+        @DisplayName("run throws NullPointerException when Environment is null")
         void run_shouldThrowNullPointerException_whenEnvironmentIsNull() {
             assertThrows(NullPointerException.class, () -> new DatabaseStartupLogger(null).run(EMPTY_ARGS));
         }
 
         @Test
-        @DisplayName("讀取 spring.datasource.url 發生例外時，run 應將例外往外拋")
+        @DisplayName("run propagates exceptions from reading spring.datasource.url")
         void run_shouldPropagateException_whenReadingDatasourceUrlFails() {
             Environment environment = mock(Environment.class);
             RuntimeException expected = new RuntimeException("read url failed");
@@ -101,7 +101,7 @@ class DatabaseStartupLoggerTest {
         }
 
         @Test
-        @DisplayName("fallback 讀取 spring.datasource.jdbc-url 發生例外時，run 應將例外往外拋")
+        @DisplayName("run propagates exceptions from reading spring.datasource.jdbc-url")
         void run_shouldPropagateException_whenReadingDatasourceJdbcUrlFails() {
             Environment environment = mock(Environment.class);
             when(environment.getProperty(DATASOURCE_URL_KEY)).thenReturn(" ");
@@ -117,59 +117,59 @@ class DatabaseStartupLoggerTest {
     }
 
     @Nested
-    @DisplayName("resolveDatabaseKind(jdbcUrl) 資料庫種類判斷")
+    @DisplayName("resolveDatabaseKind(jdbcUrl) database kind detection")
     class ResolveDatabaseKindTests {
 
         @Test
-        @DisplayName("jdbc:mysql 開頭應判定為 MySQL")
+        @DisplayName("jdbc:mysql prefix is detected as MySQL")
         void resolveDatabaseKind_shouldReturnMySql_whenStartsWithJdbcMysql() throws Exception {
             assertEquals("MySQL", invokeResolveDatabaseKind("jdbc:mysql://localhost:3306/app"));
         }
 
         @Test
-        @DisplayName("URL 含 :mysql: 片段應判定為 MySQL")
+        @DisplayName("A URL containing :mysql: is detected as MySQL")
         void resolveDatabaseKind_shouldReturnMySql_whenContainsMysqlSegment() throws Exception {
             assertEquals("MySQL", invokeResolveDatabaseKind("prefix:mysql:segment"));
         }
 
         @Test
-        @DisplayName("jdbc:h2 開頭應判定為 H2")
+        @DisplayName("jdbc:h2 prefix is detected as H2")
         void resolveDatabaseKind_shouldReturnH2_whenStartsWithJdbcH2() throws Exception {
             assertEquals("H2", invokeResolveDatabaseKind("jdbc:h2:file:./data/mogu"));
         }
 
         @Test
-        @DisplayName("URL 含 :h2: 片段應判定為 H2")
+        @DisplayName("A URL containing :h2: is detected as H2")
         void resolveDatabaseKind_shouldReturnH2_whenContainsH2Segment() throws Exception {
             assertEquals("H2", invokeResolveDatabaseKind("abc:h2:def"));
         }
 
         @Test
-        @DisplayName("大小寫混用也應正確辨識 MySQL")
+        @DisplayName("Mixed-case URLs still detect MySQL")
         void resolveDatabaseKind_shouldBeCaseInsensitive_forMysql() throws Exception {
             assertEquals("MySQL", invokeResolveDatabaseKind("JDBC:MySQL://localhost:3306/app"));
         }
 
         @Test
-        @DisplayName("大小寫混用也應正確辨識 H2")
+        @DisplayName("Mixed-case URLs still detect H2")
         void resolveDatabaseKind_shouldBeCaseInsensitive_forH2() throws Exception {
             assertEquals("H2", invokeResolveDatabaseKind("JDBC:H2:MEM:testdb"));
         }
 
         @Test
-        @DisplayName("非 MySQL/H2 URL 應回傳 未知")
+        @DisplayName("Unsupported JDBC URLs return the unknown label")
         void resolveDatabaseKind_shouldReturnUnknown_forUnsupportedJdbcUrl() throws Exception {
             assertEquals("未知", invokeResolveDatabaseKind("jdbc:postgresql://localhost:5432/app"));
         }
 
         @Test
-        @DisplayName("空白字串應回傳 未知")
+        @DisplayName("A blank string returns the unknown label")
         void resolveDatabaseKind_shouldReturnUnknown_forBlankInput() throws Exception {
             assertEquals("未知", invokeResolveDatabaseKind("   "));
         }
 
         @Test
-        @DisplayName("null 應回傳 未知")
+        @DisplayName("null returns the unknown label")
         void resolveDatabaseKind_shouldReturnUnknown_forNullInput() throws Exception {
             assertEquals("未知", invokeResolveDatabaseKind(null));
         }

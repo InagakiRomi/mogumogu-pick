@@ -30,7 +30,7 @@ class JwtAuthenticationFilterTest {
     }
 
     @Test
-    @DisplayName("有效 Bearer token 寫入 SecurityContext")
+    @DisplayName("A valid Bearer token is written into SecurityContext")
     void validBearerToken_setsAuthentication() throws Exception {
         UserEntity user = UserEntity.builder()
                 .userId(5)
@@ -53,7 +53,7 @@ class JwtAuthenticationFilterTest {
     }
 
     @Test
-    @DisplayName("無 Authorization header 不設定 Authentication")
+    @DisplayName("Missing Authorization header does not set Authentication")
     void missingHeader_leavesContextEmpty() throws Exception {
         MockHttpServletRequest request = new MockHttpServletRequest();
         MockHttpServletResponse response = new MockHttpServletResponse();
@@ -65,7 +65,7 @@ class JwtAuthenticationFilterTest {
     }
 
     @Test
-    @DisplayName("無效 token 不設定 Authentication")
+    @DisplayName("An invalid token does not set Authentication")
     void invalidToken_leavesContextEmpty() throws Exception {
         MockHttpServletRequest request = new MockHttpServletRequest();
         request.addHeader("Authorization", "Bearer not-valid-jwt");
