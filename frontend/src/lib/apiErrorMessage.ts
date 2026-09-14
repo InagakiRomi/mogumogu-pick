@@ -63,10 +63,14 @@ const API_ERROR_MESSAGES: Record<string, string> = {
   'Target user is already group admin': '目標使用者已是群組管理員',
   'Please transfer group admin before leaving': '請先移轉群組管理權再退出',
   'Only group admin can perform this action': '只有群組管理員可以執行此操作',
+  'Latitude must be between 21.7 and 26.5': '超出搜尋範圍',
+  'Longitude must be between 118.0 and 122.2': '超出搜尋範圍',
 }
 
 const API_ERROR_PATTERNS: Array<{ pattern: RegExp; message: string }> = [
   { pattern: /^User with email ".+" not found$/, message: '電子郵件或密碼錯誤' },
+  { pattern: /^Latitude must be between /, message: '超出搜尋範圍' },
+  { pattern: /^Longitude must be between /, message: '超出搜尋範圍' },
 ]
 
 export const AUTH_FEEDBACK_MESSAGES = {

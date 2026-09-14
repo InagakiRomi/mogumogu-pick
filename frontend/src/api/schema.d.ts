@@ -769,6 +769,27 @@ export interface components {
             openingHours?: string;
             phone?: string;
         };
+        NearbyRestaurantSearchResponse: {
+            restaurants?: components["schemas"]["NearbyRestaurantResponse"][];
+            /**
+             * Format: int32
+             * @description 找到的餐廳數
+             * @example 12
+             */
+            restaurantCount?: number;
+            /**
+             * Format: double
+             * @description 目前搜尋緯度
+             * @example 25.033
+             */
+            latitude?: number;
+            /**
+             * Format: double
+             * @description 目前搜尋經度
+             * @example 121.5654
+             */
+            longitude?: number;
+        };
         HealthResponse: {
             status?: string;
         };
@@ -1393,7 +1414,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": components["schemas"]["NearbyRestaurantResponse"][];
+                    "*/*": components["schemas"]["NearbyRestaurantSearchResponse"];
                 };
             };
         };

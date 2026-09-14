@@ -1,7 +1,7 @@
 package com.romi.mogumogu.controller.restaurant;
 
 import com.romi.mogumogu.response.DishListResponse;
-import com.romi.mogumogu.response.NearbyRestaurantResponse;
+import com.romi.mogumogu.response.NearbyRestaurantSearchResponse;
 import com.romi.mogumogu.response.RestaurantListResponse;
 import com.romi.mogumogu.response.RestaurantResponse;
 import com.romi.mogumogu.response.SelectionHistoryResponse;
@@ -12,8 +12,6 @@ import com.romi.mogumogu.dto.UpdateRestaurantDto;
 import com.romi.mogumogu.service.restaurant.RestaurantService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
-
-import java.util.List;
 
 import org.springdoc.core.annotations.ParameterObject;
 import jakarta.validation.Valid;
@@ -50,10 +48,13 @@ public class RestaurantController {
 
     @GetMapping("/nearby")
     @Operation(summary = "取得座標附近的餐廳資料")
-    public List<NearbyRestaurantResponse> getNearbyRestaurants(
+    public NearbyRestaurantSearchResponse getNearbyRestaurants(
             @RequestParam(defaultValue = "25.033") double latitude,
             @RequestParam(defaultValue = "121.5654") double longitude) {
-        return restaurantService.getNearbyRestaurants(latitude, longitude);
+        return NearbyRestaurantSearchResponse.of(
+                restaurantService.getNearbyRestaurants(latitude, longitude),
+                latitude,
+                longitude);
     }
 
     @GetMapping("/random")

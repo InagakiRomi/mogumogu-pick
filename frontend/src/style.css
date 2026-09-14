@@ -17,7 +17,7 @@
   --color-accent: var(--accent);
   --color-muted-foreground: var(--muted-foreground);
   --color-muted: var(--muted);
-  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary-foreground: var(--foreground);
   --color-secondary: var(--secondary);
   --color-primary-foreground: var(--primary-foreground);
   --color-primary: var(--primary);
@@ -39,7 +39,7 @@
 
 :root {
   --background: #fff2ee;
-  --foreground: #444444;
+  --foreground: #5c4033;
   --card: #fff8f1;
   --card-foreground: #6b3f2a;
   --popover: #fff8f1;
@@ -47,7 +47,6 @@
   --primary: #d07860;
   --primary-foreground: #fff9f5;
   --secondary: #ffe9db;
-  --secondary-foreground: #5c4033;
   --muted: #fff5ec;
   --muted-foreground: #774b38;
   --accent: #ffc3a0;
@@ -93,6 +92,6 @@
     @apply bg-background font-sans;
     font-size: 1rem;
     line-height: 1.6;
-    color: var(--secondary-foreground);
+    color: var(--foreground);
   }
 }

@@ -269,7 +269,10 @@ class RestaurantControllerTest {
 
                         performGetNearbyRestaurants()
                                         .andExpect(status().isOk())
-                                        .andExpect(jsonPath("$.length()").value(2));
+                                        .andExpect(jsonPath("$.restaurants.length()").value(2))
+                                        .andExpect(jsonPath("$.restaurantCount").value(2))
+                                        .andExpect(jsonPath("$.latitude").value(DEFAULT_NEARBY_LATITUDE))
+                                        .andExpect(jsonPath("$.longitude").value(DEFAULT_NEARBY_LONGITUDE));
 
                         verify(restaurantService).getNearbyRestaurants(
                                         DEFAULT_NEARBY_LATITUDE,
@@ -285,7 +288,10 @@ class RestaurantControllerTest {
 
                         performGetNearbyRestaurants()
                                         .andExpect(status().isOk())
-                                        .andExpect(jsonPath("$.length()").value(0));
+                                        .andExpect(jsonPath("$.restaurants.length()").value(0))
+                                        .andExpect(jsonPath("$.restaurantCount").value(0))
+                                        .andExpect(jsonPath("$.latitude").value(DEFAULT_NEARBY_LATITUDE))
+                                        .andExpect(jsonPath("$.longitude").value(DEFAULT_NEARBY_LONGITUDE));
 
                         verify(restaurantService).getNearbyRestaurants(
                                         DEFAULT_NEARBY_LATITUDE,
@@ -301,7 +307,10 @@ class RestaurantControllerTest {
                                         "latitude", "25.0330",
                                         "longitude", "121.5654"))
                                         .andExpect(status().isOk())
-                                        .andExpect(jsonPath("$.length()").value(0));
+                                        .andExpect(jsonPath("$.restaurants.length()").value(0))
+                                        .andExpect(jsonPath("$.restaurantCount").value(0))
+                                        .andExpect(jsonPath("$.latitude").value(25.0330))
+                                        .andExpect(jsonPath("$.longitude").value(121.5654));
 
                         verify(restaurantService).getNearbyRestaurants(25.0330, 121.5654);
                 }
@@ -347,7 +356,10 @@ class RestaurantControllerTest {
                                         "latitude", "",
                                         "longitude", ""))
                                         .andExpect(status().isOk())
-                                        .andExpect(jsonPath("$.length()").value(0));
+                                        .andExpect(jsonPath("$.restaurants.length()").value(0))
+                                        .andExpect(jsonPath("$.restaurantCount").value(0))
+                                        .andExpect(jsonPath("$.latitude").value(DEFAULT_NEARBY_LATITUDE))
+                                        .andExpect(jsonPath("$.longitude").value(DEFAULT_NEARBY_LONGITUDE));
 
                         verify(restaurantService).getNearbyRestaurants(
                                         DEFAULT_NEARBY_LATITUDE,

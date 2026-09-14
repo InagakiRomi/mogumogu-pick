@@ -471,7 +471,6 @@ class AuthControllerTest {
         return body;
     }
 
-    /** 多數「服務層丟錯誤」註冊測試共用的合法請求本文 */
     private RegisterRequest defaultRegisterBody() {
         return registerRequest("u", "new@example.com", "password123");
     }
@@ -563,9 +562,6 @@ class AuthControllerTest {
         verifyNoInteractions(authService);
     }
 
-    /**
-     * 驗證 400 回應的 {@code message} 同時包含多個子字串（例如多欄位驗證），並執行自訂的 Mockito 斷言。
-     */
     private void assertBadRequestMessageContainsSubstrings(
             ResultActions pendingRequest,
             Runnable verifyServiceNotUsed,

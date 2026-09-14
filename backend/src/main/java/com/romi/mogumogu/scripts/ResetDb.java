@@ -12,6 +12,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.logging.Logger;
 
+import org.springframework.http.HttpStatus;
+import org.springframework.web.server.ResponseStatusException;
+
 import com.romi.mogumogu.logging.JulLoggerFactory;
 import com.romi.mogumogu.MogumoguApplication;
 
@@ -50,7 +53,7 @@ public class ResetDb {
         String mysqlPassword = env.getOrDefault("DB_PASSWORD", "").trim();
 
         if (!dbName.matches("[A-Za-z0-9_$]+")) {
-            throw new IllegalArgumentException("DB_NAME 含有不支援的字元：" + dbName);
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "DB_NAME 含有不支援的字元：" + dbName);
         }
         String serverUrl = "jdbc:mysql://" + mysqlHost + ":" + mysqlPort
                 + "/?serverTimezone=Asia/Taipei&characterEncoding=utf-8";

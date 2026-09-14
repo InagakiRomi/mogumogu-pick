@@ -1,5 +1,6 @@
 package com.romi.mogumogu.service.restaurant;
 
+import com.romi.mogumogu.client.OverpassClient;
 import com.romi.mogumogu.mapper.NearbyRestaurantMapper;
 import com.romi.mogumogu.response.DishListResponse;
 import com.romi.mogumogu.response.NearbyRestaurantResponse;
@@ -22,9 +23,7 @@ import com.romi.mogumogu.repository.user.UserRepository;
 import com.romi.mogumogu.logging.JulLoggerFactory;
 import com.romi.mogumogu.security.SecurityUtils;
 
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.MediaType;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -32,9 +31,6 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.util.LinkedMultiValueMap;
-import org.springframework.util.MultiValueMap;
-import org.springframework.web.client.RestClient;
 import org.springframework.web.server.ResponseStatusException;
 
 import jakarta.persistence.criteria.Predicate;
@@ -53,7 +49,7 @@ import java.util.logging.Logger;
 
 @Service
 public class RestaurantService {
-    private static final int RADIUS = 1200;
+    private static final int RADIUS = 1000;
     private static final Logger renderLog = new JulLoggerFactory().printRenderLog();
 
     private final RestaurantRepository restaurantRepository;
@@ -61,7 +57,7 @@ public class RestaurantService {
     private final UserRepository userRepository;
     private final RestaurantSelectionHistoryService selectionHistoryService;
     private final DishService dishService;
-    private final RestClient overpassRestClient;
+    private final OverpassClient overpassClient;
 
     private final Map<Integer, RandomPool> randomPoolByUser = new ConcurrentHashMap<>();
 
@@ -74,13 +70,13 @@ public class RestaurantService {
             UserRepository userRepository,
             RestaurantSelectionHistoryService restaurantSelectionHistoryService,
             DishService dishService,
-            @Qualifier("overpassRestClient") RestClient overpassRestClient) {
+            OverpassClient overpassClient) {
         this.restaurantRepository = restaurantRepository;
         this.restaurantCategoryRepository = restaurantCategoryRepository;
         this.userRepository = userRepository;
         this.selectionHistoryService = restaurantSelectionHistoryService;
         this.dishService = dishService;
-        this.overpassRestClient = overpassRestClient;
+        this.overpassClient = overpassClient;
     }
 
     /** 取得目前登入使用者所屬群組的餐廳清單 */
@@ -174,46 +170,34 @@ public class RestaurantService {
     }
 
     /** 取得指定座標附近的餐廳資料 */
-    public List<NearbyRestaurantResponse> getNearbyRestaurants(double latitude, double longitude) {
+    public List<NearbyRestaurantResponse> getNearbyRestaurants(
+            double latitude,
+            double longitude) {
 
-        // 建立 Overpass API 查詢語法
-        String query = """
-                [out:json][timeout:10];
-                nwr
-                  ["amenity"~"^(restaurant|cafe|fast_food|food_court)$"]
-                  (around:%d,%f,%f);
-                out center;
-                """.formatted(RADIUS, latitude, longitude);
+        // 取得 Overpass 餐廳資料
+        JsonNode response = overpassClient.searchRestaurants(
+                latitude,
+                longitude,
+                RADIUS);
 
-        // 建立 API 表單資料
-        MultiValueMap<String, String> formData = new LinkedMultiValueMap<>();
-        formData.add("data", query);
-
-        // 呼叫 Overpass API
-        JsonNode response = overpassRestClient
-                .post()
-                .uri("/api/interpreter")
-                .contentType(MediaType.APPLICATION_FORM_URLENCODED)
-                .accept(MediaType.APPLICATION_JSON)
-                .body(formData)
-                .retrieve()
-                .body(JsonNode.class);
-
-        // 無資料時回傳空列表
-        if (response == null || !response.has("elements")) {
+        // 檢查餐廳資料
+        if (!response.has("elements")) {
             return List.of();
         }
 
-        // 建立餐廳列表
         List<NearbyRestaurantResponse> restaurants = new ArrayList<>();
 
-        // 將 API 資料轉換成回傳資料
+        // 整理餐廳資料
         for (JsonNode element : response.get("elements")) {
-            // 依序取得 name、name:zh、brand
+
             String name = null;
 
-            for (String key : List.of("name", "name:zh", "brand")) {
-                String value = element.path("tags").path(key).asString(null);
+            // 取得餐廳名稱
+            for (String key : List.of("name:zh", "name", "brand")) {
+
+                String value = element.path("tags")
+                        .path(key)
+                        .asString(null);
 
                 if (value != null && !value.isBlank()) {
                     name = value;
@@ -221,14 +205,15 @@ public class RestaurantService {
                 }
             }
 
-            // 無名稱則略過
             if (name == null) {
                 continue;
             }
 
-            NearbyRestaurantResponse restaurant = NearbyRestaurantMapper.fromOverpass(element, name);
+            // 轉換成回傳格式
+            NearbyRestaurantResponse restaurant = NearbyRestaurantMapper.fromOverpass(
+                    element,
+                    name);
 
-            // 有有效座標才加入列表
             if (restaurant != null) {
                 restaurants.add(restaurant);
             }

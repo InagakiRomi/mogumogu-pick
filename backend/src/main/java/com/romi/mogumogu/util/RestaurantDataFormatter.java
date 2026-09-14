@@ -2,6 +2,12 @@ package com.romi.mogumogu.util;
 
 public class RestaurantDataFormatter {
 
+    /** 最長優先，避免 0836 被拆成 08 */
+    private static final String[] LANDLINE_AREA_CODES = {
+            "0836", "0826", "037", "049", "082", "089",
+            "02", "03", "04", "05", "06", "07", "08"
+    };
+
     private RestaurantDataFormatter() {
     }
 
@@ -24,6 +30,10 @@ public class RestaurantDataFormatter {
             }
         }
 
+        if (!number.matches("^0\\d+$")) {
+            return phone;
+        }
+
         // 台灣市話：02xxxxxxxx
         if (number.matches("^02\\d{8}$")) {
             return number.substring(0, 2)
@@ -42,8 +52,22 @@ public class RestaurantDataFormatter {
                     + number.substring(7);
         }
 
-        // 無法辨識就保留原始值
+        String areaCode = matchLandlineAreaCode(number);
+        if (areaCode != null) {
+            return areaCode + " " + number.substring(areaCode.length());
+        }
+
         return phone;
+    }
+
+    /** 依最長區碼切分市話 */
+    private static String matchLandlineAreaCode(String number) {
+        for (String code : LANDLINE_AREA_CODES) {
+            if (number.startsWith(code) && number.length() > code.length()) {
+                return code;
+            }
+        }
+        return null;
     }
 
     public static String formatOpeningHours(String openingHours) {

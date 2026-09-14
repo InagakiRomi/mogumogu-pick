@@ -30,7 +30,6 @@ import io.jsonwebtoken.security.WeakKeyException;
 @DisplayName("JwtTokenProvider")
 class JwtTokenProviderTest {
 
-    /** HS256 至少需要 256 bits（32 bytes）金鑰，與 Keys.hmacShaKeyFor 要求一致 */
     private static final String VALID_SECRET_32_BYTES = "a".repeat(32);
 
     private static final SecretKey DEFAULT_SIGNING_KEY = hmacKeyFrom(VALID_SECRET_32_BYTES);
@@ -39,7 +38,6 @@ class JwtTokenProviderTest {
     private static final long TTL_ONE_HOUR_MS = 3_600_000L;
     private static final long TTL_ONE_DAY_MS = 86_400_000L;
 
-    /** 多數案例共用的使用者雛形（依測試覆寫欄位） */
     private static final UserEntity BASE_USER = user(1, "a@b.c", 1, UserRole.USER);
 
     private static SecretKey hmacKeyFrom(String secret) {
@@ -68,7 +66,6 @@ class JwtTokenProviderTest {
         return Jwts.parser().verifyWith(key).build().parseSignedClaims(jwt).getPayload();
     }
 
-    /** JWT NumericDate 為秒精度；零 TTL 時 exp≈iat，驗證需容忍時鐘誤差。 */
     private static Claims parseAndVerifyWithSkew(String jwt, SecretKey key, long clockSkewSeconds) {
         return Jwts.parser()
                 .verifyWith(key)
