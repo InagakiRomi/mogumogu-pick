@@ -1,56 +1,52 @@
 <script setup lang="ts" generic="T extends string">
-import type { HTMLAttributes } from 'vue'
 import { Label } from '@/components/ui/label'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
-import { cn } from '@/lib/utils'
+import PrimarySelectTrigger from '@/components/common/PrimarySelectTrigger.vue'
+import PrimarySelectContent from '@/components/common/PrimarySelectContent.vue'
+import { Select, SelectItem, SelectValue } from '@/components/ui/select'
 
-export type SelectOption<T extends string = string> = {
+type SelectOption<T extends string = string> = {
   label: string
   value: T
 }
 
 const model = defineModel<T>({ required: true })
 
-const props = withDefaults(
+withDefaults(
   defineProps<{
     label: string
     options: SelectOption<T>[]
     placeholder?: string
     id?: string
-    fieldClass?: HTMLAttributes['class']
-    contentClass?: HTMLAttributes['class']
-    contentPosition?: 'item-aligned' | 'popper'
   }>(),
   {
-    placeholder: '請選擇',
-    fieldClass: 'w-[180px]',
-    contentClass: 'border-border bg-card text-popover-foreground',
-    contentPosition: undefined,
+    placeholder: '',
   },
 )
 </script>
 
 <template>
-  <div :class="cn('space-y-2', props.fieldClass)">
+  <div class="w-full min-w-0 space-y-2 sm:w-45">
     <Label :for="id" class="font-bold text-muted-foreground">{{ label }}</Label>
     <Select v-model="model">
-      <SelectTrigger
-        :id="id"
-        class="h-10 w-full px-3 text-left text-sm rounded-md border border-border bg-muted/90 text-popover-foreground"
-      >
+      <PrimarySelectTrigger :id="id">
         <SelectValue :placeholder="placeholder" />
-      </SelectTrigger>
-      <SelectContent :position="contentPosition" :class="contentClass">
+      </PrimarySelectTrigger>
+      <PrimarySelectContent
+        position="popper"
+        align="start"
+        class="form-select-content w-(--reka-select-trigger-width) max-w-(--reka-select-trigger-width) border-border bg-card text-popover-foreground"
+      >
         <SelectItem v-for="option in options" :key="option.value" :value="option.value">
           {{ option.label }}
         </SelectItem>
-      </SelectContent>
+      </PrimarySelectContent>
     </Select>
   </div>
 </template>
+
+<style scoped>
+:global([data-slot='select-content'].form-select-content [data-position='popper']) {
+  height: auto;
+  max-height: min(16rem, var(--reka-select-content-available-height, 16rem));
+}
+</style>

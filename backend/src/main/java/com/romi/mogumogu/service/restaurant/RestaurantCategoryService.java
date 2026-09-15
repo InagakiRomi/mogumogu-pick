@@ -10,7 +10,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
-import com.romi.mogumogu.Response.RestaurantCategoryResponse;
+import com.romi.mogumogu.response.RestaurantCategoryResponse;
 import com.romi.mogumogu.dto.CreateRestaurantCategoryDto;
 import com.romi.mogumogu.dto.UpdateRestaurantCategoryDto;
 import com.romi.mogumogu.entity.restaurant.RestaurantCategoryEntity;
@@ -151,7 +151,12 @@ public class RestaurantCategoryService {
     private RestaurantCategoryResponse toResponse(Integer groupId, RestaurantCategoryEntity entity) {
         long restaurantCount = restaurantRepository
                 .countByGroupIdAndCategoryId_CategoryId(groupId, entity.getCategoryId());
-        return RestaurantCategoryResponse.from(entity, restaurantCount);
+        return RestaurantCategoryResponse.builder()
+                .categoryId(entity.getCategoryId())
+                .categoryName(entity.getCategoryName())
+                .displayOrderId(entity.getDisplayOrderId())
+                .restaurantCount(restaurantCount)
+                .build();
     }
 
     /** 正規化分類名稱 */

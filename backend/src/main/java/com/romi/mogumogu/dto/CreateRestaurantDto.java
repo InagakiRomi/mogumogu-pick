@@ -33,6 +33,10 @@ public class CreateRestaurantDto {
     @Schema(description = "餐廳名稱", example = "和食天國")
     private String restaurantName;
 
+    @Size(max = 255)
+    @Schema(description = "地址", example = "台北市信義區信義路五段7號")
+    private String address;
+
     @Size(max = 512)
     @Schema(description = "備註", example = "可訂位")
     private String note;

@@ -1,0 +1,131 @@
+<script lang="ts">
+import { defineComponent, h, type HTMLAttributes, type PropType } from 'vue'
+import { TableCell as UiTableCell, TableHead, TableRow as UiTableRow } from '@/components/ui/table'
+import { cn } from '@/lib/utils'
+
+export const ListTableHead = defineComponent({
+  name: 'ListTableHead',
+  props: {
+    class: {
+      type: [String, Object, Array] as PropType<HTMLAttributes['class']>,
+      default: undefined,
+    },
+  },
+  setup(props, { slots }) {
+    return () =>
+      h(
+        TableHead,
+        { class: cn('overflow-hidden text-center !text-card-foreground', props.class) },
+        slots.default?.(),
+      )
+  },
+})
+
+export const ListTableRow = defineComponent({
+  name: 'ListTableRow',
+  props: {
+    class: {
+      type: [String, Object, Array] as PropType<HTMLAttributes['class']>,
+      default: undefined,
+    },
+  },
+  setup(props, { slots }) {
+    return () =>
+      h(
+        UiTableRow,
+        {
+          class: cn('h-auto min-h-[52px] md:h-[52px]', props.class),
+        },
+        slots.default?.(),
+      )
+  },
+})
+
+export const ListTableCell = defineComponent({
+  name: 'ListTableCell',
+  props: {
+    class: {
+      type: [String, Object, Array] as PropType<HTMLAttributes['class']>,
+      default: undefined,
+    },
+    title: { type: String, default: undefined },
+    truncate: { type: Boolean, default: false },
+  },
+  setup(props, { slots }) {
+    return () =>
+      h(
+        UiTableCell,
+        {
+          class: cn(
+            'h-auto min-h-[52px] overflow-hidden text-center text-card-foreground md:h-[52px]',
+            props.truncate && 'max-w-0 truncate',
+            props.class,
+          ),
+          title: props.title,
+        },
+        slots.default?.(),
+      )
+  },
+})
+
+export const ListTableActions = defineComponent({
+  name: 'ListTableActions',
+  setup(_, { slots }) {
+    return () =>
+      h(
+        'div',
+        { class: 'flex h-9 shrink-0 items-center justify-center gap-2 whitespace-nowrap' },
+        slots.default?.(),
+      )
+  },
+})
+</script>
+
+<script setup lang="ts">
+import { Table, TableBody, TableCell, TableHeader, TableRow } from '@/components/ui/table'
+
+const LIST_TABLE_EMPTY_CELL_CLASS = 'py-8 text-center text-card-foreground'
+
+const props = withDefaults(
+  defineProps<{
+    isLoading?: boolean
+    isEmpty?: boolean
+    columnCount: number
+    loadingText?: string
+    emptyText?: string
+  }>(),
+  {
+    isLoading: false,
+    isEmpty: false,
+    loadingText: '載入資料中...',
+    emptyText: '目前沒有資料',
+  },
+)
+</script>
+
+<template>
+  <div class="min-w-0 overflow-x-auto overflow-y-hidden rounded-lg border border-border bg-card">
+    <Table
+      class="w-full min-w-7xl table-fixed bg-card text-card-foreground [&_th]:text-card-foreground"
+    >
+      <TableHeader>
+        <TableRow class="hover:bg-transparent">
+          <slot name="header" />
+        </TableRow>
+      </TableHeader>
+      <TableBody>
+        <TableRow v-if="props.isLoading">
+          <TableCell :colspan="props.columnCount" :class="LIST_TABLE_EMPTY_CELL_CLASS">
+            {{ props.loadingText }}
+          </TableCell>
+        </TableRow>
+        <TableRow v-else-if="props.isEmpty">
+          <TableCell :colspan="props.columnCount" :class="LIST_TABLE_EMPTY_CELL_CLASS">
+            {{ props.emptyText }}
+          </TableCell>
+        </TableRow>
+        <slot v-else />
+      </TableBody>
+    </Table>
+  </div>
+</template>

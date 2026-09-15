@@ -2,7 +2,7 @@ package com.romi.mogumogu.controller.dish;
 
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
-import com.romi.mogumogu.Response.DishResponse;
+import com.romi.mogumogu.response.DishResponse;
 import com.romi.mogumogu.dto.CreateDishDto;
 import com.romi.mogumogu.dto.UpdateDishDto;
 import com.romi.mogumogu.exception.GlobalExceptionHandler;

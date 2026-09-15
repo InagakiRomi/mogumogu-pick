@@ -74,10 +74,10 @@ public class GlobalExceptionHandlerTest {
     @Test
     void testHandleMethodArgumentNotValidException_shouldReturn400AndEnglishMessages() throws Exception {
         CreateDto body = new CreateDto(
-                "", // NotBlank -> name is required
-                "123456", // Size -> code size is out of allowed range
-                "notEmail", // Email -> email must be a valid email address
-                0 // Positive -> age must be greater than 0
+                "",
+                "123456",
+                "notEmail",
+                0
         );
 
         assertErrorResponseContains(
@@ -118,10 +118,10 @@ public class GlobalExceptionHandlerTest {
     @Test
     void testHandleMethodArgumentNotValidException_moreValidationCodes_shouldMapToEnglish() throws Exception {
         MoreCodesDto body = new MoreCodesDto(
-                -1, // PositiveOrZero -> count must be greater than or equal to 0
-                0, // Min(1) -> minValue must be greater than or equal to the minimum value
-                101, // Max(100) -> maxValue must be less than or equal to the maximum value
-                "abc" // Pattern -> token format is invalid
+                -1,
+                0,
+                101,
+                "abc"
         );
 
         assertErrorResponseContains(
@@ -226,7 +226,7 @@ public class GlobalExceptionHandlerTest {
         @GetMapping("/manual-validation-duplicate-messages")
         public String manualValidationDuplicateMessages() throws Exception {
             BindingResult bindingResult = new BeanPropertyBindingResult(new Object(), "dto");
-            // 同一個 field + code 會映射成同一句英文訊息，handler 會 distinct 去重
+
             bindingResult
                     .addError(new FieldError("dto", "name", null, false, new String[] { "NotBlank" }, null, "ignored"));
             bindingResult.addError(
@@ -238,10 +238,10 @@ public class GlobalExceptionHandlerTest {
         @GetMapping("/manual-validation-unknown-and-null-code")
         public String manualValidationUnknownAndNullCode() throws Exception {
             BindingResult bindingResult = new BeanPropertyBindingResult(new Object(), "dto");
-            // unknown code -> default 分支 -> "<field> is invalid"
+
             bindingResult.addError(new FieldError("dto", "customField", null, false, new String[] { "TotallyUnknown" },
                     null, "ignored"));
-            // null code -> code 為空 -> "<field> is invalid"
+
             bindingResult.addError(new FieldError("dto", "nullCodeField", null, false, null, null, "ignored"));
             throw new MethodArgumentNotValidException(Objects.requireNonNull(methodParameter("validate")),
                     bindingResult);

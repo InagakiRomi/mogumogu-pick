@@ -37,7 +37,7 @@ import org.springframework.web.server.ResponseStatusException;
 
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
-import com.romi.mogumogu.Response.RestaurantCategoryResponse;
+import com.romi.mogumogu.response.RestaurantCategoryResponse;
 import com.romi.mogumogu.dto.CreateRestaurantCategoryDto;
 import com.romi.mogumogu.dto.UpdateRestaurantCategoryDto;
 import com.romi.mogumogu.exception.GlobalExceptionHandler;

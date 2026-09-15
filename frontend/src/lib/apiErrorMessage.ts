@@ -34,6 +34,7 @@ const API_ERROR_MESSAGES: Record<string, string> = {
   'categoryId is required': '請選擇分類',
   'restaurantName is required': '請輸入餐廳名稱',
   'restaurantName size is out of allowed range': '餐廳名稱不可超過 64 字',
+  'address size is out of allowed range': '地址不可超過 255 字',
   'note size is out of allowed range': '備註不可超過 512 字',
   'imageUrl size is out of allowed range': '圖片網址不可超過 512 字',
   'groupId must be greater than or equal to 0': '群組 ID 格式不正確',
@@ -62,15 +63,18 @@ const API_ERROR_MESSAGES: Record<string, string> = {
   'Target user is already group admin': '目標使用者已是群組管理員',
   'Please transfer group admin before leaving': '請先移轉群組管理權再退出',
   'Only group admin can perform this action': '只有群組管理員可以執行此操作',
+  'Latitude must be between 21.7 and 26.5': '超出搜尋範圍',
+  'Longitude must be between 118.0 and 122.2': '超出搜尋範圍',
 }
 
 const API_ERROR_PATTERNS: Array<{ pattern: RegExp; message: string }> = [
   { pattern: /^User with email ".+" not found$/, message: '電子郵件或密碼錯誤' },
+  { pattern: /^Latitude must be between /, message: '超出搜尋範圍' },
+  { pattern: /^Longitude must be between /, message: '超出搜尋範圍' },
 ]
 
 export const AUTH_FEEDBACK_MESSAGES = {
   login: {
-    success: '登入成功',
     fallback: '登入失敗，請確認帳號密碼',
     missingToken: '登入失敗，伺服器未回傳有效的登入憑證',
   },

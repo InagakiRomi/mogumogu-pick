@@ -13,7 +13,7 @@ class UserRoleTest {
 
     @ParameterizedTest
     @ValueSource(strings = {"GROUP_ADMIN", "USER"})
-    @DisplayName("合法名稱可解析")
+    @DisplayName("Valid names can be parsed")
     void fromName_validNames(String name) {
         assertThat(UserRole.fromName(name)).isPresent();
     }
@@ -21,13 +21,13 @@ class UserRoleTest {
     @ParameterizedTest
     @NullAndEmptySource
     @ValueSource(strings = {"  ", "UNKNOWN", "ADMIN"})
-    @DisplayName("無效名稱回傳 empty")
+    @DisplayName("Invalid names return empty")
     void fromName_invalidNames(String name) {
         assertThat(UserRole.fromName(name)).isEmpty();
     }
 
     @Test
-    @DisplayName("fromName 區分大小寫（enum 名稱須完全匹配）")
+    @DisplayName("fromName is case-sensitive and requires an exact enum name")
     void fromName_isCaseSensitiveForEnumNames() {
         assertThat(UserRole.fromName("user")).isEmpty();
         assertThat(UserRole.fromName("USER")).contains(UserRole.USER);

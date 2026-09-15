@@ -10,7 +10,7 @@ import org.springframework.security.web.AuthenticationEntryPoint;
 import org.springframework.security.web.access.AccessDeniedHandler;
 
 import tools.jackson.databind.ObjectMapper;
-import com.romi.mogumogu.Response.ErrorResponse;
+import com.romi.mogumogu.response.ErrorResponse;
 import com.romi.mogumogu.exception.ErrorResponseFactory;
 
 import jakarta.servlet.http.HttpServletRequest;

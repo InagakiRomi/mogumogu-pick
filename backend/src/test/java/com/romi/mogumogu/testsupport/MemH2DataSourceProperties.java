@@ -2,7 +2,6 @@ package com.romi.mogumogu.testsupport;
 
 import org.springframework.test.context.DynamicPropertyRegistry;
 
-/** 整合測試使用獨立記憶體 H2，避免本機檔案庫 Flyway 校驗或種子資料衝突。 */
 public final class MemH2DataSourceProperties {
 
     private MemH2DataSourceProperties() {}
@@ -14,5 +13,6 @@ public final class MemH2DataSourceProperties {
         registry.add("spring.datasource.username", () -> "sa");
         registry.add("spring.datasource.password", () -> "");
         registry.add("spring.datasource.driver-class-name", () -> "org.h2.Driver");
+        registry.add("spring.flyway.enabled", () -> "false");
     }
 }

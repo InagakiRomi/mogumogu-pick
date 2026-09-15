@@ -3,12 +3,15 @@ import { computed, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import type { components } from '@/api/schema'
 import client from '@/api/client'
-import ConfirmAlertDialog from '@/components/feedback/ConfirmAlertDialog.vue'
-import FormAlertDialog from '@/components/feedback/FormAlertDialog.vue'
-import RestaurantFormDialog from '@/components/restaurant/RestaurantFormDialog.vue'
-import WarmButton from '@/components/warm/WarmButton.vue'
+import AlertConfirm from '@/components/alert/AlertConfirm.vue'
+import FormDialog from '@/components/form/FormDialog.vue'
+import PrimaryButton from '@/components/common/PrimaryButton.vue'
+import PrimaryPanel from '@/components/common/PrimaryPanel.vue'
+import PrimarySelectTrigger from '@/components/common/PrimarySelectTrigger.vue'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import PrimarySelectContent from '@/components/common/PrimarySelectContent.vue'
+import { Select, SelectItem, SelectValue } from '@/components/ui/select'
 import {
   Table,
   TableBody,
@@ -20,16 +23,10 @@ import {
 import { useFeedbackDialog } from '@/composables/useFeedbackDialog'
 import { useRestaurantCategories } from '@/composables/useRestaurantCategories'
 import { authSession } from '@/lib/authSession'
-import {
-  getApiErrorMessage,
-  RESTAURANT_UPDATE_FEEDBACK_MESSAGES,
-} from '@/lib/apiErrorMessage'
+import { getApiErrorMessage, RESTAURANT_UPDATE_FEEDBACK_MESSAGES } from '@/lib/apiErrorMessage'
 import { isGroupAdmin } from '@/lib/userRole'
 import { homeBgBackgroundStyle, publicAsset } from '@/lib/utils'
 
-const FORM_LABEL_CLASS = 'font-bold text-muted-foreground'
-const FORM_INPUT_CLASS =
-  'h-10 px-2.5 text-sm rounded-md border border-border bg-muted/90 text-popover-foreground'
 const DEFAULT_RESTAURANT_IMAGE = publicAsset('images/defaultRestaurant.jpg')
 
 type Restaurant = components['schemas']['RestaurantResponse']
@@ -73,6 +70,7 @@ const editForm = ref({
   categoryId: '1',
   displayOrderId: '',
   selectedCount: '',
+  address: '',
   note: '',
   imageUrl: '',
   lastSelectedAt: '',
@@ -101,6 +99,7 @@ const canSave = computed(() => {
     displayOrderId >= 0 &&
     Number.isInteger(selectedCount) &&
     selectedCount >= 0 &&
+    editForm.value.address.length <= 255 &&
     editForm.value.note.length <= 512 &&
     editForm.value.imageUrl.length <= 512
   )
@@ -146,6 +145,9 @@ function validateEditRestaurant(): string | null {
   }
   if (!isValidNonNegativeInteger(selectedCount)) {
     return '請輸入有效的被選取次數（須為 0 以上的整數）'
+  }
+  if (editForm.value.address.length > 255) {
+    return '地址不可超過 255 字'
   }
   if (editForm.value.note.length > 512) {
     return '備註不可超過 512 字'
@@ -257,6 +259,7 @@ function syncEditForm(data: Restaurant) {
     categoryId: String(data.categoryId ?? 1),
     displayOrderId: data.displayOrderId != null ? String(data.displayOrderId) : '',
     selectedCount: data.selectedCount != null ? String(data.selectedCount) : '0',
+    address: data.address ?? '',
     note: data.note ?? '',
     imageUrl: data.imageUrl ?? '',
     lastSelectedAt: toDatetimeLocalValue(data.lastSelectedAt),
@@ -298,23 +301,29 @@ async function fetchRestaurantDetail() {
   dishes.value = []
   dishTotal.value = 0
 
-  const [{ data: restaurantData, error: restaurantError }, { data: dishListData, error: dishListError }] =
-    await Promise.all([
-      client.GET('/restaurants/{id}', {
-        params: {
-          path: { id },
-        },
-      }),
-      client.GET('/restaurants/{id}/dishes', {
-        params: {
-          path: { id },
-        },
-      }),
-    ])
+  const [
+    { data: restaurantData, error: restaurantError },
+    { data: dishListData, error: dishListError },
+  ] = await Promise.all([
+    client.GET('/restaurants/{id}', {
+      params: {
+        path: { id },
+      },
+    }),
+    client.GET('/restaurants/{id}/dishes', {
+      params: {
+        path: { id },
+      },
+    }),
+  ])
 
   if (restaurantError) {
     restaurant.value = null
-    showFeedback(getApiErrorMessage(restaurantError, '取得餐廳詳細資料失敗'), 'error', redirectToRestaurantList)
+    showFeedback(
+      getApiErrorMessage(restaurantError, '取得餐廳詳細資料失敗'),
+      'error',
+      redirectToRestaurantList,
+    )
     isLoading.value = false
     return
   }
@@ -358,6 +367,7 @@ async function handleSaveRestaurant() {
     categoryId: Number(editForm.value.categoryId),
     displayOrderId,
     selectedCount,
+    address: editForm.value.address.trim(),
     note: editForm.value.note.trim(),
     imageUrl: editForm.value.imageUrl.trim(),
     lastSelectedAt,
@@ -668,41 +678,41 @@ watch(isDeleteDishDialogOpen, (open) => {
 
 <template>
   <main
-    class="min-h-screen bg-fixed bg-cover bg-center bg-no-repeat px-4 py-6 md:px-6"
+    class="min-h-full bg-fixed bg-cover bg-center bg-no-repeat px-4 py-6 md:px-6"
     :style="homeBgBackgroundStyle"
   >
-    <div
-      class="relative z-10 mx-auto mt-6 w-full max-w-4xl rounded-[10px] border border-[rgba(226,164,136,0.52)] bg-linear-to-br from-[rgba(255,248,241,0.9)] to-[rgba(255,233,219,0.84)] px-[30px] pt-[30px] pb-8 shadow-[0_14px_32px_rgba(95,57,41,0.24),inset_0_1px_0_rgba(255,255,255,0.55)] backdrop-blur-sm max-lg:mt-5 max-lg:px-6 max-lg:pt-6 max-lg:pb-7 max-md:mt-4 max-md:rounded-lg max-md:px-4 max-md:pt-4 max-md:pb-6"
-    >
+    <PrimaryPanel width="wide">
       <div class="space-y-6">
         <div class="flex flex-wrap items-center justify-between gap-3">
           <h1 class="text-2xl font-bold text-card-foreground">餐廳詳細資料</h1>
           <div class="flex flex-wrap items-center justify-end gap-3">
             <template v-if="restaurant">
-              <WarmButton
-                variant="outline-standard"
+              <PrimaryButton
+                variant="outline"
                 class="h-10 px-4"
                 :disabled="isDeleting || isSaving"
                 @click="openEditDialog"
               >
                 修改餐廳
-              </WarmButton>
-              <WarmButton
-                variant="outline-standard"
+              </PrimaryButton>
+              <PrimaryButton
+                v-if="canDeleteAsGroupAdmin"
+                variant="outline"
                 class="h-10 px-4"
                 :disabled="isDeleting || isSaving"
                 @click="openDeleteDialog"
               >
                 {{ isDeleting ? '刪除中...' : '刪除餐廳' }}
-              </WarmButton>
+              </PrimaryButton>
             </template>
-            <WarmButton class="h-10 px-4" @click="backToList">
-              返回列表
-            </WarmButton>
+            <PrimaryButton class="h-10 px-4" @click="backToList"> 返回列表 </PrimaryButton>
           </div>
         </div>
 
-        <div v-if="isLoading" class="rounded-lg border border-border bg-card/70 px-4 py-8 text-center">
+        <div
+          v-if="isLoading"
+          class="rounded-lg border border-border bg-card/70 px-4 py-8 text-center"
+        >
           <p class="text-muted-foreground">載入資料中...</p>
         </div>
 
@@ -722,14 +732,15 @@ watch(isDeleteDishDialogOpen, (open) => {
               @error="handleImageError"
             />
 
-            <div class="grid min-w-0 flex-1 gap-2 text-sm text-card-foreground sm:grid-cols-2">
+            <div class="grid min-w-0 flex-1 gap-2 text-card-foreground sm:grid-cols-2">
               <p class="sm:col-span-2 text-lg font-semibold">
                 {{ restaurant.restaurantName ?? '-' }}
               </p>
+              <p class="sm:col-span-2">地址：{{ restaurant.address || '-' }}</p>
               <p>分類：{{ restaurant.categoryName ?? '-' }}</p>
               <p>顯示排序 ID：{{ restaurant.displayOrderId ?? '-' }}</p>
               <p>被選取次數：{{ restaurant.selectedCount ?? 0 }}</p>
-              <p>最後被選時間：{{ restaurant.lastSelectedAt?.trim() || '-' }}</p>
+              <p>最後選擇時間：{{ restaurant.lastSelectedAt?.trim() || '-' }}</p>
               <p>建立時間：{{ restaurant.createdAt?.trim() || '-' }}</p>
               <p>更新時間：{{ restaurant.updatedAt?.trim() || '-' }}</p>
               <p class="sm:col-span-2">備註：{{ restaurant.note || '-' }}</p>
@@ -740,36 +751,34 @@ watch(isDeleteDishDialogOpen, (open) => {
             <div class="flex flex-wrap items-center justify-between gap-3">
               <h2 class="text-lg font-bold text-card-foreground">
                 餐點資訊
-                <span v-if="!isDishesLoading" class="ml-2 text-sm font-normal text-muted-foreground">
+                <span v-if="!isDishesLoading" class="ml-2 font-normal text-muted-foreground">
                   （共 {{ dishTotal }} 筆）
                 </span>
               </h2>
-              <WarmButton
-                class="h-9 px-3 text-sm"
+              <PrimaryButton
+                class="h-9 px-3"
                 :disabled="isDishesLoading || isCreatingDish"
                 @click="openCreateDishDialog"
               >
                 新增餐點
-              </WarmButton>
+              </PrimaryButton>
             </div>
 
-            <Table>
+            <Table class="text-card-foreground [&_th]:text-card-foreground">
               <TableHeader>
                 <TableRow>
-                  <TableHead class="w-[120px] text-center">顯示排序 ID</TableHead>
-                  <TableHead class="text-center">餐點名稱</TableHead>
-                  <TableHead class="w-[120px] text-center">價格</TableHead>
-                  <TableHead class="w-[180px] text-center">操作</TableHead>
+                  <TableHead class="w-30 text-center text-card-foreground">顯示排序 ID</TableHead>
+                  <TableHead class="text-center text-card-foreground">餐點名稱</TableHead>
+                  <TableHead class="w-30 text-center text-card-foreground">價格</TableHead>
+                  <TableHead class="w-45 text-center text-card-foreground">操作</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 <TableRow v-if="isDishesLoading">
-                  <TableCell colspan="4" class="py-8 text-center text-muted-foreground">
-                    載入餐點中...
-                  </TableCell>
+                  <TableCell colspan="4" class="py-8 text-center"> 載入餐點中... </TableCell>
                 </TableRow>
                 <TableRow v-else-if="dishes.length === 0">
-                  <TableCell colspan="4" class="py-8 text-center text-muted-foreground">
+                  <TableCell colspan="4" class="py-8 text-center">
                     此餐廳目前沒有餐點資料
                   </TableCell>
                 </TableRow>
@@ -779,22 +788,23 @@ watch(isDeleteDishDialogOpen, (open) => {
                   <TableCell class="text-center">{{ formatPrice(dish.price) }}</TableCell>
                   <TableCell class="text-center">
                     <div class="flex flex-wrap items-center justify-center gap-2">
-                      <WarmButton
-                        variant="outline-standard"
-                        class="h-8 px-2 text-xs"
+                      <PrimaryButton
+                        variant="outline"
+                        class="h-9 px-3"
                         :disabled="isSavingDish || isDeletingDish"
                         @click="openEditDishDialog(dish)"
                       >
                         修改
-                      </WarmButton>
-                      <WarmButton
-                        variant="outline-standard"
-                        class="h-8 px-2 text-xs"
+                      </PrimaryButton>
+                      <PrimaryButton
+                        v-if="canDeleteAsGroupAdmin"
+                        variant="outline"
+                        class="h-9 px-3"
                         :disabled="isSavingDish || isDeletingDish"
                         @click="openDeleteDishDialog(dish)"
                       >
                         刪除
-                      </WarmButton>
+                      </PrimaryButton>
                     </div>
                   </TableCell>
                 </TableRow>
@@ -803,15 +813,11 @@ watch(isDeleteDishDialogOpen, (open) => {
           </section>
         </div>
       </div>
-    </div>
+    </PrimaryPanel>
 
-    <RestaurantFormDialog
+    <FormDialog
       :open="isEditDialogOpen"
-      v-model="editForm"
-      :category-options="categoryOptions"
-      mode="edit"
       title="修改餐廳"
-      id-prefix="edit-restaurant"
       submit-label="確認修改"
       loading-label="儲存中..."
       :loading="isSaving"
@@ -819,20 +825,99 @@ watch(isDeleteDishDialogOpen, (open) => {
       @update:open="handleEditDialogOpenChange"
       @submit="handleSaveRestaurant"
       @cancel="closeEditRestaurantDialog"
-    />
+    >
+      <div>
+        <Label for="edit-restaurant-name">餐廳名稱</Label>
+        <Input
+          id="edit-restaurant-name"
+          v-model="editForm.restaurantName"
+          maxlength="64"
+          required
+        />
+      </div>
 
-    <ConfirmAlertDialog
-      v-model:open="isDeleteDialogOpen"
+      <div>
+        <Label for="edit-restaurant-category">分類</Label>
+        <Select v-model="editForm.categoryId">
+          <PrimarySelectTrigger id="edit-restaurant-category">
+            <SelectValue />
+          </PrimarySelectTrigger>
+          <PrimarySelectContent
+            position="popper"
+            align="start"
+            class="w-(--reka-select-trigger-width) max-w-(--reka-select-trigger-width) border-border bg-card text-popover-foreground"
+          >
+            <SelectItem v-for="option in categoryOptions" :key="option.value" :value="option.value">
+              {{ option.label }}
+            </SelectItem>
+          </PrimarySelectContent>
+        </Select>
+      </div>
+
+      <div>
+        <div>
+          <Label for="edit-restaurant-display-order-id">顯示排序 ID</Label>
+          <Input
+            id="edit-restaurant-display-order-id"
+            v-model="editForm.displayOrderId"
+            type="number"
+            min="0"
+            step="1"
+            required
+          />
+        </div>
+
+        <div>
+          <Label for="edit-restaurant-selected-count">被選取次數</Label>
+          <Input
+            id="edit-restaurant-selected-count"
+            v-model="editForm.selectedCount"
+            type="number"
+            min="0"
+            step="1"
+            required
+          />
+        </div>
+      </div>
+
+      <div>
+        <Label for="edit-restaurant-address">地址</Label>
+        <Input id="edit-restaurant-address" v-model="editForm.address" maxlength="255" />
+      </div>
+
+      <div>
+        <Label for="edit-restaurant-note">備註</Label>
+        <Input id="edit-restaurant-note" v-model="editForm.note" maxlength="512" />
+      </div>
+
+      <div>
+        <Label for="edit-restaurant-image-url">圖片網址</Label>
+        <Input id="edit-restaurant-image-url" v-model="editForm.imageUrl" maxlength="512" />
+      </div>
+
+      <div>
+        <Label for="edit-restaurant-last-selected-at">最後被選取時間</Label>
+        <Input
+          id="edit-restaurant-last-selected-at"
+          v-model="editForm.lastSelectedAt"
+          type="datetime-local"
+          step="1"
+        />
+      </div>
+    </FormDialog>
+
+    <AlertConfirm
+      :open="isDeleteDialogOpen"
       title="確認刪除餐廳？"
+      :description="`確定要刪除「${restaurant?.restaurantName ?? '此餐廳'}」嗎？此操作無法復原。`"
       confirm-label="確認刪除"
       loading-label="刪除中..."
       :loading="isDeleting"
+      @update:open="isDeleteDialogOpen = $event"
       @confirm="handleDeleteRestaurant"
-    >
-      確定要刪除「{{ restaurant?.restaurantName ?? '此餐廳' }}」嗎？此操作無法復原。
-    </ConfirmAlertDialog>
+    />
 
-    <FormAlertDialog
+    <FormDialog
       :open="isCreateDishDialogOpen"
       title="新增餐點"
       submit-label="確認新增"
@@ -843,34 +928,25 @@ watch(isDeleteDishDialogOpen, (open) => {
       @submit="handleCreateDish"
       @cancel="handleCreateDishDialogOpenChange(false)"
     >
-      <div class="space-y-2">
-        <Label for="create-dish-name" :class="FORM_LABEL_CLASS">餐點名稱</Label>
-        <Input
-          id="create-dish-name"
-          v-model="createDishForm.dishName"
-          maxlength="64"
-          :class="FORM_INPUT_CLASS"
-          placeholder="例如：牛肉拉麵"
-          required
-        />
+      <div>
+        <Label for="create-dish-name">餐點名稱</Label>
+        <Input id="create-dish-name" v-model="createDishForm.dishName" maxlength="64" required />
       </div>
 
-      <div class="space-y-2">
-        <Label for="create-dish-price" :class="FORM_LABEL_CLASS">價格</Label>
+      <div>
+        <Label for="create-dish-price">價格</Label>
         <Input
           id="create-dish-price"
           v-model="createDishForm.price"
           type="number"
           min="0"
           step="1"
-          :class="FORM_INPUT_CLASS"
-          placeholder="例如：130"
           required
         />
       </div>
-    </FormAlertDialog>
+    </FormDialog>
 
-    <FormAlertDialog
+    <FormDialog
       :open="isEditDishDialogOpen"
       title="修改餐點"
       submit-label="確認修改"
@@ -881,56 +957,45 @@ watch(isDeleteDishDialogOpen, (open) => {
       @submit="handleSaveDish"
       @cancel="closeEditDishDialog"
     >
-      <div class="space-y-2">
-        <Label for="edit-dish-display-order-id" :class="FORM_LABEL_CLASS">顯示排序 ID</Label>
+      <div>
+        <Label for="edit-dish-display-order-id">顯示排序 ID</Label>
         <Input
           id="edit-dish-display-order-id"
           v-model="editDishForm.displayOrderId"
           type="number"
           min="1"
           step="1"
-          :class="FORM_INPUT_CLASS"
-          placeholder="例如：1"
           required
         />
       </div>
 
-      <div class="space-y-2">
-        <Label for="edit-dish-name" :class="FORM_LABEL_CLASS">餐點名稱</Label>
-        <Input
-          id="edit-dish-name"
-          v-model="editDishForm.dishName"
-          maxlength="64"
-          :class="FORM_INPUT_CLASS"
-          placeholder="例如：雙倍叉燒拉麵"
-          required
-        />
+      <div>
+        <Label for="edit-dish-name">餐點名稱</Label>
+        <Input id="edit-dish-name" v-model="editDishForm.dishName" maxlength="64" required />
       </div>
 
-      <div class="space-y-2">
-        <Label for="edit-dish-price" :class="FORM_LABEL_CLASS">價格</Label>
+      <div>
+        <Label for="edit-dish-price">價格</Label>
         <Input
           id="edit-dish-price"
           v-model="editDishForm.price"
           type="number"
           min="0"
           step="1"
-          :class="FORM_INPUT_CLASS"
-          placeholder="例如：180"
           required
         />
       </div>
-    </FormAlertDialog>
+    </FormDialog>
 
-    <ConfirmAlertDialog
-      v-model:open="isDeleteDishDialogOpen"
+    <AlertConfirm
+      :open="isDeleteDishDialogOpen"
       title="確認刪除餐點？"
+      :description="`確定要刪除「${deletingDish?.dishName ?? '此餐點'}」嗎？此操作無法復原。`"
       confirm-label="確認刪除"
       loading-label="刪除中..."
       :loading="isDeletingDish"
+      @update:open="isDeleteDishDialogOpen = $event"
       @confirm="handleDeleteDish"
-    >
-      確定要刪除「{{ deletingDish?.dishName ?? '此餐點' }}」嗎？此操作無法復原。
-    </ConfirmAlertDialog>
+    />
   </main>
 </template>

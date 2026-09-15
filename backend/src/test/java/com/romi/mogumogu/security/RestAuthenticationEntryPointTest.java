@@ -31,7 +31,7 @@ class RestAuthenticationEntryPointTest {
     }
 
     @Test
-    @DisplayName("commence 回傳 401 JSON")
+    @DisplayName("commence writes 401 JSON")
     void commence_writes401Json() throws Exception {
         MockHttpServletRequest request = new MockHttpServletRequest("GET", "/restaurants");
         MockHttpServletResponse response = new MockHttpServletResponse();
@@ -51,7 +51,7 @@ class RestAuthenticationEntryPointTest {
     }
 
     @Test
-    @DisplayName("handle 回傳 403 JSON")
+    @DisplayName("handle writes 403 JSON")
     void handle_writes403Json() throws Exception {
         MockHttpServletRequest request = new MockHttpServletRequest("GET", "/restaurants");
         MockHttpServletResponse response = new MockHttpServletResponse();
@@ -67,7 +67,7 @@ class RestAuthenticationEntryPointTest {
     }
 
     @Test
-    @DisplayName("輸出格式與 ErrorResponseFactory 一致")
+    @DisplayName("Output shape matches ErrorResponseFactory")
     void output_matchesErrorResponseFactoryShape() throws Exception {
         MockHttpServletRequest request = new MockHttpServletRequest("POST", "/auth/login");
         MockHttpServletResponse response = new MockHttpServletResponse();

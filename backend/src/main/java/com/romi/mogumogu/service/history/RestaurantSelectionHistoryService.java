@@ -1,12 +1,13 @@
 package com.romi.mogumogu.service.history;
 
-import com.romi.mogumogu.Response.RestaurantListResponse;
-import com.romi.mogumogu.Response.SelectionHistoryResponse;
+import com.romi.mogumogu.response.RestaurantListResponse;
+import com.romi.mogumogu.response.SelectionHistoryResponse;
 import com.romi.mogumogu.dto.GetSelectionHistoryQuery;
 import com.romi.mogumogu.entity.history.RestaurantSelectionHistoryEntity;
 import com.romi.mogumogu.entity.restaurant.RestaurantEntity;
 import com.romi.mogumogu.entity.user.UserEntity;
 import com.romi.mogumogu.enums.RestaurantSort;
+import com.romi.mogumogu.enums.UserRole;
 import com.romi.mogumogu.repository.history.RestaurantSelectionHistoryRepository;
 import com.romi.mogumogu.repository.user.UserRepository;
 import com.romi.mogumogu.security.SecurityUtils;
@@ -80,14 +81,36 @@ public class RestaurantSelectionHistoryService {
 
         // 轉換為回傳 DTO
         List<SelectionHistoryResponse> data = pageResult.getContent().stream()
-                .map(SelectionHistoryResponse::from)
+                .map(this::toResponse)
                 .toList();
 
-        return RestaurantListResponse.of(data, page, limit, pageResult.getTotalElements());
+        return RestaurantListResponse.<SelectionHistoryResponse>builder()
+                .data(data)
+                .page(page)
+                .limit(limit)
+                .total(pageResult.getTotalElements())
+                .build();
+    }
+
+    /** 清除自己所屬群組的所有餐廳抽選歷史紀錄 */
+    @Transactional
+    public void clearMyGroupSelectionHistory() {
+        UserEntity currentUser = resolveCurrentUser();
+        if (currentUser.getRoles() != UserRole.GROUP_ADMIN) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Only group admin can perform this action");
+        }
+        historyRepository.deleteByGroupId(currentUser.getGroupId());
+        historyRepository.flush();
+        historyRepository.resetHistoryIdSequence();
     }
 
     /** 取得目前登入使用者的群組 ID */
     private Integer resolveCurrentUserGroupId() {
+        return resolveCurrentUser().getGroupId();
+    }
+
+    /** 取得目前登入使用者 */
+    private UserEntity resolveCurrentUser() {
         // 取得目前登入使用者的 ID
         Integer currentUserId = Objects.requireNonNull(SecurityUtils.getCurrentUserId());
 
@@ -105,6 +128,17 @@ public class RestaurantSelectionHistoryService {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "User is not in a group");
         }
 
-        return user.getGroupId();
+        return user;
+    }
+
+    /** 將抽選歷史實體轉換為回應 */
+    private SelectionHistoryResponse toResponse(RestaurantSelectionHistoryEntity entity) {
+        return SelectionHistoryResponse.builder()
+                .historyId(entity.getHistoryId())
+                .restaurantId(entity.getRestaurant().getRestaurantId())
+                .restaurantName(entity.getRestaurant().getRestaurantName())
+                .category(entity.getRestaurant().getCategoryId().getCategoryName())
+                .selectedAt(entity.getSelectedAt())
+                .build();
     }
 }

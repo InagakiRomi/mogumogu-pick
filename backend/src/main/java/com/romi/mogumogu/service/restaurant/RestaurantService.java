@@ -1,9 +1,13 @@
 package com.romi.mogumogu.service.restaurant;
 
-import com.romi.mogumogu.Response.DishListResponse;
-import com.romi.mogumogu.Response.RestaurantListResponse;
-import com.romi.mogumogu.Response.RestaurantResponse;
-import com.romi.mogumogu.Response.SelectionHistoryResponse;
+import com.romi.mogumogu.client.OverpassClient;
+import com.romi.mogumogu.mapper.NearbyRestaurantMapper;
+import com.romi.mogumogu.response.DishListResponse;
+import com.romi.mogumogu.response.NearbyRestaurantResponse;
+import com.romi.mogumogu.response.NearbyRestaurantSearchResponse;
+import com.romi.mogumogu.response.RestaurantListResponse;
+import com.romi.mogumogu.response.RestaurantResponse;
+import com.romi.mogumogu.response.SelectionHistoryResponse;
 import com.romi.mogumogu.dto.CreateRestaurantDto;
 import com.romi.mogumogu.dto.GetRestaurantQuery;
 import com.romi.mogumogu.dto.GetSelectionHistoryQuery;
@@ -31,6 +35,8 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 import jakarta.persistence.criteria.Predicate;
+import tools.jackson.databind.JsonNode;
+
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
@@ -44,6 +50,7 @@ import java.util.logging.Logger;
 
 @Service
 public class RestaurantService {
+    private static final int RADIUS = 1000;
     private static final Logger renderLog = new JulLoggerFactory().printRenderLog();
 
     private final RestaurantRepository restaurantRepository;
@@ -51,6 +58,8 @@ public class RestaurantService {
     private final UserRepository userRepository;
     private final RestaurantSelectionHistoryService selectionHistoryService;
     private final DishService dishService;
+    private final OverpassClient overpassClient;
+
     private final Map<Integer, RandomPool> randomPoolByUser = new ConcurrentHashMap<>();
 
     private record RandomPool(Integer categoryId, List<Integer> restaurantIds, int totalCount) {
@@ -61,12 +70,14 @@ public class RestaurantService {
             RestaurantCategoryRepository restaurantCategoryRepository,
             UserRepository userRepository,
             RestaurantSelectionHistoryService restaurantSelectionHistoryService,
-            DishService dishService) {
+            DishService dishService,
+            OverpassClient overpassClient) {
         this.restaurantRepository = restaurantRepository;
         this.restaurantCategoryRepository = restaurantCategoryRepository;
         this.userRepository = userRepository;
         this.selectionHistoryService = restaurantSelectionHistoryService;
         this.dishService = dishService;
+        this.overpassClient = overpassClient;
     }
 
     /** 取得目前登入使用者所屬群組的餐廳清單 */
@@ -139,17 +150,22 @@ public class RestaurantService {
         // 取得餐廳列表
         Page<RestaurantEntity> pageResult = restaurantRepository.findAll(spec, pageable);
         List<RestaurantResponse> restaurantResponses = pageResult.getContent().stream()
-                .map(RestaurantResponse::restaurantResponse)
+                .map(this::toResponse)
                 .toList();
 
-        return RestaurantListResponse.of(restaurantResponses, page, limit, pageResult.getTotalElements());
+        return RestaurantListResponse.<RestaurantResponse>builder()
+                .data(restaurantResponses)
+                .page(page)
+                .limit(limit)
+                .total(pageResult.getTotalElements())
+                .build();
     }
 
     /** 依餐廳 ID 取得目前登入使用者所屬群組的單筆餐廳資訊 */
     public RestaurantResponse getRestaurant(Integer restaurantId) {
         Integer groupId = resolveCurrentUserGroupId();
         RestaurantEntity restaurant = findRestaurantInGroupOrThrow(restaurantId, groupId);
-        return RestaurantResponse.restaurantResponse(restaurant);
+        return toResponse(restaurant);
     }
 
     /** 依餐廳 ID 取得目前登入使用者所屬群組的餐點清單 */
@@ -157,6 +173,59 @@ public class RestaurantService {
         Integer groupId = resolveCurrentUserGroupId();
         findRestaurantInGroupOrThrow(restaurantId, groupId);
         return dishService.getRestaurantDishes(restaurantId);
+    }
+
+    /** 取得指定座標附近的餐廳資料 */
+    public NearbyRestaurantSearchResponse getNearbyRestaurants(
+            double latitude,
+            double longitude) {
+
+        // 取得 Overpass 餐廳資料
+        JsonNode response = overpassClient.searchRestaurants(
+                latitude,
+                longitude,
+                RADIUS);
+
+        // 檢查餐廳資料
+        if (!response.has("elements")) {
+            return toNearbySearchResponse(List.of(), latitude, longitude);
+        }
+
+        List<NearbyRestaurantResponse> restaurants = new ArrayList<>();
+
+        // 整理餐廳資料
+        for (JsonNode element : response.get("elements")) {
+
+            String name = null;
+
+            // 取得餐廳名稱
+            for (String key : List.of("name:zh", "name", "brand")) {
+
+                String value = element.path("tags")
+                        .path(key)
+                        .asString(null);
+
+                if (value != null && !value.isBlank()) {
+                    name = value;
+                    break;
+                }
+            }
+
+            if (name == null) {
+                continue;
+            }
+
+            // 轉換成回傳格式
+            NearbyRestaurantResponse restaurant = NearbyRestaurantMapper.fromOverpass(
+                    element,
+                    name);
+
+            if (restaurant != null) {
+                restaurants.add(restaurant);
+            }
+        }
+
+        return toNearbySearchResponse(restaurants, latitude, longitude);
     }
 
     /** 抽取目前登入使用者所屬群組的一間餐廳 */
@@ -218,13 +287,18 @@ public class RestaurantService {
         renderLog.info(String.format(
                 "Restaurant pool total: %d, drawn so far: %d",
                 totalCount, drawnCount));
-        return RestaurantResponse.restaurantResponse(selectedRestaurant);
+        return toResponse(selectedRestaurant);
     }
 
     /** 取得自己所屬群組的餐廳抽選歷史紀錄 */
     public RestaurantListResponse<SelectionHistoryResponse> getMyGroupSelectionHistory(
             GetSelectionHistoryQuery queryParams) {
         return selectionHistoryService.getMyGroupSelectionHistory(queryParams);
+    }
+
+    /** 清除自己所屬群組的所有餐廳抽選歷史紀錄 */
+    public void clearMyGroupSelectionHistory() {
+        selectionHistoryService.clearMyGroupSelectionHistory();
     }
 
     /** 確認選擇餐廳，更新選取紀錄並重置抽籤池 */
@@ -248,7 +322,7 @@ public class RestaurantService {
         RestaurantEntity savedRestaurant = restaurantRepository.save(restaurant);
         selectionHistoryService.recordSelection(groupId, savedRestaurant, now);
 
-        return RestaurantResponse.restaurantResponse(savedRestaurant);
+        return toResponse(savedRestaurant);
     }
 
     /** 重置目前登入使用者的抽籤池 */
@@ -288,6 +362,7 @@ public class RestaurantService {
                 .displayOrderId(nextDisplayOrderId)
                 .selectedCount(0)
                 .restaurantName(request.getRestaurantName())
+                .address(request.getAddress())
                 .note(request.getNote())
                 .imageUrl(request.getImageUrl())
                 .lastSelectedAt(null)
@@ -296,7 +371,7 @@ public class RestaurantService {
                 .build());
 
         RestaurantEntity savedEntity = restaurantRepository.save(entity);
-        return RestaurantResponse.restaurantResponse(savedEntity);
+        return toResponse(savedEntity);
     }
 
     /** 修改餐廳 */
@@ -337,6 +412,11 @@ public class RestaurantService {
             restaurant.setRestaurantName(restaurantName);
         }
 
+        // 修改地址
+        if (request.getAddress() != null) {
+            restaurant.setAddress(request.getAddress());
+        }
+
         // 修改備註
         if (request.getNote() != null) {
             restaurant.setNote(request.getNote());
@@ -357,14 +437,14 @@ public class RestaurantService {
 
         // 寫回資料庫並轉成回傳 DTO
         RestaurantEntity updatedEntity = restaurantRepository.save(restaurant);
-        return RestaurantResponse.restaurantResponse(updatedEntity);
+        return toResponse(updatedEntity);
     }
 
     /** 刪除餐廳 */
     @Transactional
     public RestaurantResponse deleteRestaurant(Integer restaurantId) {
         RestaurantEntity restaurant = findRestaurantOrThrow(restaurantId);
-        RestaurantResponse response = RestaurantResponse.restaurantResponse(restaurant);
+        RestaurantResponse response = toResponse(restaurant);
 
         dishService.deleteDishesByRestaurantId(restaurantId);
         selectionHistoryService.deleteByRestaurantId(restaurantId);
@@ -423,4 +503,35 @@ public class RestaurantService {
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "Category not found"));
     }
 
+    /** 將餐廳實體轉換為餐廳回應 */
+    private RestaurantResponse toResponse(RestaurantEntity entity) {
+        return RestaurantResponse.builder()
+                .restaurantId(entity.getRestaurantId())
+                .groupId(entity.getGroupId())
+                .categoryId(entity.getCategoryId().getCategoryId())
+                .categoryName(entity.getCategoryId().getCategoryName())
+                .displayOrderId(entity.getDisplayOrderId())
+                .selectedCount(entity.getSelectedCount())
+                .restaurantName(entity.getRestaurantName())
+                .address(entity.getAddress())
+                .note(entity.getNote())
+                .imageUrl(entity.getImageUrl())
+                .lastSelectedAt(entity.getLastSelectedAt())
+                .createdAt(entity.getCreatedAt())
+                .updatedAt(entity.getUpdatedAt())
+                .build();
+    }
+
+    /** 將附近餐廳列表轉換為搜尋回應 */
+    private NearbyRestaurantSearchResponse toNearbySearchResponse(
+            List<NearbyRestaurantResponse> restaurants,
+            double latitude,
+            double longitude) {
+        return NearbyRestaurantSearchResponse.builder()
+                .restaurants(restaurants)
+                .total((long) restaurants.size())
+                .latitude(latitude)
+                .longitude(longitude)
+                .build();
+    }
 }

@@ -2,18 +2,18 @@
 import { computed, onMounted, ref } from 'vue'
 import type { components } from '@/api/schema'
 import client from '@/api/client'
-import ConfirmAlertDialog from '@/components/feedback/ConfirmAlertDialog.vue'
-import FormAlertDialog from '@/components/feedback/FormAlertDialog.vue'
+import AlertConfirm from '@/components/alert/AlertConfirm.vue'
+import FormDialog from '@/components/form/FormDialog.vue'
 import FormSelectField from '@/components/form/FormSelectField.vue'
-import ListPagePanel from '@/components/form/ListPagePanel.vue'
-import ListSection from '@/components/form/ListSection.vue'
+import ListPagePanel from '@/components/list/ListPagePanel.vue'
+import ListSection from '@/components/list/ListSection.vue'
 import ListTable, {
   ListTableActions,
   ListTableCell,
   ListTableHead,
   ListTableRow,
-} from '@/components/form/ListTable.vue'
-import WarmButton from '@/components/warm/WarmButton.vue'
+} from '@/components/list/ListTable.vue'
+import PrimaryButton from '@/components/common/PrimaryButton.vue'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { useFeedbackDialog } from '@/composables/useFeedbackDialog'
@@ -21,16 +21,13 @@ import { getApiErrorMessage } from '@/lib/apiErrorMessage'
 import { authSession } from '@/lib/authSession'
 import { isGroupAdmin } from '@/lib/userRole'
 
-const FORM_LABEL_CLASS = 'font-bold text-muted-foreground'
-const FORM_INPUT_CLASS =
-  'h-10 px-2.5 text-sm rounded-md border border-border bg-muted/90 text-popover-foreground'
 const DEFAULT_SORT_OPTIONS = [
   { label: '小到大', value: 'ASC' as const },
   { label: '大到小', value: 'DESC' as const },
 ]
 
 type RestaurantCategory = components['schemas']['RestaurantCategoryResponse']
-type CategoryOrderBy = 'CATEGORY_ID' | 'DISPLAY_ORDER_ID' | 'RESTAURANT_COUNT'
+type CategoryOrderBy = 'DISPLAY_ORDER_ID' | 'RESTAURANT_COUNT'
 type SortOrder = 'ASC' | 'DESC'
 
 const categoryListForm = {
@@ -71,22 +68,18 @@ const sortedCategories = computed(() => {
 
   return [...categories.value].sort((a, b) => {
     const primaryDiff =
-      orderBy.value === 'CATEGORY_ID'
-        ? (a.categoryId ?? 0) - (b.categoryId ?? 0)
-        : orderBy.value === 'DISPLAY_ORDER_ID'
-          ? (a.displayOrderId ?? 0) - (b.displayOrderId ?? 0)
-          : (a.restaurantCount ?? 0) - (b.restaurantCount ?? 0)
+      orderBy.value === 'DISPLAY_ORDER_ID'
+        ? (a.displayOrderId ?? 0) - (b.displayOrderId ?? 0)
+        : (a.restaurantCount ?? 0) - (b.restaurantCount ?? 0)
 
     if (primaryDiff !== 0) {
       return primaryDiff * direction
     }
 
     const secondaryDiff =
-      orderBy.value === 'CATEGORY_ID'
-        ? (a.displayOrderId ?? 0) - (b.displayOrderId ?? 0)
-        : orderBy.value === 'DISPLAY_ORDER_ID'
-          ? (a.categoryId ?? 0) - (b.categoryId ?? 0)
-          : (a.displayOrderId ?? 0) - (b.displayOrderId ?? 0)
+      orderBy.value === 'DISPLAY_ORDER_ID'
+        ? (a.categoryId ?? 0) - (b.categoryId ?? 0)
+        : (a.displayOrderId ?? 0) - (b.displayOrderId ?? 0)
 
     return secondaryDiff * direction
   })
@@ -264,142 +257,130 @@ onMounted(() => {
 <template>
   <ListPagePanel>
     <ListSection title="餐廳分類" :summary="`共 ${categories.length} 個分類`">
-        <div class="flex flex-wrap items-end gap-3">
-          <FormSelectField
-            v-model="orderBy"
-            label="排序欄位"
-            :options="categoryListForm.orderByOptions"
-            placeholder="選擇排序欄位"
-          />
-          <FormSelectField
-            v-model="sort"
-            label="排序方向"
-            :options="categoryListForm.sortOptions"
-            placeholder="選擇排序方向"
-          />
-          <WarmButton :disabled="isLoading" @click="openCreateDialog">
-            新增分類
-          </WarmButton>
-        </div>
+      <div class="flex flex-wrap items-end gap-3">
+        <FormSelectField
+          v-model="orderBy"
+          label="排序欄位"
+          :options="categoryListForm.orderByOptions"
+        />
+        <FormSelectField
+          v-model="sort"
+          label="排序方向"
+          :options="categoryListForm.sortOptions"
+        />
+        <PrimaryButton :disabled="isLoading" @click="openCreateDialog"> 新增分類 </PrimaryButton>
+      </div>
 
-        <ListTable
-          :is-loading="isLoading"
-          :is-empty="sortedCategories.length === 0"
-          :column-count="4"
-          :loading-text="categoryListForm.loadingText"
-          :empty-text="categoryListForm.emptyText"
+      <ListTable
+        :is-loading="isLoading"
+        :is-empty="sortedCategories.length === 0"
+        :column-count="4"
+        :loading-text="categoryListForm.loadingText"
+        :empty-text="categoryListForm.emptyText"
+      >
+        <template #header>
+          <ListTableHead class="w-30">排序 ID</ListTableHead>
+          <ListTableHead>分類名稱</ListTableHead>
+          <ListTableHead class="w-30">使用中餐廳</ListTableHead>
+          <ListTableHead class="w-55">操作</ListTableHead>
+        </template>
+
+        <ListTableRow
+          v-for="category in sortedCategories"
+          :key="category.categoryId ?? category.categoryName"
         >
-          <template #header>
-            <ListTableHead class="w-[120px]">排序 ID</ListTableHead>
-            <ListTableHead>分類名稱</ListTableHead>
-            <ListTableHead class="w-[120px]">使用中餐廳</ListTableHead>
-            <ListTableHead class="w-[220px]">操作</ListTableHead>
-          </template>
-
-          <ListTableRow
-            v-for="category in sortedCategories"
-            :key="category.categoryId ?? category.categoryName"
-          >
-            <ListTableCell>{{ category.displayOrderId ?? '-' }}</ListTableCell>
-            <ListTableCell truncate :title="category.categoryName ?? undefined">
-              {{ category.categoryName ?? '-' }}
-            </ListTableCell>
-            <ListTableCell>{{ category.restaurantCount ?? 0 }} 間</ListTableCell>
-            <ListTableCell>
-              <ListTableActions>
-                <WarmButton
-                  variant="outline-standard"
-                  class="h-9 px-3 text-sm"
-                  @click="openEditDialog(category)"
-                >
-                  編輯
-                </WarmButton>
-                <WarmButton
-                  variant="outline-standard"
-                  class="h-9 px-3 text-sm"
-                  @click="openDeleteDialog(category)"
-                >
-                  刪除
-                </WarmButton>
-              </ListTableActions>
-            </ListTableCell>
-          </ListTableRow>
-        </ListTable>
+          <ListTableCell>{{ category.displayOrderId ?? '-' }}</ListTableCell>
+          <ListTableCell truncate :title="category.categoryName ?? undefined">
+            {{ category.categoryName ?? '-' }}
+          </ListTableCell>
+          <ListTableCell>{{ category.restaurantCount ?? 0 }} 間</ListTableCell>
+          <ListTableCell>
+            <ListTableActions>
+              <PrimaryButton
+                variant="outline"
+                class="h-9 px-3"
+                @click="openEditDialog(category)"
+              >
+                編輯
+              </PrimaryButton>
+              <PrimaryButton
+                v-if="canDeleteCategory"
+                variant="outline"
+                class="h-9 px-3"
+                @click="openDeleteDialog(category)"
+              >
+                刪除
+              </PrimaryButton>
+            </ListTableActions>
+          </ListTableCell>
+        </ListTableRow>
+      </ListTable>
     </ListSection>
 
     <template #overlay>
-      <FormAlertDialog
-      :open="isCreateDialogOpen"
-      title="新增分類"
-      submit-label="新增"
-      :loading="isCreating"
-      loading-label="新增中..."
-      :can-submit="createNameInput.trim().length > 0"
-      @update:open="isCreateDialogOpen = $event"
-      @submit="createCategory"
-      @cancel="closeCreateDialog"
-    >
-      <div class="space-y-2">
-        <Label for="create-category-name" :class="FORM_LABEL_CLASS">分類名稱</Label>
-        <Input
-          id="create-category-name"
-          v-model="createNameInput"
-          maxlength="32"
-          :class="FORM_INPUT_CLASS"
-          placeholder="例如：甜點"
-        />
-      </div>
-    </FormAlertDialog>
+      <FormDialog
+        :open="isCreateDialogOpen"
+        title="新增分類"
+        submit-label="新增"
+        loading-label="新增中..."
+        :loading="isCreating"
+        :can-submit="createNameInput.trim().length > 0"
+        @update:open="isCreateDialogOpen = $event"
+        @submit="createCategory"
+        @cancel="closeCreateDialog"
+      >
+        <div>
+          <Label for="create-category-name">分類名稱</Label>
+          <Input
+            id="create-category-name"
+            v-model="createNameInput"
+            maxlength="32"
+          />
+        </div>
+      </FormDialog>
 
-    <FormAlertDialog
-      :open="isEditDialogOpen"
-      title="編輯分類"
-      submit-label="更新"
-      :loading="isUpdating"
-      loading-label="更新中..."
-      :can-submit="editNameInput.trim().length > 0 && editDisplayOrderIdInput.trim().length > 0"
-      @update:open="isEditDialogOpen = $event"
-      @submit="updateCategory"
-      @cancel="closeEditDialog"
-    >
-      <div class="space-y-2">
-        <Label for="edit-category-name" :class="FORM_LABEL_CLASS">分類名稱</Label>
-        <Input
-          id="edit-category-name"
-          v-model="editNameInput"
-          maxlength="32"
-          :class="FORM_INPUT_CLASS"
-          placeholder="例如：甜點"
-        />
-      </div>
-      <div class="space-y-2">
-        <Label for="edit-category-display-order-id" :class="FORM_LABEL_CLASS">
-          顯示排序 ID
-        </Label>
-        <Input
-          id="edit-category-display-order-id"
-          v-model="editDisplayOrderIdInput"
-          type="number"
-          min="1"
-          step="1"
-          :class="FORM_INPUT_CLASS"
-          placeholder="例如：1"
-        />
-      </div>
-    </FormAlertDialog>
+      <FormDialog
+        :open="isEditDialogOpen"
+        title="編輯分類"
+        submit-label="更新"
+        loading-label="更新中..."
+        :loading="isUpdating"
+        :can-submit="editNameInput.trim().length > 0 && editDisplayOrderIdInput.trim().length > 0"
+        @update:open="isEditDialogOpen = $event"
+        @submit="updateCategory"
+        @cancel="closeEditDialog"
+      >
+        <div>
+          <Label for="edit-category-name">分類名稱</Label>
+          <Input
+            id="edit-category-name"
+            v-model="editNameInput"
+            maxlength="32"
+          />
+        </div>
 
-    <ConfirmAlertDialog
-      v-model:open="isDeleteDialogOpen"
-      title="確認刪除分類？"
-      confirm-label="確認刪除"
-      loading-label="刪除中..."
-      :loading="isDeleting"
-      @confirm="handleDeleteCategory"
-    >
-      確定要刪除分類「{{
-        deletingCategory?.categoryName?.trim() || `ID ${deletingCategory?.categoryId ?? ''}`
-      }}」嗎？
-    </ConfirmAlertDialog>
+        <div>
+          <Label for="edit-category-display-order-id">顯示排序 ID</Label>
+          <Input
+            id="edit-category-display-order-id"
+            v-model="editDisplayOrderIdInput"
+            type="number"
+            min="1"
+            step="1"
+          />
+        </div>
+      </FormDialog>
+
+      <AlertConfirm
+        :open="isDeleteDialogOpen"
+        title="確認刪除分類？"
+        :description="`確定要刪除分類「${deletingCategory?.categoryName?.trim() || `ID ${deletingCategory?.categoryId ?? ''}`}」嗎？`"
+        confirm-label="確認刪除"
+        loading-label="刪除中..."
+        :loading="isDeleting"
+        @update:open="isDeleteDialogOpen = $event"
+        @confirm="handleDeleteCategory"
+      />
     </template>
   </ListPagePanel>
 </template>

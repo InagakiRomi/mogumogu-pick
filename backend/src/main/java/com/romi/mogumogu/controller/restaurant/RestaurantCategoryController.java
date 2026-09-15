@@ -13,7 +13,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.romi.mogumogu.Response.RestaurantCategoryResponse;
+import com.romi.mogumogu.response.RestaurantCategoryResponse;
 import com.romi.mogumogu.dto.CreateRestaurantCategoryDto;
 import com.romi.mogumogu.dto.UpdateRestaurantCategoryDto;
 import com.romi.mogumogu.service.restaurant.RestaurantCategoryService;

@@ -11,8 +11,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
-import com.romi.mogumogu.Response.GroupMemberResponse;
-import com.romi.mogumogu.Response.GroupProfileResponse;
+import com.romi.mogumogu.response.GroupMemberResponse;
+import com.romi.mogumogu.response.GroupProfileResponse;
 import com.romi.mogumogu.dto.AddGroupMemberDto;
 import com.romi.mogumogu.dto.TransferGroupAdminDto;
 import com.romi.mogumogu.dto.UpdateGroupNameDto;
@@ -40,7 +40,7 @@ public class GroupService {
         Integer groupId = requireGroupId(currentUser);
 
         return userRepository.findByGroupIdOrderByDisplayOrderIdAscUserIdAsc(groupId).stream()
-                .map(GroupMemberResponse::fromUser)
+                .map(this::toResponse)
                 .toList();
     }
 
@@ -76,7 +76,7 @@ public class GroupService {
         targetUser.setUpdatedAt(now);
 
         UserEntity saved = userRepository.save(targetUser);
-        return GroupMemberResponse.fromUser(saved);
+        return toResponse(saved);
     }
 
     /** 刪除群組成員（僅群組管理員） */
@@ -146,7 +146,7 @@ public class GroupService {
         userRepository.save(currentUser);
         UserEntity savedTarget = userRepository.save(targetUser);
 
-        return GroupMemberResponse.fromUser(savedTarget);
+        return toResponse(savedTarget);
     }
 
     /** 取得目前群組名稱 */
@@ -235,5 +235,19 @@ public class GroupService {
     private GroupEntity findGroupOrThrow(Integer groupId) {
         return groupRepository.findById(Objects.requireNonNull(groupId))
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Group not found"));
+    }
+
+    /** 將使用者實體轉換為群組成員回應 */
+    private GroupMemberResponse toResponse(UserEntity user) {
+        return GroupMemberResponse.builder()
+                .userId(user.getUserId())
+                .groupId(user.getGroupId())
+                .displayOrderId(user.getDisplayOrderId())
+                .role(user.getRoles().ordinal())
+                .username(user.getUsername())
+                .email(user.getEmail())
+                .createdAt(user.getCreatedAt())
+                .updatedAt(user.getUpdatedAt())
+                .build();
     }
 }

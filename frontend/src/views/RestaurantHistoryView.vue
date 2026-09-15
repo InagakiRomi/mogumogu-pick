@@ -3,19 +3,22 @@ import { computed, onMounted, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import type { components, operations } from '@/api/schema'
 import client from '@/api/client'
+import AlertConfirm from '@/components/alert/AlertConfirm.vue'
 import FormSelectField from '@/components/form/FormSelectField.vue'
-import ListPagePanel from '@/components/form/ListPagePanel.vue'
-import ListPagination from '@/components/form/ListPagination.vue'
-import ListSection from '@/components/form/ListSection.vue'
+import ListPagePanel from '@/components/list/ListPagePanel.vue'
+import ListPagination from '@/components/list/ListPagination.vue'
+import ListSection from '@/components/list/ListSection.vue'
 import ListTable, {
   ListTableActions,
   ListTableCell,
   ListTableHead,
   ListTableRow,
-} from '@/components/form/ListTable.vue'
-import WarmButton from '@/components/warm/WarmButton.vue'
+} from '@/components/list/ListTable.vue'
+import PrimaryButton from '@/components/common/PrimaryButton.vue'
 import { useFeedbackDialog } from '@/composables/useFeedbackDialog'
 import { getApiErrorMessage, RESTAURANT_FEEDBACK_MESSAGES } from '@/lib/apiErrorMessage'
+import { authSession } from '@/lib/authSession'
+import { isGroupAdmin } from '@/lib/userRole'
 
 const DEFAULT_SORT_OPTIONS = [
   { label: '小到大', value: 'ASC' as const },
@@ -41,8 +44,12 @@ const page = ref(1)
 const limit = ref(DEFAULT_LIMIT)
 const total = ref(0)
 const isLoading = ref(false)
-const { showFeedback } = useFeedbackDialog()
+const isClearing = ref(false)
+const isClearDialogOpen = ref(false)
+const { showFeedback, clearFeedback } = useFeedbackDialog()
 const router = useRouter()
+
+const canClearHistory = computed(() => isGroupAdmin(authSession.value?.role))
 
 const totalPages = computed(() => {
   if (!total.value || !limit.value) {
@@ -85,6 +92,36 @@ async function fetchSelectionHistory() {
   histories.value = data?.data ?? []
   total.value = Number(data?.total ?? 0)
   isLoading.value = false
+}
+
+function openClearDialog() {
+  if (!canClearHistory.value) {
+    showFeedback('只有群組管理員可以清除歷史紀錄')
+    return
+  }
+  isClearDialogOpen.value = true
+}
+
+async function clearSelectionHistory() {
+  clearFeedback()
+  isClearing.value = true
+
+  try {
+    const { error } = await client.DELETE('/restaurants/selection-history')
+
+    if (error) {
+      showFeedback(getApiErrorMessage(error, '清除歷史紀錄失敗'))
+      return
+    }
+
+    histories.value = []
+    total.value = 0
+    page.value = 1
+    showFeedback('已清除群組所有抽選歷史紀錄', 'success')
+  } finally {
+    isClearDialogOpen.value = false
+    isClearing.value = false
+  }
 }
 
 function goPrevPage() {
@@ -136,8 +173,15 @@ onMounted(() => {
           v-model="sort"
           label="排序方向"
           :options="historyListForm.sortOptions"
-          placeholder="選擇排序方向"
         />
+        <PrimaryButton
+          v-if="canClearHistory"
+          variant="standard"
+          :disabled="isLoading || isClearing || total === 0"
+          @click="openClearDialog"
+        >
+          清除所有紀錄
+        </PrimaryButton>
       </div>
 
       <ListTable
@@ -148,17 +192,14 @@ onMounted(() => {
         :empty-text="historyListForm.emptyText"
       >
         <template #header>
-          <ListTableHead class="w-[80px]">排序</ListTableHead>
+          <ListTableHead class="w-20">排序</ListTableHead>
           <ListTableHead>餐廳名稱</ListTableHead>
-          <ListTableHead class="w-[120px]">類別</ListTableHead>
-          <ListTableHead class="w-[180px]">選擇時間</ListTableHead>
-          <ListTableHead class="w-[140px]">操作</ListTableHead>
+          <ListTableHead class="w-30">類別</ListTableHead>
+          <ListTableHead class="w-45">選擇時間</ListTableHead>
+          <ListTableHead class="w-35">操作</ListTableHead>
         </template>
 
-        <ListTableRow
-          v-for="history in histories"
-          :key="history.historyId"
-        >
+        <ListTableRow v-for="history in histories" :key="history.historyId">
           <ListTableCell>{{ history.historyId ?? '-' }}</ListTableCell>
           <ListTableCell truncate :title="history.restaurantName ?? undefined">
             {{ history.restaurantName ?? '-' }}
@@ -169,14 +210,14 @@ onMounted(() => {
           </ListTableCell>
           <ListTableCell>
             <ListTableActions>
-              <WarmButton
+              <PrimaryButton
                 v-if="history.restaurantId != null"
-                variant="outline-standard"
-                class="h-9 px-3 text-sm"
+                variant="outline"
+                class="h-9 px-3"
                 @click="goRestaurantDetail(history.restaurantId)"
               >
                 查看詳細
-              </WarmButton>
+              </PrimaryButton>
               <span v-else class="text-muted-foreground">-</span>
             </ListTableActions>
           </ListTableCell>
@@ -194,5 +235,18 @@ onMounted(() => {
         @next="goNextPage"
       />
     </ListSection>
+
+    <template #overlay>
+      <AlertConfirm
+        :open="isClearDialogOpen"
+        title="確認清除所有歷史紀錄？"
+        description="此操作會永久刪除該群組的所有抽選歷史紀錄，且無法復原。"
+        confirm-label="確認清除"
+        loading-label="清除中..."
+        :loading="isClearing"
+        @update:open="isClearDialogOpen = $event"
+        @confirm="clearSelectionHistory"
+      />
+    </template>
   </ListPagePanel>
 </template>

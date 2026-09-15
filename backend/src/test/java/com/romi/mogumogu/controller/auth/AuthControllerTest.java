@@ -38,7 +38,7 @@ import org.springframework.web.server.ResponseStatusException;
 
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
-import com.romi.mogumogu.Response.LoginResponse;
+import com.romi.mogumogu.response.LoginResponse;
 import com.romi.mogumogu.dto.LoginRequest;
 import com.romi.mogumogu.dto.RegisterRequest;
 import com.romi.mogumogu.enums.UserRole;
@@ -101,7 +101,7 @@ class AuthControllerTest {
                 !objectMapper.readTree(registerJson).hasNonNull("token"),
                 "註冊回應不應帶有非 null 的 token");
 
-        verify(authService).register(argThat(req -> "\u65b0\u4f7f\u7528\u8005".equals(req.getUsername())
+        verify(authService).register(argThat(req -> "新使用者".equals(req.getUsername())
                 && "new@example.com".equals(req.getEmail()) && "password123".equals(req.getPassword())));
     }
 
@@ -471,7 +471,6 @@ class AuthControllerTest {
         return body;
     }
 
-    /** 多數「服務層丟錯誤」註冊測試共用的合法請求本文 */
     private RegisterRequest defaultRegisterBody() {
         return registerRequest("u", "new@example.com", "password123");
     }
@@ -563,9 +562,6 @@ class AuthControllerTest {
         verifyNoInteractions(authService);
     }
 
-    /**
-     * 驗證 400 回應的 {@code message} 同時包含多個子字串（例如多欄位驗證），並執行自訂的 Mockito 斷言。
-     */
     private void assertBadRequestMessageContainsSubstrings(
             ResultActions pendingRequest,
             Runnable verifyServiceNotUsed,

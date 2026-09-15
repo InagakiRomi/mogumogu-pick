@@ -46,6 +46,9 @@ public class RestaurantEntity {
     @Column(comment = "餐廳名稱", length = 64, nullable = false)
     private String restaurantName;
 
+    @Column(comment = "餐廳地址", length = 255)
+    private String address;
+
     @Column(comment = "補充說明或備註", length = 512)
     private String note;
 

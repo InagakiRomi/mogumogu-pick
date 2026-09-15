@@ -14,7 +14,7 @@ class RestaurantSortTest {
 
     @ParameterizedTest
     @ValueSource(strings = {"DESC", "desc", " Desc "})
-    @DisplayName("SortOrder.from 辨識 DESC")
+    @DisplayName("SortOrder.from recognizes DESC")
     void sortOrderFrom_recognizesDesc(String value) {
         assertThat(RestaurantSort.SortOrder.from(value)).isEqualTo(RestaurantSort.SortOrder.DESC);
     }
@@ -22,13 +22,13 @@ class RestaurantSortTest {
     @ParameterizedTest
     @NullAndEmptySource
     @ValueSource(strings = {"ASC", "asc", "invalid"})
-    @DisplayName("SortOrder.from 預設或回傳 ASC")
+    @DisplayName("SortOrder.from defaults to or returns ASC")
     void sortOrderFrom_defaultsToAsc(String value) {
         assertThat(RestaurantSort.SortOrder.from(value)).isEqualTo(RestaurantSort.SortOrder.ASC);
     }
 
     @Test
-    @DisplayName("SortBy 對應正確 JPA 屬性名稱")
+    @DisplayName("SortBy maps to the expected JPA property names")
     void sortBy_hasExpectedSortProperty() {
         assertThat(RestaurantSort.SortBy.RESTAURANT_ID.getSortProperty()).isEqualTo("restaurantId");
         assertThat(RestaurantSort.SortBy.SELECTED_COUNT.getSortProperty()).isEqualTo("selectedCount");
@@ -36,7 +36,7 @@ class RestaurantSortTest {
     }
 
     @Test
-    @DisplayName("SortOrder 對應 Spring Sort.Direction")
+    @DisplayName("SortOrder maps to Spring Sort.Direction")
     void sortOrder_hasExpectedDirection() {
         assertThat(RestaurantSort.SortOrder.ASC.getSortDirection()).isEqualTo(Sort.Direction.ASC);
         assertThat(RestaurantSort.SortOrder.DESC.getSortDirection()).isEqualTo(Sort.Direction.DESC);

@@ -278,7 +278,8 @@ export interface paths {
         get: operations["getMyGroupSelectionHistory"];
         put?: never;
         post?: never;
-        delete?: never;
+        /** 清除自己所屬群組的所有餐廳選擇歷史 */
+        delete: operations["clearMyGroupSelectionHistory"];
         options?: never;
         head?: never;
         patch?: never;
@@ -293,6 +294,23 @@ export interface paths {
         };
         /** 抽取自己所屬群組的一間餐廳 */
         get: operations["getRandomMyGroupRestaurant"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/restaurants/nearby": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 取得座標附近的餐廳資料 */
+        get: operations["getNearbyRestaurants"];
         put?: never;
         post?: never;
         delete?: never;
@@ -358,6 +376,11 @@ export interface components {
              */
             restaurantName: string;
             /**
+             * @description 地址
+             * @example 台北市信義區信義路五段7號
+             */
+            address?: string;
+            /**
              * @description 備註
              * @example 可訂位
              */
@@ -409,6 +432,11 @@ export interface components {
              * @example 和食天國
              */
             restaurantName?: string;
+            /**
+             * @description 地址
+             * @example 台北市信義區信義路五段7號
+             */
+            address?: string;
             /**
              * @description 備註
              * @example 可訂位
@@ -626,6 +654,11 @@ export interface components {
              */
             restaurantName?: string;
             /**
+             * @description 地址
+             * @example 台北市信義區信義路五段7號
+             */
+            address?: string;
+            /**
              * @description 備註
              * @example 可訂位
              */
@@ -723,6 +756,39 @@ export interface components {
             category?: string;
             /** Format: date-time */
             selectedAt?: string;
+        };
+        NearbyRestaurantResponse: {
+            /** Format: int64 */
+            id?: number;
+            name?: string;
+            /** Format: double */
+            latitude?: number;
+            /** Format: double */
+            longitude?: number;
+            address?: string;
+            openingHours?: string;
+            phone?: string;
+        };
+        NearbyRestaurantSearchResponse: {
+            restaurants?: components["schemas"]["NearbyRestaurantResponse"][];
+            /**
+             * Format: int64
+             * @description 找到的餐廳總筆數
+             * @example 12
+             */
+            total?: number;
+            /**
+             * Format: double
+             * @description 目前搜尋緯度
+             * @example 25.033
+             */
+            latitude?: number;
+            /**
+             * Format: double
+             * @description 目前搜尋經度
+             * @example 121.5654
+             */
+            longitude?: number;
         };
         HealthResponse: {
             status?: string;
@@ -1290,6 +1356,24 @@ export interface operations {
             };
         };
     };
+    clearMyGroupSelectionHistory: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     getRandomMyGroupRestaurant: {
         parameters: {
             query?: {
@@ -1308,6 +1392,29 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["RestaurantResponse"];
+                };
+            };
+        };
+    };
+    getNearbyRestaurants: {
+        parameters: {
+            query?: {
+                latitude?: number;
+                longitude?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["NearbyRestaurantSearchResponse"];
                 };
             };
         };

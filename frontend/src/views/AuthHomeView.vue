@@ -5,14 +5,15 @@ import client from '@/api/client'
 import { AUTH_FEEDBACK_MESSAGES, getApiErrorMessage } from '@/lib/apiErrorMessage'
 import { setAuthSession, hasGroup } from '@/lib/authSession'
 import { authToken } from '@/lib/authToken'
-import WarmButton from '@/components/warm/WarmButton.vue'
-import WarmPanel from '@/components/warm/WarmPanel.vue'
+import PrimaryButton from '@/components/common/PrimaryButton.vue'
+import PrimaryPanel from '@/components/common/PrimaryPanel.vue'
+import PrimarySelectTrigger from '@/components/common/PrimarySelectTrigger.vue'
 import { useFeedbackDialog } from '@/composables/useFeedbackDialog'
 import { useServerConnection } from '@/composables/useServerConnection'
-import WarmSelectTrigger from '@/components/warm/WarmSelectTrigger.vue'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Select, SelectContent, SelectItem, SelectValue } from '@/components/ui/select'
+import PrimarySelectContent from '@/components/common/PrimarySelectContent.vue'
+import { Select, SelectItem, SelectValue } from '@/components/ui/select'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { homeBgBackgroundStyle, publicAsset } from '@/lib/utils'
 
@@ -21,10 +22,12 @@ type AuthTab = 'login' | 'register'
 const authLabelClass = 'font-bold text-muted-foreground'
 
 const authFieldClass =
-  'h-[42px] rounded-md border-border bg-muted/90 px-2.5 py-0 text-base text-popover-foreground shadow-[inset_0_1px_2px_rgba(121,73,52,0.12)] placeholder:text-[rgba(118,78,60,0.72)] focus-visible:border-[rgba(168,98,68,0.75)] focus-visible:bg-[rgba(255,239,227,0.95)] focus-visible:shadow-[0_0_0_3px_rgba(238,175,143,0.26),inset_0_1px_3px_rgba(121,73,52,0.14)]'
+  'h-10.5 rounded-md border-border bg-muted/90 px-2.5 py-0 text-popover-foreground shadow-[inset_0_1px_2px_rgba(121,73,52,0.12)] placeholder:text-[rgba(118,78,60,0.72)] focus-visible:border-[rgba(168,98,68,0.75)] focus-visible:bg-[rgba(255,239,227,0.95)] focus-visible:shadow-[0_0_0_3px_rgba(238,175,143,0.26),inset_0_1px_3px_rgba(121,73,52,0.14)]'
 
 const authTabsTriggerClass =
-  'h-auto min-h-0 cursor-pointer select-none px-3 py-2 text-sm font-semibold text-[rgba(118,78,60,0.58)] hover:text-[rgba(95,57,41,0.78)] data-active:rounded-md data-active:border data-active:border-[rgba(186,118,88,0.55)] data-active:bg-linear-to-br data-active:from-white data-active:to-[rgba(255,225,205,0.98)] data-active:text-[rgba(78,42,28,0.95)] data-active:shadow-[0_2px_10px_rgba(95,57,41,0.22)]'
+  'h-auto min-h-0 cursor-pointer select-none px-3 py-2 font-semibold text-[rgba(118,78,60,0.58)] hover:text-[rgba(95,57,41,0.78)] data-active:rounded-md data-active:border data-active:border-[rgba(186,118,88,0.55)] data-active:bg-linear-to-br data-active:from-white data-active:to-[rgba(255,225,205,0.98)] data-active:text-[rgba(78,42,28,0.95)] data-active:shadow-[0_2px_10px_rgba(95,57,41,0.22)]'
+
+const authSubmitButtonClass = 'mt-7.5 h-[54px] w-full px-6 py-0 text-[1.1rem] font-semibold'
 
 const router = useRouter()
 const activeTab = ref<AuthTab>('login')
@@ -125,19 +128,19 @@ async function handleRegister() {
 
 <template>
   <main
-    class="min-h-screen bg-cover bg-center bg-no-repeat px-4 pt-5 pb-10 max-md:bg-top max-md:pt-3"
+    class="min-h-full bg-cover bg-center bg-no-repeat px-4 pt-5 pb-10 max-md:bg-top max-md:pt-3"
     :style="homeBgBackgroundStyle"
   >
     <div class="mx-auto w-fit text-center max-md:w-[calc(100%-24px)]">
       <img
-        class="mx-auto block h-[146px] w-[480px] object-contain max-lg:h-auto max-lg:w-[min(420px,88vw)] max-md:h-auto max-md:w-[min(340px,100%)]"
+        class="mx-auto block h-36.5 w-120 object-contain max-lg:h-auto max-lg:w-[min(420px,88vw)] max-md:h-auto max-md:w-[min(340px,100%)]"
         :src="publicAsset('images/logo.png')"
         alt="MoguMogu"
       />
     </div>
 
     <div
-      class="relative z-10 mx-auto mt-4 flex w-full max-w-[600px] items-center justify-center gap-3 rounded-lg border px-4 py-2.5 text-center text-sm font-semibold shadow-[0_6px_16px_rgba(95,57,41,0.12)] backdrop-blur-sm max-lg:max-w-[90%] max-md:max-w-[calc(100%-24px)] max-md:text-xs"
+      class="relative z-10 mx-auto mt-4 flex w-full max-w-150 items-center justify-center gap-3 rounded-lg border px-4 py-2.5 text-center font-semibold shadow-[0_6px_16px_rgba(95,57,41,0.12)] backdrop-blur-sm max-lg:max-w-[90%] max-md:max-w-[calc(100%-24px)]"
       :class="serverStatusClass"
       role="status"
       aria-live="polite"
@@ -152,17 +155,18 @@ async function handleRegister() {
         aria-hidden="true"
       />
       <span>{{ serverStatusMessage }}</span>
-      <button
+      <PrimaryButton
         v-if="serverStatus === 'disconnected'"
         type="button"
-        class="shrink-0 rounded-md border border-current/30 px-2 py-0.5 text-xs font-semibold transition-colors hover:bg-black/5"
+        variant="outline"
+        class="h-9 shrink-0 px-3"
         @click="checkConnection"
       >
         重新檢查
-      </button>
+      </PrimaryButton>
     </div>
 
-    <WarmPanel>
+    <PrimaryPanel>
       <Tabs v-model="activeTab" class="w-full">
         <TabsList
           class="grid h-auto w-full grid-cols-2 gap-1 rounded-lg border border-[rgba(198,134,105,0.35)] bg-[rgba(255,245,236,0.75)] p-1 group-data-horizontal/tabs:h-auto"
@@ -181,7 +185,6 @@ async function handleRegister() {
                 :class="authFieldClass"
                 type="email"
                 autocomplete="email"
-                placeholder="you@test.com"
                 required
               />
             </div>
@@ -194,14 +197,13 @@ async function handleRegister() {
                 :class="authFieldClass"
                 type="password"
                 autocomplete="current-password"
-                placeholder="請輸入密碼"
                 required
               />
             </div>
 
-            <WarmButton type="submit" variant="block" :disabled="isLoading">
+            <PrimaryButton type="submit" :class="authSubmitButtonClass" :disabled="isLoading">
               {{ isLoading ? '登入中...' : '登入' }}
-            </WarmButton>
+            </PrimaryButton>
           </form>
         </TabsContent>
 
@@ -215,7 +217,6 @@ async function handleRegister() {
                 :class="authFieldClass"
                 type="text"
                 autocomplete="username"
-                placeholder="請輸入名稱"
                 required
               />
             </div>
@@ -228,7 +229,6 @@ async function handleRegister() {
                 :class="authFieldClass"
                 type="email"
                 autocomplete="email"
-                placeholder="you@test.com"
                 required
               />
             </div>
@@ -241,7 +241,6 @@ async function handleRegister() {
                 :class="authFieldClass"
                 type="password"
                 autocomplete="new-password"
-                placeholder="請輸入密碼"
                 required
               />
             </div>
@@ -249,22 +248,22 @@ async function handleRegister() {
             <div class="space-y-2">
               <Label :class="authLabelClass"> 帳號類型 </Label>
               <Select v-model="registerForm.role">
-                <WarmSelectTrigger>
-                  <SelectValue placeholder="選擇帳號類型" />
-                </WarmSelectTrigger>
-                <SelectContent class="border-border bg-card text-popover-foreground">
+                <PrimarySelectTrigger>
+                  <SelectValue />
+                </PrimarySelectTrigger>
+                <PrimarySelectContent class="border-border bg-card text-popover-foreground">
                   <SelectItem value="1"> 一般使用者 </SelectItem>
                   <SelectItem value="0"> 群組管理員 </SelectItem>
-                </SelectContent>
+                </PrimarySelectContent>
               </Select>
             </div>
 
-            <WarmButton type="submit" variant="block" :disabled="isLoading">
+            <PrimaryButton type="submit" :class="authSubmitButtonClass" :disabled="isLoading">
               {{ isLoading ? '註冊中...' : '註冊' }}
-            </WarmButton>
+            </PrimaryButton>
           </form>
         </TabsContent>
       </Tabs>
-    </WarmPanel>
+    </PrimaryPanel>
   </main>
 </template>

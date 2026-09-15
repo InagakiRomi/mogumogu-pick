@@ -1,7 +1,7 @@
 package com.romi.mogumogu.service.dish;
 
-import com.romi.mogumogu.Response.DishListResponse;
-import com.romi.mogumogu.Response.DishResponse;
+import com.romi.mogumogu.response.DishListResponse;
+import com.romi.mogumogu.response.DishResponse;
 import com.romi.mogumogu.dto.CreateDishDto;
 import com.romi.mogumogu.dto.UpdateDishDto;
 import com.romi.mogumogu.entity.dish.DishEntity;
@@ -35,7 +35,7 @@ public class DishService {
         List<DishResponse> dishes = dishRepository
                 .findByRestaurantId_RestaurantIdOrderByDisplayOrderIdAsc(restaurantId)
                 .stream()
-                .map(DishResponse::dishResponse)
+                .map(this::toResponse)
                 .toList();
 
         return DishListResponse.builder()
@@ -75,7 +75,7 @@ public class DishService {
                 .build();
 
         DishEntity savedEntity = Objects.requireNonNull(dishRepository.save(entity));
-        return DishResponse.dishResponse(savedEntity);
+        return toResponse(savedEntity);
     }
 
     /** 修改餐點排序、名稱與價格 */
@@ -100,7 +100,7 @@ public class DishService {
         dish.setPrice(Objects.requireNonNull(request.getPrice()));
 
         DishEntity savedEntity = Objects.requireNonNull(dishRepository.save(dish));
-        return DishResponse.dishResponse(savedEntity);
+        return toResponse(savedEntity);
     }
 
     /** 刪除餐廳底下的所有餐點 */
@@ -133,5 +133,16 @@ public class DishService {
         }
         return dishRepository.findById(dishId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Dish not found"));
+    }
+
+    /** 將餐點實體轉換為餐點回應 */
+    private DishResponse toResponse(DishEntity entity) {
+        return DishResponse.builder()
+                .dishId(entity.getDishId())
+                .restaurantId(entity.getRestaurantId().getRestaurantId())
+                .displayOrderId(entity.getDisplayOrderId())
+                .price(entity.getPrice())
+                .dishName(entity.getDishName())
+                .build();
     }
 }

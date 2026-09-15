@@ -13,8 +13,8 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.romi.mogumogu.Response.GroupMemberResponse;
-import com.romi.mogumogu.Response.GroupProfileResponse;
+import com.romi.mogumogu.response.GroupMemberResponse;
+import com.romi.mogumogu.response.GroupProfileResponse;
 import com.romi.mogumogu.dto.AddGroupMemberDto;
 import com.romi.mogumogu.dto.TransferGroupAdminDto;
 import com.romi.mogumogu.dto.UpdateGroupNameDto;

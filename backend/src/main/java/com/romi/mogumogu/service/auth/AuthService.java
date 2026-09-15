@@ -11,7 +11,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
-import com.romi.mogumogu.Response.LoginResponse;
+import com.romi.mogumogu.response.LoginResponse;
 import com.romi.mogumogu.config.JwtTokenProvider;
 import com.romi.mogumogu.dto.LoginRequest;
 import com.romi.mogumogu.dto.RegisterRequest;

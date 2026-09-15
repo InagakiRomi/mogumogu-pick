@@ -3,21 +3,20 @@ import { computed, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import type { components } from '@/api/schema'
 import client from '@/api/client'
-import WarmAlertDialogShell from '@/components/feedback/WarmAlertDialogShell.vue'
-import WarmButton from '@/components/warm/WarmButton.vue'
-import WarmPanel from '@/components/warm/WarmPanel.vue'
-import WarmSelectTrigger from '@/components/warm/WarmSelectTrigger.vue'
+import PrimaryButton from '@/components/common/PrimaryButton.vue'
+import PrimaryPanel from '@/components/common/PrimaryPanel.vue'
+import PrimarySelectTrigger from '@/components/common/PrimarySelectTrigger.vue'
+import AlertConfirm from '@/components/alert/AlertConfirm.vue'
 import { useFeedbackDialog } from '@/composables/useFeedbackDialog'
-import { ALL_CATEGORIES_VALUE, useRestaurantCategories } from '@/composables/useRestaurantCategories'
 import {
-  AlertDialog,
-  AlertDialogDescription,
-  AlertDialogTitle,
-} from '@/components/ui/alert-dialog'
+  ALL_CATEGORIES_VALUE,
+  useRestaurantCategories,
+} from '@/composables/useRestaurantCategories'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Label } from '@/components/ui/label'
-import { Select, SelectContent, SelectItem, SelectValue } from '@/components/ui/select'
+import PrimarySelectContent from '@/components/common/PrimarySelectContent.vue'
+import { Select, SelectItem, SelectValue } from '@/components/ui/select'
 import { Separator } from '@/components/ui/separator'
 import { getApiErrorMessage, RESTAURANT_FEEDBACK_MESSAGES } from '@/lib/apiErrorMessage'
 import { homeBgBackgroundStyle, publicAsset } from '@/lib/utils'
@@ -60,7 +59,9 @@ const selectedCategoryLabel = computed(() => {
   return matched?.label ?? '未分類'
 })
 
-const canChooseRestaurant = computed(() => !!currentRestaurant.value?.restaurantId && !isChooseLoading.value)
+const canChooseRestaurant = computed(
+  () => !!currentRestaurant.value?.restaurantId && !isChooseLoading.value,
+)
 
 function resolveImage(restaurant: RestaurantResult | null): string {
   if (!restaurant) {
@@ -83,6 +84,7 @@ function resolveContent(restaurant: RestaurantResult | null | 'drawing') {
       selectedCount: '—',
       lastSelectedAt: '—',
       updatedAt: '—',
+      address: '—',
       note: '—',
       isPlaceholder: true,
     }
@@ -94,6 +96,7 @@ function resolveContent(restaurant: RestaurantResult | null | 'drawing') {
     selectedCount: restaurant?.selectedCount ?? 0,
     lastSelectedAt: restaurant?.lastSelectedAt || '尚無紀錄',
     updatedAt: restaurant?.updatedAt || '尚無紀錄',
+    address: restaurant?.address || '無',
     note: restaurant?.note || '無',
     isPlaceholder: false,
   }
@@ -274,18 +277,18 @@ async function handleChooseRestaurant() {
 
 <template>
   <main
-    class="min-h-screen bg-cover bg-center bg-no-repeat px-4 py-6"
+    class="min-h-full bg-cover bg-center bg-no-repeat px-4 py-6"
     :style="homeBgBackgroundStyle"
   >
-    <WarmPanel>
+    <PrimaryPanel>
       <div class="space-y-5">
         <div class="space-y-2">
           <Label for="restaurant-category" class="font-bold text-muted-foreground">篩選類別</Label>
           <Select :model-value="selectedCategory" @update:model-value="handleCategoryChange">
-            <WarmSelectTrigger id="restaurant-category">
-              <SelectValue placeholder="選擇類別" />
-            </WarmSelectTrigger>
-            <SelectContent class="border-border bg-card text-popover-foreground">
+            <PrimarySelectTrigger id="restaurant-category">
+              <SelectValue />
+            </PrimarySelectTrigger>
+            <PrimarySelectContent class="border-border bg-card text-popover-foreground">
               <SelectItem
                 v-for="option in categoryOptionsWithAll"
                 :key="option.value"
@@ -293,7 +296,7 @@ async function handleChooseRestaurant() {
               >
                 {{ option.label }}
               </SelectItem>
-            </SelectContent>
+            </PrimarySelectContent>
           </Select>
         </div>
 
@@ -330,10 +333,18 @@ async function handleChooseRestaurant() {
 
                   <Separator class="bg-[rgba(198,134,105,0.45)]" />
 
-                  <div class="grid grid-cols-1 gap-2 text-sm text-[rgba(95,57,41,0.92)]">
-                    <p><span class="font-semibold">選擇次數：</span>{{ frontContent.selectedCount }}</p>
-                    <p><span class="font-semibold">最後選擇時間：</span>{{ frontContent.lastSelectedAt }}</p>
-                    <p><span class="font-semibold">最後更新時間：</span>{{ frontContent.updatedAt }}</p>
+                  <div class="grid grid-cols-1 gap-2 text-[rgba(95,57,41,0.92)]">
+                    <p>
+                      <span class="font-semibold">選擇次數：</span>{{ frontContent.selectedCount }}
+                    </p>
+                    <p>
+                      <span class="font-semibold">最後選擇時間：</span
+                      >{{ frontContent.lastSelectedAt }}
+                    </p>
+                    <p>
+                      <span class="font-semibold">最後更新時間：</span>{{ frontContent.updatedAt }}
+                    </p>
+                    <p><span class="font-semibold">地址：</span>{{ frontContent.address }}</p>
                     <p><span class="font-semibold">備註：</span>{{ frontContent.note }}</p>
                   </div>
                 </CardContent>
@@ -368,16 +379,24 @@ async function handleChooseRestaurant() {
                   <Separator class="bg-[rgba(198,134,105,0.45)]" />
 
                   <div
-                    class="grid grid-cols-1 gap-2 text-sm"
+                    class="grid grid-cols-1 gap-2"
                     :class="
                       backContent.isPlaceholder
                         ? 'text-[rgba(95,57,41,0.55)]'
                         : 'text-[rgba(95,57,41,0.92)]'
                     "
                   >
-                    <p><span class="font-semibold">選擇次數：</span>{{ backContent.selectedCount }}</p>
-                    <p><span class="font-semibold">最後選擇時間：</span>{{ backContent.lastSelectedAt }}</p>
-                    <p><span class="font-semibold">最後更新時間：</span>{{ backContent.updatedAt }}</p>
+                    <p>
+                      <span class="font-semibold">選擇次數：</span>{{ backContent.selectedCount }}
+                    </p>
+                    <p>
+                      <span class="font-semibold">最後選擇時間：</span
+                      >{{ backContent.lastSelectedAt }}
+                    </p>
+                    <p>
+                      <span class="font-semibold">最後更新時間：</span>{{ backContent.updatedAt }}
+                    </p>
+                    <p><span class="font-semibold">地址：</span>{{ backContent.address }}</p>
                     <p><span class="font-semibold">備註：</span>{{ backContent.note }}</p>
                   </div>
                 </CardContent>
@@ -387,48 +406,30 @@ async function handleChooseRestaurant() {
         </div>
 
         <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
-          <WarmButton :disabled="isRandomLoading" @click="handleRandomRestaurant">
+          <PrimaryButton :disabled="isRandomLoading" @click="handleRandomRestaurant">
             {{ isRandomLoading ? '抽選中...' : '抽！' }}
-          </WarmButton>
-          <WarmButton
+          </PrimaryButton>
+          <PrimaryButton
             :disabled="!canChooseRestaurant"
-            variant="outline-standard"
+            variant="outline"
             @click="handleChooseRestaurant"
           >
             {{ isChooseLoading ? '送出中...' : '就決定選這間！' }}
-          </WarmButton>
+          </PrimaryButton>
         </div>
       </div>
-    </WarmPanel>
+    </PrimaryPanel>
 
-    <AlertDialog :open="isPostChooseDialogOpen" @update:open="isPostChooseDialogOpen = $event">
-      <WarmAlertDialogShell>
-        <template #title>
-          <AlertDialogTitle class="w-full text-center text-2xl font-bold text-[#5e3a28]">
-            選擇成功！
-          </AlertDialogTitle>
-        </template>
-        <AlertDialogDescription
-          class="w-full text-pretty wrap-break-word text-center text-xl font-semibold tracking-wide text-[#5e3a28]/90"
-        >
-          {{ RESTAURANT_FEEDBACK_MESSAGES.choose.success(chosenRestaurantName) }}
-        </AlertDialogDescription>
-        <template #actions>
-          <div class="flex flex-wrap items-center justify-center gap-3">
-            <WarmButton
-              class="min-w-[120px]"
-              variant="outline-standard"
-              @click="handleClosePostChooseDialog"
-            >
-              關閉
-            </WarmButton>
-            <WarmButton class="min-w-[120px]" @click="handleViewChosenRestaurantDetail">
-              查看詳細
-            </WarmButton>
-          </div>
-        </template>
-      </WarmAlertDialogShell>
-    </AlertDialog>
+    <AlertConfirm
+      :open="isPostChooseDialogOpen"
+      title="選擇成功！"
+      :description="RESTAURANT_FEEDBACK_MESSAGES.choose.success(chosenRestaurantName)"
+      confirm-label="查看詳細"
+      cancel-label="關閉"
+      @update:open="isPostChooseDialogOpen = $event"
+      @confirm="handleViewChosenRestaurantDetail"
+      @cancel="handleClosePostChooseDialog"
+    />
   </main>
 </template>
 

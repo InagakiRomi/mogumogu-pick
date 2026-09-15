@@ -1,9 +1,10 @@
 package com.romi.mogumogu.controller.restaurant;
 
-import com.romi.mogumogu.Response.DishListResponse;
-import com.romi.mogumogu.Response.RestaurantListResponse;
-import com.romi.mogumogu.Response.RestaurantResponse;
-import com.romi.mogumogu.Response.SelectionHistoryResponse;
+import com.romi.mogumogu.response.DishListResponse;
+import com.romi.mogumogu.response.NearbyRestaurantSearchResponse;
+import com.romi.mogumogu.response.RestaurantListResponse;
+import com.romi.mogumogu.response.RestaurantResponse;
+import com.romi.mogumogu.response.SelectionHistoryResponse;
 import com.romi.mogumogu.dto.CreateRestaurantDto;
 import com.romi.mogumogu.dto.GetRestaurantQuery;
 import com.romi.mogumogu.dto.GetSelectionHistoryQuery;
@@ -11,6 +12,7 @@ import com.romi.mogumogu.dto.UpdateRestaurantDto;
 import com.romi.mogumogu.service.restaurant.RestaurantService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+
 import org.springdoc.core.annotations.ParameterObject;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
@@ -44,6 +46,14 @@ public class RestaurantController {
         return restaurantService.getRestaurants(queryParams);
     }
 
+    @GetMapping("/nearby")
+    @Operation(summary = "取得座標附近的餐廳資料")
+    public NearbyRestaurantSearchResponse getNearbyRestaurants(
+            @RequestParam(defaultValue = "25.033") double latitude,
+            @RequestParam(defaultValue = "121.5654") double longitude) {
+        return restaurantService.getNearbyRestaurants(latitude, longitude);
+    }
+
     @GetMapping("/random")
     @Operation(summary = "抽取自己所屬群組的一間餐廳")
     public RestaurantResponse getRandomMyGroupRestaurant(@RequestParam(required = false) Integer categoryId) {
@@ -62,6 +72,13 @@ public class RestaurantController {
     public RestaurantListResponse<SelectionHistoryResponse> getMyGroupSelectionHistory(
             @Valid @ModelAttribute @ParameterObject GetSelectionHistoryQuery queryParams) {
         return restaurantService.getMyGroupSelectionHistory(queryParams);
+    }
+
+    @DeleteMapping("/selection-history")
+    @Operation(summary = "清除自己所屬群組的所有餐廳選擇歷史")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void clearMyGroupSelectionHistory() {
+        restaurantService.clearMyGroupSelectionHistory();
     }
 
     @PatchMapping("/{id}/choose")
