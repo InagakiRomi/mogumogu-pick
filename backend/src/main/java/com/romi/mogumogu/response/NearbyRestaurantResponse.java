@@ -1,5 +1,6 @@
 package com.romi.mogumogu.response;
 
+import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -10,25 +11,24 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 public class NearbyRestaurantResponse {
-
-    /** OSM ID */
+    @Schema(description = "OSM ID")
     private Long id;
 
-    /** 餐廳名稱 */
+    @Schema(description = "餐廳名稱")
     private String name;
 
-    /** 緯度 */
+    @Schema(description = "緯度")
     private Double latitude;
 
-    /** 經度 */
+    @Schema(description = "經度")
     private Double longitude;
 
-    /** 地址 */
+    @Schema(description = "地址")
     private String address;
 
-    /** 營業時間 */
+    @Schema(description = "營業時間")
     private String openingHours;
 
-    /** 電話 */
+    @Schema(description = "電話")
     private String phone;
 }

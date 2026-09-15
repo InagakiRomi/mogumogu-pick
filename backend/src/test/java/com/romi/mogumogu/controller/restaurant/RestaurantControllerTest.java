@@ -5,6 +5,7 @@ import tools.jackson.databind.ObjectMapper;
 import com.romi.mogumogu.response.DishListResponse;
 import com.romi.mogumogu.response.DishResponse;
 import com.romi.mogumogu.response.NearbyRestaurantResponse;
+import com.romi.mogumogu.response.NearbyRestaurantSearchResponse;
 import com.romi.mogumogu.response.RestaurantListResponse;
 import com.romi.mogumogu.response.RestaurantResponse;
 import com.romi.mogumogu.response.SelectionHistoryResponse;
@@ -265,12 +266,15 @@ class RestaurantControllerTest {
                         when(restaurantService.getNearbyRestaurants(
                                         DEFAULT_NEARBY_LATITUDE,
                                         DEFAULT_NEARBY_LONGITUDE))
-                                        .thenReturn(List.of(first, second));
+                                        .thenReturn(nearbySearchResponse(
+                                                        List.of(first, second),
+                                                        DEFAULT_NEARBY_LATITUDE,
+                                                        DEFAULT_NEARBY_LONGITUDE));
 
                         performGetNearbyRestaurants()
                                         .andExpect(status().isOk())
                                         .andExpect(jsonPath("$.restaurants.length()").value(2))
-                                        .andExpect(jsonPath("$.restaurantCount").value(2))
+                                        .andExpect(jsonPath("$.total").value(2))
                                         .andExpect(jsonPath("$.latitude").value(DEFAULT_NEARBY_LATITUDE))
                                         .andExpect(jsonPath("$.longitude").value(DEFAULT_NEARBY_LONGITUDE));
 
@@ -284,12 +288,14 @@ class RestaurantControllerTest {
                         when(restaurantService.getNearbyRestaurants(
                                         DEFAULT_NEARBY_LATITUDE,
                                         DEFAULT_NEARBY_LONGITUDE))
-                                        .thenReturn(List.of());
+                                        .thenReturn(emptyNearbySearchResponse(
+                                                        DEFAULT_NEARBY_LATITUDE,
+                                                        DEFAULT_NEARBY_LONGITUDE));
 
                         performGetNearbyRestaurants()
                                         .andExpect(status().isOk())
                                         .andExpect(jsonPath("$.restaurants.length()").value(0))
-                                        .andExpect(jsonPath("$.restaurantCount").value(0))
+                                        .andExpect(jsonPath("$.total").value(0))
                                         .andExpect(jsonPath("$.latitude").value(DEFAULT_NEARBY_LATITUDE))
                                         .andExpect(jsonPath("$.longitude").value(DEFAULT_NEARBY_LONGITUDE));
 
@@ -301,14 +307,14 @@ class RestaurantControllerTest {
                 @Test
                 void withExplicitCoordinates_passesExactCoordinatesToService() throws Exception {
                         when(restaurantService.getNearbyRestaurants(25.0330, 121.5654))
-                                        .thenReturn(List.of());
+                                        .thenReturn(emptyNearbySearchResponse(25.0330, 121.5654));
 
                         performGetNearbyRestaurants(Map.of(
                                         "latitude", "25.0330",
                                         "longitude", "121.5654"))
                                         .andExpect(status().isOk())
                                         .andExpect(jsonPath("$.restaurants.length()").value(0))
-                                        .andExpect(jsonPath("$.restaurantCount").value(0))
+                                        .andExpect(jsonPath("$.total").value(0))
                                         .andExpect(jsonPath("$.latitude").value(25.0330))
                                         .andExpect(jsonPath("$.longitude").value(121.5654));
 
@@ -320,7 +326,9 @@ class RestaurantControllerTest {
                         when(restaurantService.getNearbyRestaurants(
                                         DEFAULT_NEARBY_LATITUDE,
                                         120.3014))
-                                        .thenReturn(List.of());
+                                        .thenReturn(emptyNearbySearchResponse(
+                                                        DEFAULT_NEARBY_LATITUDE,
+                                                        120.3014));
 
                         performGetNearbyRestaurants(Map.of("longitude", "120.3014"))
                                         .andExpect(status().isOk());
@@ -335,7 +343,9 @@ class RestaurantControllerTest {
                         when(restaurantService.getNearbyRestaurants(
                                         22.6273,
                                         DEFAULT_NEARBY_LONGITUDE))
-                                        .thenReturn(List.of());
+                                        .thenReturn(emptyNearbySearchResponse(
+                                                        22.6273,
+                                                        DEFAULT_NEARBY_LONGITUDE));
 
                         performGetNearbyRestaurants(Map.of("latitude", "22.6273"))
                                         .andExpect(status().isOk());
@@ -350,14 +360,16 @@ class RestaurantControllerTest {
                         when(restaurantService.getNearbyRestaurants(
                                         DEFAULT_NEARBY_LATITUDE,
                                         DEFAULT_NEARBY_LONGITUDE))
-                                        .thenReturn(List.of());
+                                        .thenReturn(emptyNearbySearchResponse(
+                                                        DEFAULT_NEARBY_LATITUDE,
+                                                        DEFAULT_NEARBY_LONGITUDE));
 
                         performGetNearbyRestaurants(Map.of(
                                         "latitude", "",
                                         "longitude", ""))
                                         .andExpect(status().isOk())
                                         .andExpect(jsonPath("$.restaurants.length()").value(0))
-                                        .andExpect(jsonPath("$.restaurantCount").value(0))
+                                        .andExpect(jsonPath("$.total").value(0))
                                         .andExpect(jsonPath("$.latitude").value(DEFAULT_NEARBY_LATITUDE))
                                         .andExpect(jsonPath("$.longitude").value(DEFAULT_NEARBY_LONGITUDE));
 
@@ -369,7 +381,7 @@ class RestaurantControllerTest {
                 @Test
                 void zeroCoordinates_arePassedToService() throws Exception {
                         when(restaurantService.getNearbyRestaurants(0.0, 0.0))
-                                        .thenReturn(List.of());
+                                        .thenReturn(emptyNearbySearchResponse(0.0, 0.0));
 
                         performGetNearbyRestaurants(Map.of(
                                         "latitude", "0",
@@ -382,7 +394,7 @@ class RestaurantControllerTest {
                 @Test
                 void negativeCoordinates_arePassedToService() throws Exception {
                         when(restaurantService.getNearbyRestaurants(-33.8688, -70.6693))
-                                        .thenReturn(List.of());
+                                        .thenReturn(emptyNearbySearchResponse(-33.8688, -70.6693));
 
                         performGetNearbyRestaurants(Map.of(
                                         "latitude", "-33.8688",
@@ -395,7 +407,7 @@ class RestaurantControllerTest {
                 @Test
                 void boundaryCoordinates_arePassedToService() throws Exception {
                         when(restaurantService.getNearbyRestaurants(90.0, 180.0))
-                                        .thenReturn(List.of());
+                                        .thenReturn(emptyNearbySearchResponse(90.0, 180.0));
 
                         performGetNearbyRestaurants(Map.of(
                                         "latitude", "90",
@@ -408,7 +420,7 @@ class RestaurantControllerTest {
                 @Test
                 void negativeBoundaryCoordinates_arePassedToService() throws Exception {
                         when(restaurantService.getNearbyRestaurants(-90.0, -180.0))
-                                        .thenReturn(List.of());
+                                        .thenReturn(emptyNearbySearchResponse(-90.0, -180.0));
 
                         performGetNearbyRestaurants(Map.of(
                                         "latitude", "-90",
@@ -422,7 +434,7 @@ class RestaurantControllerTest {
                 void outOfGeographicRangeCoordinates_areStillPassedBecauseControllerHasNoRangeValidation()
                                 throws Exception {
                         when(restaurantService.getNearbyRestaurants(91.0, 181.0))
-                                        .thenReturn(List.of());
+                                        .thenReturn(emptyNearbySearchResponse(91.0, 181.0));
 
                         performGetNearbyRestaurants(Map.of(
                                         "latitude", "91",
@@ -435,7 +447,7 @@ class RestaurantControllerTest {
                 @Test
                 void scientificNotationCoordinates_areAccepted() throws Exception {
                         when(restaurantService.getNearbyRestaurants(24.989, 121.5111))
-                                        .thenReturn(List.of());
+                                        .thenReturn(emptyNearbySearchResponse(24.989, 121.5111));
 
                         performGetNearbyRestaurants(Map.of(
                                         "latitude", "2.4989e1",
@@ -448,7 +460,7 @@ class RestaurantControllerTest {
                 @Test
                 void signedPositiveCoordinates_areAccepted() throws Exception {
                         when(restaurantService.getNearbyRestaurants(25.033, 121.5654))
-                                        .thenReturn(List.of());
+                                        .thenReturn(emptyNearbySearchResponse(25.033, 121.5654));
 
                         performGetNearbyRestaurants(Map.of(
                                         "latitude", "+25.033",
@@ -461,7 +473,7 @@ class RestaurantControllerTest {
                 @Test
                 void negativeZero_isPreservedAsAValidDouble() throws Exception {
                         when(restaurantService.getNearbyRestaurants(-0.0d, -0.0d))
-                                        .thenReturn(List.of());
+                                        .thenReturn(emptyNearbySearchResponse(-0.0d, -0.0d));
 
                         performGetNearbyRestaurants(Map.of(
                                         "latitude", "-0.0",
@@ -474,7 +486,9 @@ class RestaurantControllerTest {
                 @Test
                 void maximumFiniteDoubleValues_areAcceptedByTypeConversion() throws Exception {
                         when(restaurantService.getNearbyRestaurants(Double.MAX_VALUE, Double.MAX_VALUE))
-                                        .thenReturn(List.of());
+                                        .thenReturn(emptyNearbySearchResponse(
+                                                        Double.MAX_VALUE,
+                                                        Double.MAX_VALUE));
 
                         performGetNearbyRestaurants(Map.of(
                                         "latitude", Double.toString(Double.MAX_VALUE),
@@ -487,7 +501,9 @@ class RestaurantControllerTest {
                 @Test
                 void nanAndInfinity_areAcceptedByDoubleConversionAndPassedToService() throws Exception {
                         when(restaurantService.getNearbyRestaurants(Double.NaN, Double.POSITIVE_INFINITY))
-                                        .thenReturn(List.of());
+                                        .thenReturn(emptyNearbySearchResponse(
+                                                        Double.NaN,
+                                                        Double.POSITIVE_INFINITY));
 
                         performGetNearbyRestaurants(Map.of(
                                         "latitude", "NaN",
@@ -502,7 +518,9 @@ class RestaurantControllerTest {
                         when(restaurantService.getNearbyRestaurants(
                                         DEFAULT_NEARBY_LATITUDE,
                                         DEFAULT_NEARBY_LONGITUDE))
-                                        .thenReturn(List.of());
+                                        .thenReturn(emptyNearbySearchResponse(
+                                                        DEFAULT_NEARBY_LATITUDE,
+                                                        DEFAULT_NEARBY_LONGITUDE));
 
                         performGetNearbyRestaurants(Map.of(
                                         "lat", "35.0000",
@@ -520,7 +538,9 @@ class RestaurantControllerTest {
                         when(restaurantService.getNearbyRestaurants(
                                         DEFAULT_NEARBY_LATITUDE,
                                         DEFAULT_NEARBY_LONGITUDE))
-                                        .thenReturn(List.of());
+                                        .thenReturn(emptyNearbySearchResponse(
+                                                        DEFAULT_NEARBY_LATITUDE,
+                                                        DEFAULT_NEARBY_LONGITUDE));
 
                         performGetNearbyRestaurants(Map.of(
                                         "Latitude", "25",
@@ -870,8 +890,7 @@ class RestaurantControllerTest {
 
                 @Test
                 void success_returns200WithUpdatedRestaurant() throws Exception {
-                        RestaurantResponse chosen = buildRestaurantResponse(7, 1, 10, "確認拉麵店");
-                        chosen.setSelectedCount(1);
+                        RestaurantResponse chosen = buildRestaurantResponse(7, 1, 10, "確認拉麵店", 1, 1);
                         when(restaurantService.chooseMyGroupRestaurant(7)).thenReturn(chosen);
 
                         performChooseMyGroupRestaurant(7)
@@ -1431,9 +1450,7 @@ class RestaurantControllerTest {
                 @Test
                 void success_returns200WithUpdatedRestaurant() throws Exception {
                         UpdateRestaurantDto request = buildUpdateRequest("新餐廳名稱", 20, 5);
-                        RestaurantResponse updated = buildRestaurantResponse(5, 1, 2, "新餐廳名稱");
-                        updated.setSelectedCount(20);
-                        updated.setDisplayOrderId(5);
+                        RestaurantResponse updated = buildRestaurantResponse(5, 1, 2, "新餐廳名稱", 20, 5);
 
                         when(restaurantService.updateRestaurant(eq(5), any(UpdateRestaurantDto.class)))
                                         .thenReturn(updated);
@@ -1732,13 +1749,18 @@ class RestaurantControllerTest {
 
         private RestaurantResponse buildRestaurantResponse(Integer restaurantId, Integer groupId, Integer categoryId,
                         String name) {
+                return buildRestaurantResponse(restaurantId, groupId, categoryId, name, 0, 1);
+        }
+
+        private RestaurantResponse buildRestaurantResponse(Integer restaurantId, Integer groupId, Integer categoryId,
+                        String name, Integer selectedCount, Integer displayOrderId) {
                 Date now = new Date();
                 return RestaurantResponse.builder()
                                 .restaurantId(restaurantId)
                                 .groupId(groupId)
                                 .categoryId(categoryId)
-                                .displayOrderId(1)
-                                .selectedCount(0)
+                                .displayOrderId(displayOrderId)
+                                .selectedCount(selectedCount)
                                 .restaurantName(name)
                                 .note("測試備註")
                                 .imageUrl("https://example.com/image.jpg")
@@ -1769,7 +1791,12 @@ class RestaurantControllerTest {
 
         private RestaurantListResponse<RestaurantResponse> buildRestaurantListResponse(List<RestaurantResponse> data,
                         Integer page, Integer limit, Long total) {
-                return RestaurantListResponse.of(data, page, limit, total);
+                return RestaurantListResponse.<RestaurantResponse>builder()
+                                .data(data)
+                                .page(page)
+                                .limit(limit)
+                                .total(total)
+                                .build();
         }
 
         private ResultActions performPostRestaurants(Object request) throws Exception {
@@ -1792,6 +1819,24 @@ class RestaurantControllerTest {
 
         private ResultActions performDeleteRestaurant(Integer id) throws Exception {
                 return mockMvc.perform(delete("/restaurants/{id}", id));
+        }
+
+        private static NearbyRestaurantSearchResponse nearbySearchResponse(
+                        List<NearbyRestaurantResponse> restaurants,
+                        double latitude,
+                        double longitude) {
+                return NearbyRestaurantSearchResponse.builder()
+                                .restaurants(restaurants)
+                                .total((long) restaurants.size())
+                                .latitude(latitude)
+                                .longitude(longitude)
+                                .build();
+        }
+
+        private static NearbyRestaurantSearchResponse emptyNearbySearchResponse(
+                        double latitude,
+                        double longitude) {
+                return nearbySearchResponse(List.of(), latitude, longitude);
         }
 
         private ResultActions performGetNearbyRestaurants() throws Exception {
@@ -1867,7 +1912,12 @@ class RestaurantControllerTest {
 
         private RestaurantListResponse<SelectionHistoryResponse> buildSelectionHistoryListResponse(
                         List<SelectionHistoryResponse> data, Integer page, Integer limit, Long total) {
-                return RestaurantListResponse.of(data, page, limit, total);
+                return RestaurantListResponse.<SelectionHistoryResponse>builder()
+                                .data(data)
+                                .page(page)
+                                .limit(limit)
+                                .total(total)
+                                .build();
         }
 
         private static java.util.function.Predicate<GetSelectionHistoryQuery> matchesDefaultHistoryQuery() {

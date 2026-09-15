@@ -1,43 +1,31 @@
 package com.romi.mogumogu.response;
 
-import com.romi.mogumogu.entity.history.RestaurantSelectionHistoryEntity;
-
+import com.romi.mogumogu.constant.DateTimePatternConstants;
+import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-import lombok.Setter;
 
 import java.util.Date;
 
 @Getter
-@Setter
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
 public class SelectionHistoryResponse {
-    /** 歷史紀錄 ID */
+    @Schema(description = "歷史紀錄 ID")
     private Integer historyId;
 
-    /** 餐廳 ID */
+    @Schema(description = "餐廳 ID")
     private Integer restaurantId;
 
-    /** 餐延名稱 */
+    @Schema(description = "餐廳名稱")
     private String restaurantName;
 
-    /** 分類名稱 */
+    @Schema(description = "分類名稱")
     private String category;
 
-    /** 選擇時間 */
+    @Schema(description = "選擇時間", pattern = DateTimePatternConstants.STANDARD_DATE_TIME)
     private Date selectedAt;
-
-    public static SelectionHistoryResponse from(RestaurantSelectionHistoryEntity entity) {
-        return SelectionHistoryResponse.builder()
-                .historyId(entity.getHistoryId())
-                .restaurantId(entity.getRestaurant().getRestaurantId())
-                .restaurantName(entity.getRestaurant().getRestaurantName())
-                .category(entity.getRestaurant().getCategoryId().getCategoryName())
-                .selectedAt(entity.getSelectedAt())
-                .build();
-    }
 }

@@ -151,7 +151,12 @@ public class RestaurantCategoryService {
     private RestaurantCategoryResponse toResponse(Integer groupId, RestaurantCategoryEntity entity) {
         long restaurantCount = restaurantRepository
                 .countByGroupIdAndCategoryId_CategoryId(groupId, entity.getCategoryId());
-        return RestaurantCategoryResponse.from(entity, restaurantCount);
+        return RestaurantCategoryResponse.builder()
+                .categoryId(entity.getCategoryId())
+                .categoryName(entity.getCategoryName())
+                .displayOrderId(entity.getDisplayOrderId())
+                .restaurantCount(restaurantCount)
+                .build();
     }
 
     /** 正規化分類名稱 */

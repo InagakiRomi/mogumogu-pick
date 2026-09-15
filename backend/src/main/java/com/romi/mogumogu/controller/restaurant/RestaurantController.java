@@ -51,10 +51,7 @@ public class RestaurantController {
     public NearbyRestaurantSearchResponse getNearbyRestaurants(
             @RequestParam(defaultValue = "25.033") double latitude,
             @RequestParam(defaultValue = "121.5654") double longitude) {
-        return NearbyRestaurantSearchResponse.of(
-                restaurantService.getNearbyRestaurants(latitude, longitude),
-                latitude,
-                longitude);
+        return restaurantService.getNearbyRestaurants(latitude, longitude);
     }
 
     @GetMapping("/random")

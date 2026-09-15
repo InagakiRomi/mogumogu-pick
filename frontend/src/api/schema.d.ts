@@ -772,11 +772,11 @@ export interface components {
         NearbyRestaurantSearchResponse: {
             restaurants?: components["schemas"]["NearbyRestaurantResponse"][];
             /**
-             * Format: int32
-             * @description 找到的餐廳數
+             * Format: int64
+             * @description 找到的餐廳總筆數
              * @example 12
              */
-            restaurantCount?: number;
+            total?: number;
             /**
              * Format: double
              * @description 目前搜尋緯度

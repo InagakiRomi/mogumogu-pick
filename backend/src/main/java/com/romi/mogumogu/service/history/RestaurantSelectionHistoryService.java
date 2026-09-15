@@ -81,10 +81,15 @@ public class RestaurantSelectionHistoryService {
 
         // 轉換為回傳 DTO
         List<SelectionHistoryResponse> data = pageResult.getContent().stream()
-                .map(SelectionHistoryResponse::from)
+                .map(this::toResponse)
                 .toList();
 
-        return RestaurantListResponse.of(data, page, limit, pageResult.getTotalElements());
+        return RestaurantListResponse.<SelectionHistoryResponse>builder()
+                .data(data)
+                .page(page)
+                .limit(limit)
+                .total(pageResult.getTotalElements())
+                .build();
     }
 
     /** 清除自己所屬群組的所有餐廳抽選歷史紀錄 */
@@ -124,5 +129,16 @@ public class RestaurantSelectionHistoryService {
         }
 
         return user;
+    }
+
+    /** 將抽選歷史實體轉換為回應 */
+    private SelectionHistoryResponse toResponse(RestaurantSelectionHistoryEntity entity) {
+        return SelectionHistoryResponse.builder()
+                .historyId(entity.getHistoryId())
+                .restaurantId(entity.getRestaurant().getRestaurantId())
+                .restaurantName(entity.getRestaurant().getRestaurantName())
+                .category(entity.getRestaurant().getCategoryId().getCategoryName())
+                .selectedAt(entity.getSelectedAt())
+                .build();
     }
 }

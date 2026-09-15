@@ -1,5 +1,6 @@
 package com.romi.mogumogu.response;
 
+import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -10,9 +11,9 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 public class GroupProfileResponse {
-    /** 群組 ID */
+    @Schema(description = "群組 ID")
     private Integer groupId;
 
-    /** 群組名稱 */
+    @Schema(description = "群組名稱")
     private String groupName;
 }

@@ -366,7 +366,7 @@ const showRestaurants = (restaurants: NearbyRestaurant[]) => {
 /** 套用後端回傳的搜尋結果 */
 const applySearchResult = (result: NearbyRestaurantSearch) => {
   showRestaurants(result.restaurants ?? [])
-  restaurantCount.value = result.restaurantCount ?? 0
+  restaurantCount.value = result.total ?? 0
 
   if (result.latitude == null || result.longitude == null) {
     return

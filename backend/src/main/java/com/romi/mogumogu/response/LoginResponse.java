@@ -1,34 +1,40 @@
 package com.romi.mogumogu.response;
 
-import java.util.Date;
-
+import com.romi.mogumogu.constant.DateTimePatternConstants;
+import io.swagger.v3.oas.annotations.media.Schema;
+import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
+
+import java.util.Date;
 
 @Getter
 @Builder
+@NoArgsConstructor
+@AllArgsConstructor
 public class LoginResponse {
-    /** 使用者 ID */
+    @Schema(description = "使用者 ID")
     private Integer userId;
 
-    /** 所屬群組 ID */
+    @Schema(description = "所屬群組 ID")
     private Integer groupId;
 
-    /** 角色 */
+    @Schema(description = "角色")
     private Integer role;
 
-    /** 使用者名稱 */
+    @Schema(description = "使用者名稱")
     private String username;
 
-    /** 電子郵件 */
+    @Schema(description = "電子郵件")
     private String email;
 
-    /** 帳號建立時間 */
+    @Schema(description = "帳號建立時間", pattern = DateTimePatternConstants.STANDARD_DATE_TIME)
     private Date createdAt;
 
-    /** 帳號最後更新時間 */
+    @Schema(description = "帳號最後更新時間", pattern = DateTimePatternConstants.STANDARD_DATE_TIME)
     private Date updatedAt;
 
-    /** JWT access token */
+    @Schema(description = "JWT access token")
     private String token;
 }

@@ -1,53 +1,40 @@
 package com.romi.mogumogu.response;
 
-import java.util.Date;
-
-import com.romi.mogumogu.entity.user.UserEntity;
-
+import com.romi.mogumogu.constant.DateTimePatternConstants;
+import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+
+import java.util.Date;
 
 @Getter
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
 public class GroupMemberResponse {
-    /** 使用者 ID */
+    @Schema(description = "使用者 ID")
     private Integer userId;
 
-    /** 群組 ID */
+    @Schema(description = "群組 ID")
     private Integer groupId;
 
-    /** 群組內排序 ID */
+    @Schema(description = "群組內排序 ID")
     private Integer displayOrderId;
 
-    /** 角色代碼 */
+    @Schema(description = "角色代碼")
     private Integer role;
 
-    /** 使用者名稱 */
+    @Schema(description = "使用者名稱")
     private String username;
 
-    /** 電子郵件 */
+    @Schema(description = "電子郵件")
     private String email;
 
-    /** 建立時間 */
+    @Schema(description = "建立時間", pattern = DateTimePatternConstants.STANDARD_DATE_TIME)
     private Date createdAt;
 
-    /** 更新時間 */
+    @Schema(description = "更新時間", pattern = DateTimePatternConstants.STANDARD_DATE_TIME)
     private Date updatedAt;
-
-    public static GroupMemberResponse fromUser(UserEntity user) {
-        return GroupMemberResponse.builder()
-                .userId(user.getUserId())
-                .groupId(user.getGroupId())
-                .displayOrderId(user.getDisplayOrderId())
-                .role(user.getRoles().ordinal())
-                .username(user.getUsername())
-                .email(user.getEmail())
-                .createdAt(user.getCreatedAt())
-                .updatedAt(user.getUpdatedAt())
-                .build();
-    }
 }

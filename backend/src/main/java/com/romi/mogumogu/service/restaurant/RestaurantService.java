@@ -4,6 +4,7 @@ import com.romi.mogumogu.client.OverpassClient;
 import com.romi.mogumogu.mapper.NearbyRestaurantMapper;
 import com.romi.mogumogu.response.DishListResponse;
 import com.romi.mogumogu.response.NearbyRestaurantResponse;
+import com.romi.mogumogu.response.NearbyRestaurantSearchResponse;
 import com.romi.mogumogu.response.RestaurantListResponse;
 import com.romi.mogumogu.response.RestaurantResponse;
 import com.romi.mogumogu.response.SelectionHistoryResponse;
@@ -149,17 +150,22 @@ public class RestaurantService {
         // 取得餐廳列表
         Page<RestaurantEntity> pageResult = restaurantRepository.findAll(spec, pageable);
         List<RestaurantResponse> restaurantResponses = pageResult.getContent().stream()
-                .map(RestaurantResponse::restaurantResponse)
+                .map(this::toResponse)
                 .toList();
 
-        return RestaurantListResponse.of(restaurantResponses, page, limit, pageResult.getTotalElements());
+        return RestaurantListResponse.<RestaurantResponse>builder()
+                .data(restaurantResponses)
+                .page(page)
+                .limit(limit)
+                .total(pageResult.getTotalElements())
+                .build();
     }
 
     /** 依餐廳 ID 取得目前登入使用者所屬群組的單筆餐廳資訊 */
     public RestaurantResponse getRestaurant(Integer restaurantId) {
         Integer groupId = resolveCurrentUserGroupId();
         RestaurantEntity restaurant = findRestaurantInGroupOrThrow(restaurantId, groupId);
-        return RestaurantResponse.restaurantResponse(restaurant);
+        return toResponse(restaurant);
     }
 
     /** 依餐廳 ID 取得目前登入使用者所屬群組的餐點清單 */
@@ -170,7 +176,7 @@ public class RestaurantService {
     }
 
     /** 取得指定座標附近的餐廳資料 */
-    public List<NearbyRestaurantResponse> getNearbyRestaurants(
+    public NearbyRestaurantSearchResponse getNearbyRestaurants(
             double latitude,
             double longitude) {
 
@@ -182,7 +188,7 @@ public class RestaurantService {
 
         // 檢查餐廳資料
         if (!response.has("elements")) {
-            return List.of();
+            return toNearbySearchResponse(List.of(), latitude, longitude);
         }
 
         List<NearbyRestaurantResponse> restaurants = new ArrayList<>();
@@ -219,7 +225,7 @@ public class RestaurantService {
             }
         }
 
-        return restaurants;
+        return toNearbySearchResponse(restaurants, latitude, longitude);
     }
 
     /** 抽取目前登入使用者所屬群組的一間餐廳 */
@@ -281,7 +287,7 @@ public class RestaurantService {
         renderLog.info(String.format(
                 "Restaurant pool total: %d, drawn so far: %d",
                 totalCount, drawnCount));
-        return RestaurantResponse.restaurantResponse(selectedRestaurant);
+        return toResponse(selectedRestaurant);
     }
 
     /** 取得自己所屬群組的餐廳抽選歷史紀錄 */
@@ -316,7 +322,7 @@ public class RestaurantService {
         RestaurantEntity savedRestaurant = restaurantRepository.save(restaurant);
         selectionHistoryService.recordSelection(groupId, savedRestaurant, now);
 
-        return RestaurantResponse.restaurantResponse(savedRestaurant);
+        return toResponse(savedRestaurant);
     }
 
     /** 重置目前登入使用者的抽籤池 */
@@ -365,7 +371,7 @@ public class RestaurantService {
                 .build());
 
         RestaurantEntity savedEntity = restaurantRepository.save(entity);
-        return RestaurantResponse.restaurantResponse(savedEntity);
+        return toResponse(savedEntity);
     }
 
     /** 修改餐廳 */
@@ -431,14 +437,14 @@ public class RestaurantService {
 
         // 寫回資料庫並轉成回傳 DTO
         RestaurantEntity updatedEntity = restaurantRepository.save(restaurant);
-        return RestaurantResponse.restaurantResponse(updatedEntity);
+        return toResponse(updatedEntity);
     }
 
     /** 刪除餐廳 */
     @Transactional
     public RestaurantResponse deleteRestaurant(Integer restaurantId) {
         RestaurantEntity restaurant = findRestaurantOrThrow(restaurantId);
-        RestaurantResponse response = RestaurantResponse.restaurantResponse(restaurant);
+        RestaurantResponse response = toResponse(restaurant);
 
         dishService.deleteDishesByRestaurantId(restaurantId);
         selectionHistoryService.deleteByRestaurantId(restaurantId);
@@ -495,5 +501,37 @@ public class RestaurantService {
         return restaurantCategoryRepository
                 .findByCategoryIdAndGroupId(categoryId, groupId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "Category not found"));
+    }
+
+    /** 將餐廳實體轉換為餐廳回應 */
+    private RestaurantResponse toResponse(RestaurantEntity entity) {
+        return RestaurantResponse.builder()
+                .restaurantId(entity.getRestaurantId())
+                .groupId(entity.getGroupId())
+                .categoryId(entity.getCategoryId().getCategoryId())
+                .categoryName(entity.getCategoryId().getCategoryName())
+                .displayOrderId(entity.getDisplayOrderId())
+                .selectedCount(entity.getSelectedCount())
+                .restaurantName(entity.getRestaurantName())
+                .address(entity.getAddress())
+                .note(entity.getNote())
+                .imageUrl(entity.getImageUrl())
+                .lastSelectedAt(entity.getLastSelectedAt())
+                .createdAt(entity.getCreatedAt())
+                .updatedAt(entity.getUpdatedAt())
+                .build();
+    }
+
+    /** 將附近餐廳列表轉換為搜尋回應 */
+    private NearbyRestaurantSearchResponse toNearbySearchResponse(
+            List<NearbyRestaurantResponse> restaurants,
+            double latitude,
+            double longitude) {
+        return NearbyRestaurantSearchResponse.builder()
+                .restaurants(restaurants)
+                .total((long) restaurants.size())
+                .latitude(latitude)
+                .longitude(longitude)
+                .build();
     }
 }

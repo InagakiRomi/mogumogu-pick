@@ -1,5 +1,6 @@
 package com.romi.mogumogu.response;
 
+import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -12,24 +13,15 @@ import java.util.List;
 @NoArgsConstructor
 @AllArgsConstructor
 public class RestaurantListResponse<T> {
-    /** 資料列表 */
+    @Schema(description = "資料列表")
     private List<T> data;
 
-    /** 頁碼 */
+    @Schema(description = "頁碼")
     private Integer page;
 
-    /** 每頁筆數 */
+    @Schema(description = "每頁筆數")
     private Integer limit;
 
-    /** 總筆數 */
+    @Schema(description = "總筆數")
     private Long total;
-
-    public static <T> RestaurantListResponse<T> of(List<T> data, int page, int limit, long total) {
-        return RestaurantListResponse.<T>builder()
-                .data(data)
-                .page(page)
-                .limit(limit)
-                .total(total)
-                .build();
-    }
 }
