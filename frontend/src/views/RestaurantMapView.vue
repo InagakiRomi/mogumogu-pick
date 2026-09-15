@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { nextTick, onMounted, onUnmounted, ref } from 'vue'
+import { storeToRefs } from 'pinia'
 
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
@@ -15,6 +16,7 @@ import CreateRestaurantDialog, {
 import PrimaryButton from '@/components/common/PrimaryButton.vue'
 import { useFeedbackDialog } from '@/composables/useFeedbackDialog'
 import { getApiErrorMessage } from '@/lib/apiErrorMessage'
+import { useNearbyRestaurantStore } from '@/stores/nearbyRestaurant'
 
 type NearbyRestaurant = components['schemas']['NearbyRestaurantResponse']
 type NearbyRestaurantSearch = components['schemas']['NearbyRestaurantSearchResponse']
@@ -23,6 +25,13 @@ type RestaurantStatus = 'idle' | 'loading' | 'success' | 'error'
 type MapInitStatus = 'locating' | 'ready'
 
 const { showFeedback } = useFeedbackDialog()
+const nearbyRestaurantStore = useNearbyRestaurantStore()
+const {
+  latitude: currentLatitude,
+  longitude: currentLongitude,
+  restaurants: nearbyRestaurants,
+  total: restaurantCount,
+} = storeToRefs(nearbyRestaurantStore)
 
 const mapContainer = ref<HTMLDivElement | null>(null)
 
@@ -30,7 +39,6 @@ const mapInitStatus = ref<MapInitStatus>('locating')
 const restaurantStatus = ref<RestaurantStatus>('idle')
 const showDefaultLocationNotice = ref(false)
 const loadingElapsedSeconds = ref(0)
-const restaurantCount = ref(0)
 const isCreateDialogOpen = ref(false)
 const createPrefill = ref<CreateRestaurantPrefill | null>(null)
 
@@ -40,16 +48,11 @@ let restaurantLayer: L.LayerGroup | null = null
 let userMarker: L.Marker | null = null
 let searchMarker: L.Marker | null = null
 
-const currentLatitude = ref<number | null>(null)
-const currentLongitude = ref<number | null>(null)
-const committedLatitude = ref<number | null>(null)
-const committedLongitude = ref<number | null>(null)
-
 let lastRequestedLatitude: number | null = null
 let lastRequestedLongitude: number | null = null
 
-let userLatitude: number | null = null
-let userLongitude: number | null = null
+const userLatitude = ref<number | null>(null)
+const userLongitude = ref<number | null>(null)
 
 let isUnmounted = false
 
@@ -364,16 +367,21 @@ const showRestaurants = (restaurants: NearbyRestaurant[]) => {
 }
 
 /** 套用後端回傳的搜尋結果 */
-const applySearchResult = (result: NearbyRestaurantSearch) => {
-  showRestaurants(result.restaurants ?? [])
-  restaurantCount.value = result.total ?? 0
+const applySearchResult = (
+  result: NearbyRestaurantSearch,
+  fallback: {
+    latitude: number
+    longitude: number
+  },
+) => {
+  nearbyRestaurantStore.saveSearch(result, fallback)
+  showRestaurants(nearbyRestaurants.value)
 
-  if (result.latitude == null || result.longitude == null) {
+  if (currentLatitude.value == null || currentLongitude.value == null) {
     return
   }
 
-  commitSearchPosition(result.latitude, result.longitude)
-  showSearchPosition(result.latitude, result.longitude)
+  showSearchPosition(currentLatitude.value, currentLongitude.value)
 }
 
 /** 清除讀取秒數計時器 */
@@ -436,22 +444,11 @@ const abortRestaurantSearch = () => {
 
 /** 還原到上一次已確認的搜尋位置 */
 const restoreLastSearchPosition = () => {
-  if (committedLatitude.value == null || committedLongitude.value == null) {
+  if (currentLatitude.value == null || currentLongitude.value == null) {
     return
   }
 
-  currentLatitude.value = committedLatitude.value
-  currentLongitude.value = committedLongitude.value
-
-  showSearchPosition(committedLatitude.value, committedLongitude.value)
-}
-
-/** 確認目前搜尋位置 */
-const commitSearchPosition = (latitude: number, longitude: number) => {
-  committedLatitude.value = latitude
-  committedLongitude.value = longitude
-  currentLatitude.value = latitude
-  currentLongitude.value = longitude
+  showSearchPosition(currentLatitude.value, currentLongitude.value)
 }
 
 /** 取消搜尋附近餐廳 */
@@ -535,7 +532,7 @@ const loadRestaurants = async (latitude: number, longitude: number) => {
       return
     }
 
-    applySearchResult(data)
+    applySearchResult(data, { latitude, longitude })
 
     restaurantStatus.value = 'success'
 
@@ -590,26 +587,34 @@ const goToSearchPosition = () => {
 
 /** 回到使用者位置 */
 const goToUserPosition = () => {
-  if (!map || userLatitude == null || userLongitude == null) {
+  if (!map || userLatitude.value == null || userLongitude.value == null) {
     return
   }
 
-  map.flyTo([userLatitude, userLongitude], DEFAULT_ZOOM, {
+  map.flyTo([userLatitude.value, userLongitude.value], DEFAULT_ZOOM, {
     duration: 0.8,
   })
 }
 
 /** 以指定座標初始化地圖 */
-const initMapAt = async (latitude: number, longitude: number, isUserPosition: boolean) => {
+const initMapAt = async (
+  latitude: number,
+  longitude: number,
+  options?: {
+    isUserPosition?: boolean
+    skipApi?: boolean
+    showDefaultNotice?: boolean
+  },
+) => {
   if (isUnmounted) return
 
   createMap(latitude, longitude)
 
   showSearchPosition(latitude, longitude)
 
-  if (isUserPosition) {
+  if (options?.isUserPosition) {
     showUserPosition(latitude, longitude)
-  } else {
+  } else if (options?.showDefaultNotice) {
     revealDefaultLocationNotice()
   }
 
@@ -620,6 +625,13 @@ const initMapAt = async (latitude: number, longitude: number, isUserPosition: bo
   map?.invalidateSize()
 
   if (isUnmounted) return
+
+  if (options?.skipApi) {
+    lastRequestedLatitude = currentLatitude.value
+    lastRequestedLongitude = currentLongitude.value
+    showRestaurants(nearbyRestaurants.value)
+    return
+  }
 
   await loadRestaurants(latitude, longitude)
 }
@@ -710,22 +722,51 @@ const getUserPosition = (): Promise<{
   })
 }
 
+/** 在背景補上使用者位置，不阻擋地圖與快取還原 */
+const hydrateUserPosition = async () => {
+  const position = await getUserPosition()
+
+  if (isUnmounted || !position) return
+
+  userLatitude.value = position.latitude
+  userLongitude.value = position.longitude
+
+  showUserPosition(position.latitude, position.longitude)
+}
+
 /** 初始化頁面 */
 onMounted(async () => {
+  if (
+    nearbyRestaurantStore.hasCachedSearch &&
+    currentLatitude.value != null &&
+    currentLongitude.value != null
+  ) {
+    await initMapAt(currentLatitude.value, currentLongitude.value, {
+      skipApi: true,
+    })
+
+    await hydrateUserPosition()
+    return
+  }
+
   const position = await getUserPosition()
 
   if (isUnmounted) return
 
   if (position) {
-    userLatitude = position.latitude
-    userLongitude = position.longitude
+    userLatitude.value = position.latitude
+    userLongitude.value = position.longitude
 
-    await initMapAt(position.latitude, position.longitude, true)
+    await initMapAt(position.latitude, position.longitude, {
+      isUserPosition: true,
+    })
 
     return
   }
 
-  await initMapAt(DEFAULT_LATITUDE, DEFAULT_LONGITUDE, false)
+  await initMapAt(DEFAULT_LATITUDE, DEFAULT_LONGITUDE, {
+    showDefaultNotice: true,
+  })
 })
 
 /** 銷毀頁面 */
