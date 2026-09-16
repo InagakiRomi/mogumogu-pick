@@ -1,203 +1,103 @@
 # mogumogu-pick
 
-**mogumogu-pick** 用於協助團隊決定要吃什麼。使用者可在群組內維護餐廳與餐點資料，透過隨機抽籤選出餐廳，並查詢過往選取紀錄。
+**mogumogu-pick** 協助團隊決定要吃什麼。使用者以群組為單位維護餐廳與餐點，透過隨機抽籤選出餐廳、查看過往選取紀錄，並可用地圖搜尋附近店家後加入群組清單。
 
 ### 專案連結
 
-前端 Demo：
-https://inagakiromi.github.io/mogumogu-pick/
+- 前端 Demo：https://inagakiromi.github.io/mogumogu-pick/
+- API 文件：https://mogumogu-pick.onrender.com/swagger-ui/index.html#/
 
-API 文件：
-https://mogumogu-pick.onrender.com/swagger-ui/index.html#/
+### 測試帳號
 
-### 測試帳號與密碼
-
-| 類別 | 帳號 | 密碼 |
+| 角色 | 帳號 | 密碼 |
 | --- | --- | --- |
 | 群組管理員 | groupadmin@test.com | 123 |
-| 一般帳號 | user@test.com | 123 |
+| 一般成員 | user@test.com | 123 |
 
 ---
 
-## 後端技術棧
+## 技術棧
+
+### 前端
+
+| 類別 | 技術 |
+| --- | --- |
+| 框架 | Vue 3、TypeScript、Vite |
+| 路由 / 狀態 | Vue Router、Pinia |
+| UI | Tailwind CSS、shadcn-vue、Reka UI、Lucide |
+| 地圖 | Leaflet、OpenStreetMap |
+| API | openapi-fetch（型別由後端 OpenAPI 產生） |
+| 部署 | GitHub Pages |
+
+### 後端
 
 | 類別 | 技術 |
 | --- | --- |
 | 語言 / 框架 | Java 17、Spring Boot 3.5 |
 | 安全 | Spring Security、JWT |
-| 資料存取 | Spring Data JPA |
-| 資料庫 | H2、MySQL；Flyway 管理 schema |
+| 資料 | Spring Data JPA、H2 / MySQL、Flyway |
+| 外部資料 | Overpass API（OpenStreetMap 附近餐廳） |
 | API 文件 | springdoc-openapi |
-| 測試 | JUnit 5、MockMvc |
-| 部署 | Docker |
-| 工具 | Excel 轉 SQL、DB 重置與匯入腳本 |
+| 部署 | Docker、Render |
 
-## 後端目錄結構
-
-```
-backend/src/main/java/com/romi/mogumogu/
-├── controller/     # REST API 端點
-├── service/        # 業務邏輯
-├── repository/     # 資料存取層
-├── entity/         # JPA 實體
-├── dto/            # 請求參數
-├── Response/       # 回應格式
-├── security/       # JWT 與安全設定
-├── config/         # CORS、OpenAPI 等設定
-├── exception/      # 全域例外處理
-└── scripts/        # 資料匯入與維護工具
-```
+角色分為 `GROUP_ADMIN`（群組管理員）與 `USER`（一般成員）。餐廳、分類、餐點與選取紀錄皆以群組隔離。
 
 ---
 
-## 功能說明
+## 功能
 
-### 認證與授權
+### 認證
 
-| 端點 | 功能 |
-| --- | --- |
-| `POST /auth/register`	| 使用者註冊（管理員註冊時會自動建立群組並加入預設餐廳分類） |
-| `POST /auth/login` | 使用者登入，成功後回傳 JWT Access Token |
-- 後續請求需於 Header 帶入 `Authorization: Bearer <token>`
-- 角色分為 `GROUP_ADMIN`（群組管理員）與 `USER`（一般成員）
-
-### 群組
-
-| 端點 | 功能 |
-| --- | --- |
-| `GET /groups/my`	| 取得目前群組名稱 |
-| `PATCH /groups/my`	| 修改目前群組名稱 |
-| `GET /groups/my/members`	| 取得自己所屬群組成員清單 |
-| `POST /groups/my/members`	| 新增群組成員 |
-| `DELETE /groups/my/members/{userId}`	| 刪除群組成員 |
-| `POST /groups/my/transfer-admin`	| 移轉群組管理權 |
-| `POST /groups/my/leave`	| 自行退出群組 |
-
-- 餐廳、分類、選取紀錄以群組（`group_id`）隔離
-- 以 `GROUP_ADMIN` 身分註冊時，系統會自動建立群組並加入預設餐廳分類
-- `/groups/my/*` 提供成員管理、群組名稱修改、管理權移轉與退群等功能
-
-### 餐廳管理
-
-| 端點 | 功能 |
-| --- | --- |
-| `GET /restaurants` | 分頁列表，支援分類篩選、名稱搜尋與排序 |
-| `GET /restaurants/{id}` | 取得單筆餐廳資料 |
-| `POST /restaurants` | 新增餐廳 |
-| `PATCH /restaurants/{id}` | 更新餐廳資料 |
-| `DELETE /restaurants/{id}` | 刪除餐廳（連帶刪除關聯餐點與選取紀錄） |
+- 註冊、登入；登入後以 JWT 存取功能頁
+- 註冊可選擇管理員或一般成員；管理員註冊時自動建立群組與預設分類
+- 尚未加入群組的成員會進入提示頁，需由管理員加入後才能使用功能
+- 登入頁會檢查後端連線狀態（部署環境伺服器可能需等待喚醒）
 
 ### 隨機抽籤
 
-| 端點 | 功能 |
-| --- | --- |
-| `GET /restaurants/random?categoryId=` | 從群組餐廳池中隨機抽取一間 |
-| `POST /restaurants/random/clear` | 重置抽籤池 |
-| `PATCH /restaurants/{id}/choose` | 確認選擇，更新統計並寫入歷史紀錄 |
+- 從群組餐廳池抽出一間，可依分類篩選
+- 不放回抽籤：本輪已抽出的餐廳不會重複，抽完後自動重置，也可手動重置
+- 確認選擇後更新選取次數、最後選取時間，並寫入歷史紀錄
 
-抽籤流程：
+### 我的餐廳
 
-- 每位使用者擁有獨立的記憶體抽籤池
-- 首次抽籤或切換分類時，從資料庫載入符合條件的餐廳 ID
-- 採不放回方式抽籤：已抽出的餐廳自池中移除，本輪不再重複
-- 池中餐廳抽完後自動重置，亦可透過 API 手動清除
-- 確認選擇時更新 `selectedCount`、`lastSelectedAt`，並寫入 `restaurant_selection_history`
+- 分頁列表：分類篩選、名稱搜尋、依 ID／建立時間／選取次數／最後選擇時間排序
+- 新增餐廳（名稱、分類、地址、備註、圖片等）
+- 餐廳詳情：檢視與編輯餐廳資料、刪除餐廳
+- 餐點管理：為指定餐廳新增、修改、刪除餐點
 
-### 餐廳分類與餐點
+### 美食地圖
 
-| 端點 | 功能 |
-| --- | --- |
-| `/restaurant-categories` | 餐廳分類 CRUD，群組內名稱不可重複 |
-| `/dishes` | 餐點 CRUD，隸屬於指定餐廳 |
+- 以目前位置（失敗時使用預設座標）顯示台灣範圍地圖
+- 搜尋地圖中心附近的店家（資料來自 OpenStreetMap / Overpass，搜尋範圍限台灣）
+- 在地圖上檢視店家資訊，並可帶入資料新增到群組餐廳清單
 
-### 選取歷史
+### 歷史紀錄
 
-| 端點 | 功能 |
-| --- | --- |
-| `GET /restaurants/selection-history` | 分頁查詢群組選取紀錄 |
+- 分頁查詢群組選取紀錄，可依時間排序
+- 可從紀錄進入對應餐廳詳情
+- 群組管理員可清除全部歷史紀錄
 
-### 錯誤處理
+### 分類管理
 
-- 以 `@RestControllerAdvice` 統一處理例外
-- 回應格式：`{ status, message, path, timestamp }`
+- 群組內餐廳分類的新增、編輯、刪除（名稱不可重複）
+- 可依排序 ID、使用次數排序
 
----
+### 成員管理
 
-## 資料模型
-
-```
-Group ──< User
-  │
-  ├──< RestaurantCategory ──< Restaurant ──< Dish
-  │
-  └──< RestaurantSelectionHistory >── Restaurant
-```
-
-| 資料表 | 說明 |
-| --- | --- |
-| `user` | 使用者與角色 |
-| `group` | 群組基本資訊 |
-| `restaurant_category` | 餐廳分類 |
-| `restaurant` | 餐廳主檔，含選取次數與最後選取時間 |
-| `dish` | 餐點 |
-| `restaurant_selection_history` | 選取紀錄 |
-
-資料庫 schema 由 Flyway 管理，H2 與 MySQL 各有一套 migration 檔案。
-
----
-
-## API 端點總覽
-
-| 模組 | 路徑前綴 | 說明 |
-| --- | --- | --- |
-| Health | `/health` | 健康檢查（公開） |
-| Auth | `/auth` | 註冊、登入（公開） |
-| Restaurants | `/restaurants` | 餐廳 CRUD、抽籤、選取、歷史 |
-| Categories | `/restaurant-categories` | 餐廳分類 CRUD |
-| Dishes | `/dishes` | 餐點 CRUD |
-| Groups | `/groups/my` | 群組成員與設定 |
-
-完整參數與回應格式請參考 [Swagger UI](https://mogumogu-pick.onrender.com/swagger-ui/index.html#/)。
-
----
-
-## 前端
-
-前端為 Vue 3 SPA，作為後端 API 的操作介面。
-
-| 項目 | 技術 |
-| --- | --- |
-| 框架 | Vue 3、Vue Router、TypeScript |
-| 建置 | Vite |
-| UI | Tailwind CSS、shadcn-vue |
-| API | openapi-fetch（型別由後端 OpenAPI 規格產生） |
-| 部署 | GitHub Pages（build 輸出至 `/docs`） |
-
-主要頁面：登入 / 註冊、餐廳列表、隨機抽籤、選取歷史、分類管理、成員管理。
-
----
-
-## 專案結構
-
-```
-mogumogu-pick/
-├── backend/          # Spring Boot API
-├── frontend/         # Vue 3 SPA
-├── docs/             # GitHub Pages 靜態站
-├── excel-data/       # 種子資料 Excel 來源
-└── README.md
-```
+- 查看群組成員與角色
+- 管理員：修改群組名稱、以 Email 新增成員、移出成員、移轉管理權
+- 成員可自行退出群組
 
 ---
 
 ## 專案畫面
-<img width="800" align="top" src="https://github.com/user-attachments/assets/2cbeb69b-0313-47f4-a6e1-72a5cf921354" /><br><br>
-<img width="800" align="top" src="https://github.com/user-attachments/assets/68eef0b7-29bf-432f-a5c0-38ad79974fee" /><br><br>
-<img width="800" align="top" src="https://github.com/user-attachments/assets/a77c1999-41b4-4182-83f6-b83830763794" /><br><br>
-<img width="800" align="top" src="https://github.com/user-attachments/assets/7ab9fc62-ee21-4013-804c-42d4bd7f6574" /><br><br>
-<img width="800" align="top" src="https://github.com/user-attachments/assets/3a8f4d9c-08c5-4490-add4-a28c6a28eb51" />
 
-
-
-
+<img width="800" align="top" src="https://github.com/user-attachments/assets/14fb2616-d5e8-4f77-a561-eec31608bec5" /><br><br>
+<img width="800" align="top" src="https://github.com/user-attachments/assets/8572d2ba-0774-4ef7-9653-74ab8ffec048" /><br><br>
+<img width="800" align="top" src="https://github.com/user-attachments/assets/b7c27469-da06-4f01-900a-ba1a80e5c5c1" /><br><br>
+<img width="800" align="top" src="https://github.com/user-attachments/assets/98f79141-44fa-4a1d-aa93-ac98cb35724b" /><br><br>
+<img width="800" align="top" src="https://github.com/user-attachments/assets/23f8947f-e730-4f6d-a069-a2a680794d8e" /><br><br>
+<img width="800" align="top" src="https://github.com/user-attachments/assets/48290ee2-f0c0-4324-ae53-efb3dbd063df" /><br><br>
+<img width="800" align="top" src="https://github.com/user-attachments/assets/50fa2e7e-44ff-4027-aff4-e3d072dab6bd" />
 
