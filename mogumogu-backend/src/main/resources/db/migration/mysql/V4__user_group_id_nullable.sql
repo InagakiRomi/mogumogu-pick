@@ -1,0 +1,1 @@
+ALTER TABLE `user` MODIFY group_id INT NULL;
