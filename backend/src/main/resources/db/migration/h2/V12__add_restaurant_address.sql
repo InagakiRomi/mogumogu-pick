@@ -1,1 +1,0 @@
-ALTER TABLE restaurant ADD COLUMN address VARCHAR(255);
