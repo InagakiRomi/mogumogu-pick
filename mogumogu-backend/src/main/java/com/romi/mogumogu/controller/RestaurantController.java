@@ -2,14 +2,22 @@ package com.romi.mogumogu.controller;
 
 import com.romi.mogumogu.dto.PageResponse;
 import com.romi.mogumogu.dto.restaurant.RestaurantCreateRequest;
+import com.romi.mogumogu.dto.restaurant.RestaurantMapResponse;
 import com.romi.mogumogu.dto.restaurant.RestaurantResponse;
 import com.romi.mogumogu.dto.restaurant.RestaurantUpdateRequest;
+import com.romi.mogumogu.service.RestaurantMapService;
 import com.romi.mogumogu.service.RestaurantService;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.DecimalMax;
+import jakarta.validation.constraints.DecimalMin;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
 import lombok.RequiredArgsConstructor;
+
+import java.math.BigDecimal;
 
 import org.springdoc.core.annotations.ParameterObject;
 import org.springframework.data.domain.Pageable;
@@ -33,6 +41,7 @@ import org.springframework.web.bind.annotation.RestController;
 @Tag(name = "restaurants", description = "餐廳")
 public class RestaurantController {
     private final RestaurantService restaurantService;
+    private final RestaurantMapService restaurantMapService;
 
     @PreAuthorize("hasRole('SYSTEM_ADMIN')")
     @GetMapping("")
@@ -82,11 +91,13 @@ public class RestaurantController {
         restaurantService.deleteRestaurant(restaurantId);
     }
 
-    // @GetMapping("/nearby")
-    // @Operation(summary = "取得座標附近的餐廳資料")
-    // public NearbyRestaurantSearchResponse getNearbyRestaurants(
-    // @RequestParam(defaultValue = "25.033") double latitude,
-    // @RequestParam(defaultValue = "121.5654") double longitude) {
-    // return restaurantService.getNearbyRestaurants(latitude, longitude);
-    // }
+    /** 搜尋附近餐廳 */
+    @GetMapping("/map")
+    @Operation(summary = "搜尋附近餐廳")
+    public RestaurantMapResponse getMapRestaurants(
+            @RequestParam(defaultValue = "25.0478") @DecimalMin("-90") @DecimalMax("90") BigDecimal lat,
+            @RequestParam(defaultValue = "121.517") @DecimalMin("-180") @DecimalMax("180") BigDecimal lon,
+            @RequestParam(defaultValue = "50") @Min(1) @Max(3000) int radius) {
+        return restaurantMapService.getMapRestaurants(lat.doubleValue(), lon.doubleValue(), radius);
+    }
 }
