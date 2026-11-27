@@ -1,8 +1,0 @@
-target/
-data/*
-!data/mogumogu.mv.db
-.env
-.git/
-.idea/
-*.iml
-.vscode/
