@@ -1,10 +1,4 @@
-import type { ClassValue } from "clsx"
-import { clsx } from "clsx"
-import { twMerge } from "tailwind-merge"
-
-export function cn(...inputs: ClassValue[]) {
-  return twMerge(clsx(inputs))
-}
+export { cn } from "cn";
 
 /** public 資料夾內靜態資源（會依 Vite base 加上子路徑前綴，例如 GitHub Pages） */
 export function publicAsset(path: string): string {

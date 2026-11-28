@@ -1,0 +1,17 @@
+/* shadcn設定 */
+@theme inline {
+  /* 卡片預設底色 */
+  --color-card: var(--surface);
+}
+
+@theme {
+  /* 全站最小文字大小16px */
+  --text-xs: 1rem;
+  --text-xs--line-height: 1.5;
+  --text-sm: 1rem;
+  --text-sm--line-height: 1.5;
+  --text-base: 1rem;
+
+  /* 全站最小文字大小16px */
+  --color-foreground: var(--text-color);
+}

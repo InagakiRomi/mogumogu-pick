@@ -1,7 +1,4 @@
 import { createRouter, createWebHistory } from 'vue-router'
-import { authSession, hasGroup } from '@/lib/authSession'
-import { authToken } from '@/lib/authToken'
-import AuthHomeView from '@/views/AuthHomeView.vue'
 import NoGroupView from '@/views/NoGroupView.vue'
 import MemberManagementView from '@/views/MemberManagementView.vue'
 import CategoryManagementView from '@/views/CategoryManagementView.vue'
@@ -16,9 +13,8 @@ const router = createRouter({
   routes: [
     {
       path: '/',
-      name: 'home',
-      component: AuthHomeView,
-      meta: { hideNavbar: true },
+      name: 'auth-home',
+      component: () => import('@/views/AuthHomeView.vue'),
     },
     {
       path: '/no-group',
@@ -57,7 +53,7 @@ const router = createRouter({
       meta: { requiresAuth: true, requiresGroup: true },
     },
     {
-      path: '/members',
+      path: '/groups',
       name: 'member-management',
       component: MemberManagementView,
       meta: { requiresAuth: true, requiresGroup: true },
@@ -69,39 +65,6 @@ const router = createRouter({
       meta: { requiresAuth: true, requiresGroup: true },
     },
   ],
-})
-
-router.beforeEach((to) => {
-  if (to.meta.requiresAuth && !authToken.value) {
-    return { name: 'home' }
-  }
-
-  if (!authToken.value) {
-    return true
-  }
-
-  if (!authSession.value) {
-    if (to.name === 'home') {
-      return true
-    }
-
-    authToken.value = null
-    return { name: 'home' }
-  }
-
-  const userHasGroup = hasGroup()
-
-  if (to.name === 'home') {
-    return { name: userHasGroup ? 'random-restaurant' : 'no-group' }
-  }
-
-  if (userHasGroup && to.name === 'no-group') {
-    return { name: 'random-restaurant' }
-  }
-
-  if (!userHasGroup && to.meta.requiresGroup) {
-    return { name: 'no-group' }
-  }
 })
 
 export default router

@@ -1,0 +1,30 @@
+@import 'tailwindcss';
+@import './theme.css';
+
+:root {
+  /* 全站主題顏色 */
+  --surface: #fff8ed;
+
+  /* 全站文字顏色 */
+  --text-color: #3e2723;
+}
+
+/* 全站最小文字大小16px */
+html {
+  font-size: 16px;
+}
+
+body {
+  /* 全站背景 */
+  margin: 0;
+  min-height: 100dvh;
+
+  background-image: url('./images/background.png');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-attachment: fixed;
+
+  /* 文字顏色 */
+  color: var(--text-color);
+}
